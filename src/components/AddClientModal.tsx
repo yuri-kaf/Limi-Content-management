@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -14,77 +14,77 @@ export default function AddClientModal({ onClose, onAdd }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd({
-      name: name.trim(),
-      imageUrl: imageUrl.trim() || undefined,
-      about: about.trim(),
-    });
+    onAdd({ name: name.trim(), imageUrl: imageUrl.trim() || undefined, about: about.trim() });
     onClose();
   }
+
+  const inputCls =
+    'w-full bg-[#0c0c0c] border border-[#222] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
+  const labelCls = 'block text-xs font-semibold text-[#666] mb-1.5 uppercase tracking-wider';
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.6)' }}
+      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl w-full max-w-md p-6">
+      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Add Client</h2>
-          <button onClick={onClose} className="text-[#888] hover:text-white transition-colors">
-            <X size={20} />
+          <h2 className="text-base font-bold text-white">New Client</h2>
+          <button onClick={onClose} className="text-[#444] hover:text-[#888] transition-colors">
+            <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm text-[#888] mb-1.5">Name</label>
+            <label className={labelCls}>Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Client name"
               required
-              className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#6366f1] transition-colors"
+              className={inputCls}
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888] mb-1.5">
-              Profile Image URL <span className="text-[#555]">(optional)</span>
+            <label className={labelCls}>
+              Profile Image URL <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
             </label>
             <input
               type="text"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#6366f1] transition-colors"
+              className={inputCls}
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888] mb-1.5">About</label>
+            <label className={labelCls}>About</label>
             <textarea
               value={about}
               onChange={(e) => setAbout(e.target.value)}
-              placeholder="Brief description..."
+              placeholder="Brief description of the client..."
               rows={3}
-              className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#6366f1] transition-colors resize-none"
+              className={`${inputCls} resize-none`}
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-[#0f0f0f] border border-[#2a2a2a] text-[#888] rounded-lg py-2.5 text-sm font-medium hover:bg-[#222] transition-colors"
+              className="flex-1 bg-transparent border border-[#222] text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-[#161616] hover:text-[#999] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim()}
-              className="flex-1 bg-[#6366f1] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[#5558e3] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
             >
               Add Client
             </button>

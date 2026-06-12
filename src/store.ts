@@ -1,56 +1,56 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  arrayUnion,
+  query,
+  orderBy,
+} from 'firebase/firestore';
+import { db } from './firebase';
 import { Client, ContentItem, ContentStatus } from './types';
 import { generateId } from './utils';
 
-const STORAGE_KEY = 'limi_clients';
-
-function loadClients(): Client[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return [];
-    return JSON.parse(data) as Client[];
-  } catch {
-    return [];
-  }
-}
-
-function saveClients(clients: Client[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-}
-
 export function useClients() {
-  const [clients, setClients] = useState<Client[]>(() => loadClients());
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const persist = useCallback((updated: Client[]) => {
-    setClients(updated);
-    saveClients(updated);
+  useEffect(() => {
+    const q = query(collection(db, 'clients'), orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data: Client[] = snapshot.docs.map((docSnap) => ({
+          ...(docSnap.data() as Omit<Client, 'id'>),
+          id: docSnap.id,
+        }));
+        setClients(data);
+        setLoading(false);
+      },
+      () => {
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
   }, []);
 
   const addClient = useCallback(
-    (data: { name: string; imageUrl?: string; about: string }) => {
-      const newClient: Client = {
-        id: generateId(),
+    async (data: { name: string; imageUrl?: string; about: string }) => {
+      await addDoc(collection(db, 'clients'), {
         name: data.name,
-        imageUrl: data.imageUrl || undefined,
+        imageUrl: data.imageUrl || '',
         about: data.about,
         content: [],
         createdAt: Date.now(),
-      };
-      persist([...clients, newClient]);
-      return newClient;
+      });
     },
-    [clients, persist]
-  );
-
-  const getClient = useCallback(
-    (id: string): Client | undefined => {
-      return clients.find((c) => c.id === id);
-    },
-    [clients]
+    []
   );
 
   const addContent = useCallback(
-    (
+    async (
       clientId: string,
       data: {
         title: string;
@@ -65,40 +65,28 @@ export function useClients() {
         title: data.title,
         driveLink: data.driveLink,
         driveFileId: data.driveFileId,
-        notes: data.notes,
+        notes: data.notes || '',
         status: data.status,
         createdAt: Date.now(),
       };
-      const updated = clients.map((c) =>
-        c.id === clientId ? { ...c, content: [...c.content, newItem] } : c
-      );
-      persist(updated);
-      return newItem;
+      await updateDoc(doc(db, 'clients', clientId), {
+        content: arrayUnion(newItem),
+      });
     },
-    [clients, persist]
+    []
   );
 
   const updateContentStatus = useCallback(
-    (clientId: string, contentId: string, status: ContentStatus) => {
-      const updated = clients.map((c) => {
-        if (c.id !== clientId) return c;
-        return {
-          ...c,
-          content: c.content.map((item) =>
-            item.id === contentId ? { ...item, status } : item
-          ),
-        };
-      });
-      persist(updated);
+    async (clientId: string, contentId: string, status: ContentStatus) => {
+      const client = clients.find((c) => c.id === clientId);
+      if (!client) return;
+      const updatedContent = client.content.map((item) =>
+        item.id === contentId ? { ...item, status } : item
+      );
+      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
     },
-    [clients, persist]
+    [clients]
   );
 
-  return {
-    clients,
-    addClient,
-    getClient,
-    addContent,
-    updateContentStatus,
-  };
+  return { clients, loading, addClient, addContent, updateContentStatus };
 }
