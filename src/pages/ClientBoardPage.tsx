@@ -17,6 +17,7 @@ import { useClients } from '../store';
 import { ContentStatus, ContentItem } from '../types';
 import KanbanColumn from '../components/KanbanColumn';
 import AddContentModal from '../components/AddContentModal';
+import ContentDetailModal from '../components/ContentDetailModal';
 import ContentCard from '../components/ContentCard';
 
 const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
@@ -30,11 +31,13 @@ export default function ClientBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userEmail, logout } = useAuth();
-  const { clients, loading, addContent, updateContentStatus } = useClients();
+  const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus } = useClients();
 
   const client = clients.find((c) => c.id === id);
   const [addingToColumn, setAddingToColumn] = useState<ContentStatus | null>(null);
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
+  const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -103,6 +106,22 @@ export default function ClientBoardPage() {
     const overColumn = COLUMNS.find((col) => col.id === overId);
     if (overColumn && activeItemData && activeItemData.status !== overColumn.id)
       updateContentStatus(client.id, activeId, overColumn.id);
+  }
+
+  function handleEditFromDetail() {
+    setEditingItem(selectedItem);
+    setSelectedItem(null);
+  }
+
+  function handleDeleteFromDetail() {
+    if (selectedItem && client) {
+      deleteContent(client.id, selectedItem.id);
+      setSelectedItem(null);
+    }
+  }
+
+  function handleDeleteFromCard(item: ContentItem) {
+    setSelectedItem(item);
   }
 
   return (
@@ -196,6 +215,9 @@ export default function ClientBoardPage() {
                 color={col.color}
                 items={getItemsByStatus(col.id)}
                 onAddContent={(status) => setAddingToColumn(status)}
+                onCardClick={(item) => setSelectedItem(item)}
+                onEditCard={(item) => setEditingItem(item)}
+                onDeleteCard={(item) => handleDeleteFromCard(item)}
               />
             ))}
           </div>
@@ -206,14 +228,44 @@ export default function ClientBoardPage() {
         </DndContext>
       </main>
 
+      {/* Add content modal */}
       {addingToColumn && (
         <AddContentModal
           defaultStatus={addingToColumn}
           onClose={() => setAddingToColumn(null)}
-          onAdd={(data) => {
+          onSubmit={(data) => {
             addContent(client.id, data);
             setAddingToColumn(null);
           }}
+        />
+      )}
+
+      {/* Edit content modal */}
+      {editingItem && (
+        <AddContentModal
+          defaultStatus={editingItem.status}
+          existingItem={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSubmit={(data) => {
+            updateContent(client.id, editingItem.id, {
+              title: data.title,
+              driveLink: data.driveLink,
+              driveFileId: data.driveFileId,
+              notes: data.notes,
+              scheduledAt: data.scheduledAt,
+            });
+            setEditingItem(null);
+          }}
+        />
+      )}
+
+      {/* Detail modal */}
+      {selectedItem && (
+        <ContentDetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onEdit={handleEditFromDetail}
+          onDelete={handleDeleteFromDetail}
         />
       )}
     </div>

@@ -1,25 +1,45 @@
 import { useState } from 'react';
 import { X, Film } from 'lucide-react';
-import { ContentStatus } from '../types';
+import { ContentItem, ContentStatus } from '../types';
 import { extractDriveFileId, getDriveThumbnailUrl } from '../utils';
+
+interface SubmitData {
+  title: string;
+  driveLink: string;
+  driveFileId: string;
+  notes?: string;
+  status: ContentStatus;
+  scheduledAt?: number;
+}
 
 interface Props {
   defaultStatus: ContentStatus;
+  existingItem?: ContentItem;
   onClose: () => void;
-  onAdd: (data: {
-    title: string;
-    driveLink: string;
-    driveFileId: string;
-    notes?: string;
-    status: ContentStatus;
-  }) => void;
+  onSubmit: (data: SubmitData) => void;
 }
 
-export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props) {
-  const [title, setTitle] = useState('');
-  const [driveLink, setDriveLink] = useState('');
-  const [notes, setNotes] = useState('');
+export default function AddContentModal({ defaultStatus, existingItem, onClose, onSubmit }: Props) {
+  const isEdit = !!existingItem;
+
+  const [title, setTitle] = useState(existingItem?.title ?? '');
+  const [driveLink, setDriveLink] = useState(existingItem?.driveLink ?? '');
+  const [notes, setNotes] = useState(existingItem?.notes ?? '');
   const [imgError, setImgError] = useState(false);
+
+  const [schedDate, setSchedDate] = useState(() => {
+    const ts = existingItem?.scheduledAt;
+    if (ts && ts > 0) return new Date(ts).toISOString().slice(0, 10);
+    return '';
+  });
+  const [schedTime, setSchedTime] = useState(() => {
+    const ts = existingItem?.scheduledAt;
+    if (ts && ts > 0) {
+      const d = new Date(ts);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    return '';
+  });
 
   const fileId = extractDriveFileId(driveLink.trim());
   const thumbnailUrl = fileId ? getDriveThumbnailUrl(fileId) : null;
@@ -29,15 +49,23 @@ export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props
     setImgError(false);
   }
 
+  function getScheduledAt(): number | undefined {
+    if (!schedDate) return undefined;
+    const timeStr = schedTime || '00:00';
+    const ts = new Date(`${schedDate}T${timeStr}`).getTime();
+    return isNaN(ts) ? undefined : ts;
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !driveLink.trim()) return;
-    onAdd({
+    onSubmit({
       title: title.trim(),
       driveLink: driveLink.trim(),
       driveFileId: fileId || '',
       notes: notes.trim() || undefined,
-      status: defaultStatus,
+      status: existingItem?.status ?? defaultStatus,
+      scheduledAt: getScheduledAt(),
     });
     onClose();
   }
@@ -52,9 +80,9 @@ export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props
       style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-white">Add Content</h2>
+          <h2 className="text-base font-bold text-white">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
           <button onClick={onClose} className="text-[#444] hover:text-[#888] transition-colors">
             <X size={18} />
           </button>
@@ -67,7 +95,7 @@ export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Video title or caption..."
+              placeholder="Video title..."
               required
               className={inputCls}
             />
@@ -104,15 +132,40 @@ export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props
 
           <div>
             <label className={labelCls}>
-              Notes <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+              Caption{' '}
+              <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any notes or instructions..."
+              placeholder="Caption or notes for this video..."
               rows={3}
               className={`${inputCls} resize-none`}
             />
+          </div>
+
+          <div>
+            <label className={labelCls}>
+              Posting Schedule{' '}
+              <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={schedDate}
+                onChange={(e) => setSchedDate(e.target.value)}
+                className={`${inputCls} flex-1`}
+                style={{ colorScheme: 'dark' }}
+              />
+              <input
+                type="time"
+                value={schedTime}
+                onChange={(e) => setSchedTime(e.target.value)}
+                disabled={!schedDate}
+                className={`${inputCls} w-32 disabled:opacity-40`}
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-1">
@@ -128,7 +181,7 @@ export default function AddContentModal({ defaultStatus, onClose, onAdd }: Props
               disabled={!title.trim() || !driveLink.trim()}
               className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
             >
-              Add Content
+              {isEdit ? 'Save Changes' : 'Add Content'}
             </button>
           </div>
         </form>

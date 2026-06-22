@@ -58,6 +58,7 @@ export function useClients() {
         driveFileId: string;
         notes?: string;
         status: ContentStatus;
+        scheduledAt?: number;
       }
     ) => {
       const newItem: ContentItem = {
@@ -68,12 +69,54 @@ export function useClients() {
         notes: data.notes || '',
         status: data.status,
         createdAt: Date.now(),
+        scheduledAt: data.scheduledAt || 0,
       };
       await updateDoc(doc(db, 'clients', clientId), {
         content: arrayUnion(newItem),
       });
     },
     []
+  );
+
+  const updateContent = useCallback(
+    async (
+      clientId: string,
+      contentId: string,
+      data: {
+        title: string;
+        driveLink: string;
+        driveFileId: string;
+        notes?: string;
+        scheduledAt?: number;
+      }
+    ) => {
+      const client = clients.find((c) => c.id === clientId);
+      if (!client) return;
+      const updatedContent = client.content.map((item) =>
+        item.id === contentId
+          ? {
+              ...item,
+              title: data.title,
+              driveLink: data.driveLink,
+              driveFileId: data.driveFileId,
+              notes: data.notes || '',
+              scheduledAt: data.scheduledAt || 0,
+            }
+          : item
+      );
+      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+    },
+    [clients]
+  );
+
+  const deleteContent = useCallback(
+    async (clientId: string, contentId: string) => {
+      const client = clients.find((c) => c.id === clientId);
+      if (!client) return;
+      const updatedContent = client.content.filter((item) => item.id !== contentId);
+      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+    },
+    [clients]
   );
 
   const updateContentStatus = useCallback(
@@ -88,5 +131,5 @@ export function useClients() {
     [clients]
   );
 
-  return { clients, loading, addClient, addContent, updateContentStatus };
+  return { clients, loading, addClient, addContent, updateContent, deleteContent, updateContentStatus };
 }

@@ -10,9 +10,12 @@ interface Props {
   color: string;
   items: ContentItem[];
   onAddContent: (status: ContentStatus) => void;
+  onCardClick: (item: ContentItem) => void;
+  onEditCard: (item: ContentItem) => void;
+  onDeleteCard: (item: ContentItem) => void;
 }
 
-export default function KanbanColumn({ id, label, color, items, onAddContent }: Props) {
+export default function KanbanColumn({ id, label, color, items, onAddContent, onCardClick, onEditCard, onDeleteCard }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -40,7 +43,6 @@ export default function KanbanColumn({ id, label, color, items, onAddContent }: 
 
       {/* Top accent line + drop zone */}
       <div className="flex flex-col flex-1">
-        {/* Colored accent bar at top */}
         <div className="h-px rounded-full mb-2.5 transition-all duration-150" style={{ backgroundColor: isOver ? color : `${color}30` }} />
 
         <div
@@ -61,7 +63,15 @@ export default function KanbanColumn({ id, label, color, items, onAddContent }: 
                 <span className="text-xs text-[#2e2e2e]">Drop here</span>
               </div>
             ) : (
-              items.map((item) => <ContentCard key={item.id} item={item} />)
+              items.map((item) => (
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  onCardClick={() => onCardClick(item)}
+                  onEdit={() => onEditCard(item)}
+                  onDelete={() => onDeleteCard(item)}
+                />
+              ))
             )}
           </SortableContext>
 

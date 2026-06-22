@@ -8,6 +8,7 @@ export interface ContentItem {
   notes?: string;
   status: ContentStatus;
   createdAt: number;
+  scheduledAt?: number;
 }
 
 export interface Client {
