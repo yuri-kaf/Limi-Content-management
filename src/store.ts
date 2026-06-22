@@ -5,13 +5,16 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   query,
   orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Client, ContentItem, ContentStatus } from './types';
+import { AppUser, Client, ClientReview, ContentItem, ContentStatus } from './types';
 import { generateId } from './utils';
+
+// ─── Clients ─────────────────────────────────────────────────────────────────
 
 export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -22,16 +25,12 @@ export function useClients() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const data: Client[] = snapshot.docs.map((docSnap) => ({
-          ...(docSnap.data() as Omit<Client, 'id'>),
-          id: docSnap.id,
-        }));
-        setClients(data);
+        setClients(
+          snapshot.docs.map((d) => ({ ...(d.data() as Omit<Client, 'id'>), id: d.id }))
+        );
         setLoading(false);
       },
-      () => {
-        setLoading(false);
-      }
+      () => setLoading(false)
     );
     return unsubscribe;
   }, []);
@@ -59,6 +58,7 @@ export function useClients() {
         notes?: string;
         status: ContentStatus;
         scheduledAt?: number;
+        uploadedByEmail: string;
       }
     ) => {
       const newItem: ContentItem = {
@@ -70,10 +70,11 @@ export function useClients() {
         status: data.status,
         createdAt: Date.now(),
         scheduledAt: data.scheduledAt || 0,
+        uploadedByEmail: data.uploadedByEmail,
+        clientReview: 'pending',
+        reviewNote: '',
       };
-      await updateDoc(doc(db, 'clients', clientId), {
-        content: arrayUnion(newItem),
-      });
+      await updateDoc(doc(db, 'clients', clientId), { content: arrayUnion(newItem) });
     },
     []
   );
@@ -131,5 +132,72 @@ export function useClients() {
     [clients]
   );
 
-  return { clients, loading, addClient, addContent, updateContent, deleteContent, updateContentStatus };
+  const updateClientReview = useCallback(
+    async (
+      clientId: string,
+      contentId: string,
+      review: ClientReview,
+      reviewNote?: string
+    ) => {
+      const client = clients.find((c) => c.id === clientId);
+      if (!client) return;
+      const updatedContent = client.content.map((item) =>
+        item.id === contentId
+          ? { ...item, clientReview: review, reviewNote: reviewNote || '' }
+          : item
+      );
+      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+    },
+    [clients]
+  );
+
+  return {
+    clients,
+    loading,
+    addClient,
+    addContent,
+    updateContent,
+    deleteContent,
+    updateContentStatus,
+    updateClientReview,
+  };
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+export function useUsers() {
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'users'), orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setUsers(
+          snapshot.docs.map((d) => ({ ...(d.data() as Omit<AppUser, 'id'>), id: d.id }))
+        );
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return unsubscribe;
+  }, []);
+
+  const addUser = useCallback(async (data: Omit<AppUser, 'id' | 'createdAt'>) => {
+    await addDoc(collection(db, 'users'), { ...data, createdAt: Date.now() });
+  }, []);
+
+  const updateUser = useCallback(
+    async (userId: string, data: Partial<Omit<AppUser, 'id' | 'createdAt'>>) => {
+      await updateDoc(doc(db, 'users', userId), data);
+    },
+    []
+  );
+
+  const deleteUser = useCallback(async (userId: string) => {
+    await deleteDoc(doc(db, 'users', userId));
+  }, []);
+
+  return { users, loading, addUser, updateUser, deleteUser };
 }

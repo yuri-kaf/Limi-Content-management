@@ -1,4 +1,16 @@
-﻿export type ContentStatus = 'editing' | 'review' | 'to-post' | 'posted';
+export type ContentStatus = 'editing' | 'review' | 'to-post' | 'posted';
+export type UserRole = 'admin' | 'social-media-manager' | 'client';
+export type ClientReview = 'pending' | 'approved' | 'declined';
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  assignedClientIds: string[];
+  createdAt: number;
+}
 
 export interface ContentItem {
   id: string;
@@ -9,6 +21,9 @@ export interface ContentItem {
   status: ContentStatus;
   createdAt: number;
   scheduledAt?: number;
+  uploadedByEmail: string;
+  clientReview: ClientReview;
+  reviewNote?: string;
 }
 
 export interface Client {

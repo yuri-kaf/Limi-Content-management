@@ -1,39 +1,95 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { AppUser, UserRole } from '../types';
 
-const VALID_EMAIL = 'ashimkafle@gmail.com';
-const VALID_PASSWORD = 'getContent-Limi-098';
-const SESSION_KEY = 'limi_auth';
+const SESSION_KEY = 'limi_user_v2';
+const ADMIN_EMAIL = 'ashimkafle@gmail.com';
+const ADMIN_PASSWORD = 'getContent-Limi-098';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  currentUser: AppUser | null;
   userEmail: string;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  refreshCurrentUser: (updated: AppUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem(SESSION_KEY) === '1';
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
+    try {
+      const stored = localStorage.getItem(SESSION_KEY);
+      return stored ? (JSON.parse(stored) as AppUser) : null;
+    } catch {
+      return null;
+    }
   });
 
-  function login(email: string, password: string): boolean {
-    if (email.trim().toLowerCase() === VALID_EMAIL && password === VALID_PASSWORD) {
-      localStorage.setItem(SESSION_KEY, '1');
-      setIsAuthenticated(true);
-      return true;
+  useEffect(() => {
+    async function seedAdminIfNeeded() {
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        if (snap.empty) {
+          await addDoc(collection(db, 'users'), {
+            name: 'Ashim Kafle',
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+            role: 'admin' as UserRole,
+            assignedClientIds: [],
+            createdAt: Date.now(),
+          });
+        }
+      } catch {
+        // Firebase may not be ready
+      }
     }
-    return false;
+    seedAdminIfNeeded();
+  }, []);
+
+  async function login(email: string, password: string): Promise<boolean> {
+    try {
+      const q = query(
+        collection(db, 'users'),
+        where('email', '==', email.trim().toLowerCase())
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) return false;
+      const docSnap = snap.docs[0];
+      const data = docSnap.data();
+      if (data.password !== password) return false;
+      const user: AppUser = { id: docSnap.id, ...data } as AppUser;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+      setCurrentUser(user);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function logout() {
     localStorage.removeItem(SESSION_KEY);
-    setIsAuthenticated(false);
+    setCurrentUser(null);
+  }
+
+  function refreshCurrentUser(updated: AppUser) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+    setCurrentUser(updated);
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, userEmail: VALID_EMAIL, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: !!currentUser,
+        currentUser,
+        userEmail: currentUser?.email ?? '',
+        login,
+        logout,
+        refreshCurrentUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -11,14 +11,15 @@ import {
   DragOverlay,
   DragStartEvent,
 } from '@dnd-kit/core';
-import { ArrowLeft, User } from 'lucide-react';
+import { ArrowLeft, User, LayoutGrid, CalendarDays } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClients } from '../store';
-import { ContentStatus, ContentItem } from '../types';
+import { ClientReview, ContentItem, ContentStatus } from '../types';
 import KanbanColumn from '../components/KanbanColumn';
 import AddContentModal from '../components/AddContentModal';
 import ContentDetailModal from '../components/ContentDetailModal';
 import ContentCard from '../components/ContentCard';
+import ContentCalendar from '../components/ContentCalendar';
 
 const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
   { id: 'editing', label: 'Editing', color: '#d97706' },
@@ -30,14 +31,22 @@ const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
 export default function ClientBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userEmail, logout } = useAuth();
-  const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus } = useClients();
+  const { currentUser, logout } = useAuth();
+  const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus, updateClientReview } = useClients();
+
+  const isAdmin = currentUser?.role === 'admin';
+  const isSMM = currentUser?.role === 'social-media-manager';
+  const isClientRole = currentUser?.role === 'client';
+  const canAdd = isAdmin || isSMM;
 
   const client = clients.find((c) => c.id === id);
+
   const [addingToColumn, setAddingToColumn] = useState<ContentStatus | null>(null);
+  const [calendarAddDate, setCalendarAddDate] = useState<Date | null>(null);
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
+  const [view, setView] = useState<'kanban' | 'calendar'>('kanban');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -67,6 +76,24 @@ export default function ClientBoardPage() {
     );
   }
 
+  // Restrict client role to assigned clients
+  if (isClientRole && !currentUser?.assignedClientIds?.includes(client.id)) {
+    navigate('/');
+    return null;
+  }
+
+  function canEditItem(item: ContentItem): boolean {
+    if (isAdmin) return true;
+    if (isSMM) return item.uploadedByEmail === currentUser?.email;
+    return false;
+  }
+
+  function canDeleteItem(item: ContentItem): boolean {
+    if (isAdmin) return true;
+    if (isSMM) return item.uploadedByEmail === currentUser?.email;
+    return false;
+  }
+
   function getItemsByStatus(status: ContentStatus): ContentItem[] {
     return (client?.content ?? [])
       .filter((item) => item.status === status)
@@ -74,11 +101,13 @@ export default function ClientBoardPage() {
   }
 
   function handleDragStart(event: DragStartEvent) {
+    if (!canAdd) return;
     const item = client?.content.find((c) => c.id === event.active.id);
     if (item) setActiveItem(item);
   }
 
   function handleDragOver(event: DragOverEvent) {
+    if (!canAdd) return;
     const { active, over } = event;
     if (!over || !client) return;
     const activeId = active.id as string;
@@ -98,6 +127,7 @@ export default function ClientBoardPage() {
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveItem(null);
+    if (!canAdd) return;
     const { active, over } = event;
     if (!over || !client) return;
     const activeId = active.id as string;
@@ -120,9 +150,16 @@ export default function ClientBoardPage() {
     }
   }
 
-  function handleDeleteFromCard(item: ContentItem) {
-    setSelectedItem(item);
+  function handleReview(review: ClientReview, note?: string) {
+    if (selectedItem && client) {
+      updateClientReview(client.id, selectedItem.id, review, note);
+    }
   }
+
+  // For client role: only show to-post items
+  const clientVisibleContent = isClientRole
+    ? client.content.filter((item) => item.status === 'to-post')
+    : client.content;
 
   return (
     <div className="min-h-screen bg-[#080808]">
@@ -136,7 +173,7 @@ export default function ClientBoardPage() {
             <span className="text-white font-bold text-[15px] tracking-tight">Limi</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[#444] text-xs hidden sm:block">{userEmail}</span>
+            <span className="text-[#444] text-xs hidden sm:block">{currentUser?.email}</span>
             <button
               onClick={logout}
               className="text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
@@ -158,7 +195,7 @@ export default function ClientBoardPage() {
             All Clients
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             {client.imageUrl ? (
               <img
                 src={client.imageUrl}
@@ -177,65 +214,154 @@ export default function ClientBoardPage() {
               )}
             </div>
 
-            {/* Status counts */}
-            <div className="hidden sm:flex items-center gap-2">
-              {COLUMNS.map((col) => {
-                const count = getItemsByStatus(col.id).length;
-                return (
-                  <div
-                    key={col.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111] border border-[#1a1a1a]"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
-                    <span className="text-xs text-[#777] font-medium">{count}</span>
-                    <span className="text-xs text-[#444]">{col.label}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* View switcher (non-client only) */}
+            {!isClientRole && (
+              <div className="flex items-center gap-1 bg-[#111] border border-[#1e1e1e] rounded-lg p-1">
+                <button
+                  onClick={() => setView('kanban')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    view === 'kanban'
+                      ? 'bg-[#1e1e1e] text-white'
+                      : 'text-[#555] hover:text-[#888]'
+                  }`}
+                >
+                  <LayoutGrid size={12} />
+                  Kanban
+                </button>
+                <button
+                  onClick={() => setView('calendar')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    view === 'calendar'
+                      ? 'bg-[#1e1e1e] text-white'
+                      : 'text-[#555] hover:text-[#888]'
+                  }`}
+                >
+                  <CalendarDays size={12} />
+                  Calendar
+                </button>
+              </div>
+            )}
+
+            {/* Status counts (non-client) */}
+            {!isClientRole && (
+              <div className="hidden sm:flex items-center gap-2">
+                {COLUMNS.map((col) => {
+                  const count = getItemsByStatus(col.id).length;
+                  return (
+                    <div
+                      key={col.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111] border border-[#1a1a1a]"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
+                      <span className="text-xs text-[#777] font-medium">{count}</span>
+                      <span className="text-xs text-[#444]">{col.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Board */}
+      {/* Main content */}
       <main className="max-w-[1440px] mx-auto px-6 py-6">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {COLUMNS.map((col) => (
-              <KanbanColumn
-                key={col.id}
-                id={col.id}
-                label={col.label}
-                color={col.color}
-                items={getItemsByStatus(col.id)}
-                onAddContent={(status) => setAddingToColumn(status)}
-                onCardClick={(item) => setSelectedItem(item)}
-                onEditCard={(item) => setEditingItem(item)}
-                onDeleteCard={(item) => handleDeleteFromCard(item)}
-              />
-            ))}
+        {/* CLIENT ROLE: read-only to-post list */}
+        {isClientRole ? (
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-[#777]">
+                Videos ready to post ({clientVisibleContent.length})
+              </h2>
+            </div>
+            {clientVisibleContent.length === 0 ? (
+              <div className="text-center py-20 text-[#444] text-sm">
+                No videos ready for review yet.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {clientVisibleContent.map((item) => (
+                  <ContentCard
+                    key={item.id}
+                    item={item}
+                    onCardClick={() => setSelectedItem(item)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+        ) : view === 'calendar' ? (
+          /* CALENDAR VIEW */
+          <ContentCalendar
+            content={client.content}
+            canAdd={canAdd}
+            onDayClick={(date) => setCalendarAddDate(date)}
+            onItemClick={(item) => setSelectedItem(item)}
+          />
+        ) : (
+          /* KANBAN VIEW */
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {COLUMNS.map((col) => (
+                <KanbanColumn
+                  key={col.id}
+                  id={col.id}
+                  label={col.label}
+                  color={col.color}
+                  items={getItemsByStatus(col.id)}
+                  canAdd={canAdd}
+                  canEditItem={canEditItem}
+                  canDeleteItem={canDeleteItem}
+                  onAddContent={(status) => setAddingToColumn(status)}
+                  onCardClick={(item) => setSelectedItem(item)}
+                  onEditCard={(item) => setEditingItem(item)}
+                  onDeleteCard={(item) => {
+                    setSelectedItem(item);
+                  }}
+                />
+              ))}
+            </div>
 
-          <DragOverlay>
-            {activeItem ? <ContentCard item={activeItem} /> : null}
-          </DragOverlay>
-        </DndContext>
+            <DragOverlay>
+              {activeItem ? <ContentCard item={activeItem} /> : null}
+            </DragOverlay>
+          </DndContext>
+        )}
       </main>
 
-      {/* Add content modal */}
+      {/* Add content modal — from kanban column */}
       {addingToColumn && (
         <AddContentModal
           defaultStatus={addingToColumn}
           onClose={() => setAddingToColumn(null)}
           onSubmit={(data) => {
-            addContent(client.id, data);
+            addContent(client.id, {
+              ...data,
+              uploadedByEmail: currentUser?.email ?? '',
+            });
             setAddingToColumn(null);
+          }}
+        />
+      )}
+
+      {/* Add content modal — from calendar day click */}
+      {calendarAddDate && (
+        <AddContentModal
+          defaultStatus="to-post"
+          defaultScheduledAt={calendarAddDate.getTime()}
+          onClose={() => setCalendarAddDate(null)}
+          onSubmit={(data) => {
+            addContent(client.id, {
+              ...data,
+              uploadedByEmail: currentUser?.email ?? '',
+            });
+            setCalendarAddDate(null);
           }}
         />
       )}
@@ -263,9 +389,13 @@ export default function ClientBoardPage() {
       {selectedItem && (
         <ContentDetailModal
           item={selectedItem}
+          isClientRole={isClientRole}
+          canEdit={canEditItem(selectedItem)}
+          canDelete={canDeleteItem(selectedItem)}
           onClose={() => setSelectedItem(null)}
           onEdit={handleEditFromDetail}
           onDelete={handleDeleteFromDetail}
+          onReview={isClientRole ? handleReview : undefined}
         />
       )}
     </div>

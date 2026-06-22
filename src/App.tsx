@@ -4,6 +4,7 @@ import { isConfigured } from './firebase';
 import ClientsPage from './pages/ClientsPage';
 import ClientBoardPage from './pages/ClientBoardPage';
 import LoginPage from './pages/LoginPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 function FirebaseSetupGuide() {
   return (
@@ -45,6 +46,7 @@ function AuthenticatedRoutes() {
     <Routes>
       <Route path="/" element={<ClientsPage />} />
       <Route path="/client/:id" element={<ClientBoardPage />} />
+      <Route path="/users" element={<UserManagementPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

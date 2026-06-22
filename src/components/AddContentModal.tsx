@@ -14,12 +14,13 @@ interface SubmitData {
 
 interface Props {
   defaultStatus: ContentStatus;
+  defaultScheduledAt?: number;
   existingItem?: ContentItem;
   onClose: () => void;
   onSubmit: (data: SubmitData) => void;
 }
 
-export default function AddContentModal({ defaultStatus, existingItem, onClose, onSubmit }: Props) {
+export default function AddContentModal({ defaultStatus, defaultScheduledAt, existingItem, onClose, onSubmit }: Props) {
   const isEdit = !!existingItem;
 
   const [title, setTitle] = useState(existingItem?.title ?? '');
@@ -28,12 +29,12 @@ export default function AddContentModal({ defaultStatus, existingItem, onClose, 
   const [imgError, setImgError] = useState(false);
 
   const [schedDate, setSchedDate] = useState(() => {
-    const ts = existingItem?.scheduledAt;
+    const ts = existingItem?.scheduledAt ?? defaultScheduledAt;
     if (ts && ts > 0) return new Date(ts).toISOString().slice(0, 10);
     return '';
   });
   const [schedTime, setSchedTime] = useState(() => {
-    const ts = existingItem?.scheduledAt;
+    const ts = existingItem?.scheduledAt ?? defaultScheduledAt;
     if (ts && ts > 0) {
       const d = new Date(ts);
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;

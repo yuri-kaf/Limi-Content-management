@@ -9,13 +9,28 @@ interface Props {
   label: string;
   color: string;
   items: ContentItem[];
+  canAdd: boolean;
+  canEditItem: (item: ContentItem) => boolean;
+  canDeleteItem: (item: ContentItem) => boolean;
   onAddContent: (status: ContentStatus) => void;
   onCardClick: (item: ContentItem) => void;
   onEditCard: (item: ContentItem) => void;
   onDeleteCard: (item: ContentItem) => void;
 }
 
-export default function KanbanColumn({ id, label, color, items, onAddContent, onCardClick, onEditCard, onDeleteCard }: Props) {
+export default function KanbanColumn({
+  id,
+  label,
+  color,
+  items,
+  canAdd,
+  canEditItem,
+  canDeleteItem,
+  onAddContent,
+  onCardClick,
+  onEditCard,
+  onDeleteCard,
+}: Props) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -32,13 +47,15 @@ export default function KanbanColumn({ id, label, color, items, onAddContent, on
             {items.length}
           </span>
         </div>
-        <button
-          onClick={() => onAddContent(id)}
-          className="w-6 h-6 rounded-md flex items-center justify-center text-[#333] hover:text-[#777] hover:bg-[#1a1a1a] transition-colors"
-          aria-label={`Add to ${label}`}
-        >
-          <Plus size={14} />
-        </button>
+        {canAdd && (
+          <button
+            onClick={() => onAddContent(id)}
+            className="w-6 h-6 rounded-md flex items-center justify-center text-[#333] hover:text-[#777] hover:bg-[#1a1a1a] transition-colors"
+            aria-label={`Add to ${label}`}
+          >
+            <Plus size={14} />
+          </button>
+        )}
       </div>
 
       {/* Top accent line + drop zone */}
@@ -68,14 +85,14 @@ export default function KanbanColumn({ id, label, color, items, onAddContent, on
                   key={item.id}
                   item={item}
                   onCardClick={() => onCardClick(item)}
-                  onEdit={() => onEditCard(item)}
-                  onDelete={() => onDeleteCard(item)}
+                  onEdit={canEditItem(item) ? () => onEditCard(item) : undefined}
+                  onDelete={canDeleteItem(item) ? () => onDeleteCard(item) : undefined}
                 />
               ))
             )}
           </SortableContext>
 
-          {items.length > 0 && (
+          {items.length > 0 && canAdd && (
             <button
               onClick={() => onAddContent(id)}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[#333] hover:text-[#666] hover:bg-[#181818] transition-colors text-xs font-medium border border-dashed border-[#1c1c1c] hover:border-[#2c2c2c]"

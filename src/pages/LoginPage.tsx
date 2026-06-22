@@ -12,8 +12,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 350));
-    const ok = login(email, password);
+    const ok = await login(email, password);
     if (!ok) setError('Invalid email or password.');
     setLoading(false);
   }
