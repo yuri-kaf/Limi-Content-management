@@ -72,8 +72,8 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
   }
 
   const inputCls =
-    'w-full bg-[#0c0c0c] border border-[#222] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
-  const labelCls = 'block text-xs font-semibold text-[#666] mb-1.5 uppercase tracking-wider';
+    'w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
+  const labelCls = 'block text-xs font-semibold text-neutral-500 dark:text-[#666] mb-1.5 uppercase tracking-wider';
 
   return (
     <div
@@ -81,10 +81,10 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
       style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-white">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
-          <button onClick={onClose} className="text-[#444] hover:text-[#888] transition-colors">
+          <h2 className="text-base font-bold text-neutral-900 dark:text-white">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
+          <button onClick={onClose} className="text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -115,7 +115,7 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
           </div>
 
           {thumbnailUrl && (
-            <div className="rounded-xl overflow-hidden border border-[#1e1e1e]" style={{ aspectRatio: '16/9' }}>
+            <div className="rounded-xl overflow-hidden border border-neutral-200 dark:border-[#1e1e1e]" style={{ aspectRatio: '16/9' }}>
               {!imgError ? (
                 <img
                   src={thumbnailUrl}
@@ -124,8 +124,8 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-full h-full bg-[#0c0c0c] flex items-center justify-center">
-                  <Film size={22} className="text-[#333]" />
+                <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex items-center justify-center">
+                  <Film size={22} className="text-neutral-300 dark:text-[#333]" />
                 </div>
               )}
             </div>
@@ -134,7 +134,7 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
           <div>
             <label className={labelCls}>
               Caption{' '}
-              <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
             </label>
             <textarea
               value={notes}
@@ -148,7 +148,7 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
           <div>
             <label className={labelCls}>
               Posting Schedule{' '}
-              <span className="text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -156,7 +156,6 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
                 value={schedDate}
                 onChange={(e) => setSchedDate(e.target.value)}
                 className={`${inputCls} flex-1`}
-                style={{ colorScheme: 'dark' }}
               />
               <input
                 type="time"
@@ -164,7 +163,6 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
                 onChange={(e) => setSchedTime(e.target.value)}
                 disabled={!schedDate}
                 className={`${inputCls} w-32 disabled:opacity-40`}
-                style={{ colorScheme: 'dark' }}
               />
             </div>
           </div>
@@ -173,7 +171,7 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-transparent border border-[#222] text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-[#161616] hover:text-[#999] transition-colors"
+              className="flex-1 bg-transparent border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-[#161616] hover:text-neutral-700 dark:hover:text-[#999] transition-colors"
             >
               Cancel
             </button>

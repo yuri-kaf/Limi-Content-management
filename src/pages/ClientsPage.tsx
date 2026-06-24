@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Video, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Users, Video, CheckCircle, XCircle, Sun, Moon } from 'lucide-react';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Client } from '../types';
 import ClientCard from '../components/ClientCard';
 import AddClientModal from '../components/AddClientModal';
+import NotifPermissionBanner from '../components/NotifPermissionBanner';
+import { useNotifications } from '../hooks/useNotifications';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -15,18 +18,19 @@ const ROLE_LABELS: Record<string, string> = {
 
 function Header() {
   const { currentUser, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const isAdmin = currentUser?.role === 'admin';
 
   return (
-    <header className="border-b border-[#161616] bg-[#080808] sticky top-0 z-10"
+    <header className="border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
             <span className="text-white font-bold text-xs leading-none">L</span>
           </div>
-          <span className="text-white font-bold text-[15px] tracking-tight">Limi</span>
+          <span className="text-neutral-900 dark:text-white font-bold text-[15px] tracking-tight">Limi</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {currentUser && (
@@ -40,16 +44,24 @@ function Header() {
               {ROLE_LABELS[currentUser.role] ?? currentUser.role}
             </span>
           )}
-          {/* Team button: only on desktop — on mobile it's in the bottom tab bar */}
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+          {/* Team button: only on desktop */}
           <button
             onClick={() => navigate('/users')}
-            className="hidden sm:block text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
+            className="hidden sm:block text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
           >
             Team
           </button>
           <button
             onClick={logout}
-            className="text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
           >
             Sign out
           </button>
@@ -67,26 +79,26 @@ function SMMDashboard({ clients }: { clients: Client[] }) {
 
   return (
     <div className="grid grid-cols-3 gap-2.5 mb-6">
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
+      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
         <Video size={14} className="text-[#dc2626]" />
-        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums leading-none">
+        <span className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white tabular-nums leading-none">
           {toPostCount}
         </span>
-        <span className="text-[10px] sm:text-xs text-[#555] leading-tight">Ready to Post</span>
+        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Ready to Post</span>
       </div>
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
+      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
         <CheckCircle size={14} className="text-emerald-500" />
-        <span className="text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums leading-none">
+        <span className="text-2xl sm:text-3xl font-bold text-emerald-500 dark:text-emerald-400 tabular-nums leading-none">
           {approvedCount}
         </span>
-        <span className="text-[10px] sm:text-xs text-[#555] leading-tight">Client Approved</span>
+        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Client Approved</span>
       </div>
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
+      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
         <XCircle size={14} className="text-red-500" />
-        <span className="text-2xl sm:text-3xl font-bold text-red-400 tabular-nums leading-none">
+        <span className="text-2xl sm:text-3xl font-bold text-red-500 dark:text-red-400 tabular-nums leading-none">
           {declinedCount}
         </span>
-        <span className="text-[10px] sm:text-xs text-[#555] leading-tight">Client Declined</span>
+        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Client Declined</span>
       </div>
     </div>
   );
@@ -107,14 +119,17 @@ export default function ClientsPage() {
     ? clients.filter((c) => currentUser?.assignedClientIds?.includes(c.id))
     : clients;
 
+  useNotifications(isClientRole ? [] : visibleClients);
+
   const totalContent = visibleClients.reduce((sum, c) => sum + c.content.length, 0);
 
   return (
-    <div className="min-h-screen min-h-dvh bg-[#080808]">
+    <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808]">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
-        {/* SMM / Admin summary stats */}
+        {showStats && <NotifPermissionBanner />}
+
         {showStats && !loading && visibleClients.length > 0 && (
           <SMMDashboard clients={visibleClients} />
         )}
@@ -122,11 +137,11 @@ export default function ClientsPage() {
         {/* Page header */}
         <div className="flex items-start justify-between mb-5 sm:mb-8">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
               {isClientRole ? 'My Boards' : 'Clients'}
             </h1>
             {!loading && visibleClients.length > 0 && (
-              <p className="text-sm text-[#555] mt-0.5">
+              <p className="text-sm text-neutral-400 dark:text-[#555] mt-0.5">
                 {visibleClients.length} client{visibleClients.length !== 1 ? 's' : ''}
                 {!isClientRole && (
                   <>
@@ -152,17 +167,17 @@ export default function ClientsPage() {
         {/* Body */}
         {loading ? (
           <div className="flex items-center justify-center py-32">
-            <div className="w-5 h-5 border-2 border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
           </div>
         ) : visibleClients.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#111] border border-[#1e1e1e] flex items-center justify-center mb-4">
-              <Users size={24} className="text-[#333]" />
+            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] flex items-center justify-center mb-4">
+              <Users size={24} className="text-neutral-300 dark:text-[#333]" />
             </div>
-            <h2 className="text-base font-semibold text-white mb-2">
+            <h2 className="text-base font-semibold text-neutral-900 dark:text-white mb-2">
               {isClientRole ? 'No boards assigned yet' : 'No clients yet'}
             </h2>
-            <p className="text-sm text-[#444] mb-6 max-w-xs leading-relaxed">
+            <p className="text-sm text-neutral-400 dark:text-[#444] mb-6 max-w-xs leading-relaxed">
               {isClientRole
                 ? 'Your admin will assign client boards to you.'
                 : 'Add your first client to start managing their content pipeline.'}

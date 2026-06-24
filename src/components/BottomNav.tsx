@@ -13,14 +13,14 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[#080808]/95 border-t border-[#1a1a1a] backdrop-blur-md"
+      className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 dark:bg-[#080808]/95 border-t border-neutral-200 dark:border-[#1a1a1a] backdrop-blur-md"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center">
         <button
           onClick={() => navigate('/')}
           className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors active:opacity-70 ${
-            isOnHome ? 'text-[#dc2626]' : 'text-[#444]'
+            isOnHome ? 'text-[#dc2626]' : 'text-neutral-400 dark:text-[#444]'
           }`}
         >
           <LayoutGrid size={22} strokeWidth={isOnHome ? 2.5 : 1.8} />
@@ -31,7 +31,7 @@ export default function BottomNav() {
           <button
             onClick={() => navigate('/users')}
             className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors active:opacity-70 ${
-              isOnUsers ? 'text-[#dc2626]' : 'text-[#444]'
+              isOnUsers ? 'text-[#dc2626]' : 'text-neutral-400 dark:text-[#444]'
             }`}
           >
             <Users size={22} strokeWidth={isOnUsers ? 2.5 : 1.8} />

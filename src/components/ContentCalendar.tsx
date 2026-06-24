@@ -33,7 +33,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const startPad = firstDay.getDay(); // 0=Sun
+  const startPad = firstDay.getDay();
   const totalDays = lastDay.getDate();
 
   function prevMonth() {
@@ -57,7 +57,6 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
     ...Array(startPad).fill(null),
     ...Array.from({ length: totalDays }, (_, i) => i + 1),
   ];
-  // Pad end to complete last row
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
@@ -66,14 +65,14 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
       <div className="flex items-center justify-between">
         <button
           onClick={prevMonth}
-          className="p-1.5 rounded-lg text-[#555] hover:text-[#999] hover:bg-[#1a1a1a] transition-colors"
+          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#999] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="text-sm font-semibold text-white">{monthLabel}</span>
+        <span className="text-sm font-semibold text-neutral-900 dark:text-white">{monthLabel}</span>
         <button
           onClick={nextMonth}
-          className="p-1.5 rounded-lg text-[#555] hover:text-[#999] hover:bg-[#1a1a1a] transition-colors"
+          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#999] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
         >
           <ChevronRight size={16} />
         </button>
@@ -82,7 +81,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-px">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d} className="text-center text-[10px] font-semibold text-[#444] py-1 uppercase tracking-wider">
+          <div key={d} className="text-center text-[10px] font-semibold text-neutral-400 dark:text-[#444] py-1 uppercase tracking-wider">
             {d}
           </div>
         ))}
@@ -103,14 +102,14 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
               className={`group min-h-[80px] rounded-xl p-1.5 flex flex-col gap-1 border transition-all duration-100 ${
                 todayCell
                   ? 'border-[#dc2626]/40 bg-[#dc2626]/5'
-                  : 'border-[#1a1a1a] bg-[#0d0d0d] hover:border-[#2a2a2a]'
+                  : 'border-neutral-200 dark:border-[#1a1a1a] bg-neutral-50 dark:bg-[#0d0d0d] hover:border-neutral-300 dark:hover:border-[#2a2a2a]'
               } ${canAdd ? 'cursor-pointer' : ''}`}
             >
               {/* Day number */}
               <div className="flex items-center justify-between px-0.5">
                 <span
                   className={`text-[11px] font-semibold leading-none ${
-                    todayCell ? 'text-[#dc2626]' : 'text-[#555]'
+                    todayCell ? 'text-[#dc2626]' : 'text-neutral-400 dark:text-[#555]'
                   }`}
                 >
                   {day}
@@ -118,7 +117,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 {canAdd && (
                   <Plus
                     size={10}
-                    className="text-[#333] opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-neutral-300 dark:text-[#333] opacity-0 group-hover:opacity-100 transition-opacity"
                   />
                 )}
               </div>
@@ -139,7 +138,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 </button>
               ))}
               {dayItems.length > 3 && (
-                <span className="text-[9px] text-[#444] px-1">+{dayItems.length - 3} more</span>
+                <span className="text-[9px] text-neutral-400 dark:text-[#444] px-1">+{dayItems.length - 3} more</span>
               )}
             </div>
           );

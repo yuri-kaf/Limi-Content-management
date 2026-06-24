@@ -39,7 +39,7 @@ export default function KanbanColumn({
       <div className="flex items-center justify-between mb-3 px-0.5">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-          <span className="text-sm font-semibold text-[#d0d0d0]">{label}</span>
+          <span className="text-sm font-semibold text-neutral-700 dark:text-[#d0d0d0]">{label}</span>
           <span
             className="text-xs font-bold px-1.5 py-0.5 rounded-md tabular-nums"
             style={{ color, backgroundColor: `${color}1a` }}
@@ -50,7 +50,7 @@ export default function KanbanColumn({
         {canAdd && (
           <button
             onClick={() => onAddContent(id)}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-[#333] hover:text-[#777] hover:bg-[#1a1a1a] transition-colors"
+            className="w-6 h-6 rounded-md flex items-center justify-center text-neutral-300 dark:text-[#333] hover:text-neutral-600 dark:hover:text-[#777] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
             aria-label={`Add to ${label}`}
           >
             <Plus size={14} />
@@ -64,11 +64,8 @@ export default function KanbanColumn({
 
         <div
           ref={setNodeRef}
-          className="flex flex-col gap-2.5 flex-1 min-h-[220px] rounded-xl p-2.5 transition-all duration-150"
-          style={{
-            backgroundColor: isOver ? `${color}08` : '#0d0d0d',
-            border: isOver ? `1px solid ${color}35` : '1px solid #181818',
-          }}
+          className="flex flex-col gap-2.5 flex-1 min-h-[220px] rounded-xl p-2.5 transition-all duration-150 bg-neutral-100 dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#181818]"
+          style={isOver ? { backgroundColor: `${color}08`, border: `1px solid ${color}35` } : undefined}
         >
           <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
             {items.length === 0 ? (
@@ -77,7 +74,7 @@ export default function KanbanColumn({
                 style={{ border: `1px dashed ${color}18` }}
               >
                 <div className="w-2 h-2 rounded-full opacity-20" style={{ backgroundColor: color }} />
-                <span className="text-xs text-[#2e2e2e]">Drop here</span>
+                <span className="text-xs text-neutral-300 dark:text-[#2e2e2e]">Drop here</span>
               </div>
             ) : (
               items.map((item) => (
@@ -95,7 +92,7 @@ export default function KanbanColumn({
           {items.length > 0 && canAdd && (
             <button
               onClick={() => onAddContent(id)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[#333] hover:text-[#666] hover:bg-[#181818] transition-colors text-xs font-medium border border-dashed border-[#1c1c1c] hover:border-[#2c2c2c]"
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-neutral-300 dark:text-[#333] hover:text-neutral-500 dark:hover:text-[#666] hover:bg-neutral-200 dark:hover:bg-[#181818] transition-colors text-xs font-medium border border-dashed border-neutral-200 dark:border-[#1c1c1c] hover:border-neutral-300 dark:hover:border-[#2c2c2c]"
             >
               <Plus size={12} />
               Add

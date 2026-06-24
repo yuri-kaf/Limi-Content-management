@@ -28,7 +28,7 @@ export default function ClientCard({ client }: Props) {
   return (
     <button
       onClick={() => navigate(`/client/${client.id}`)}
-      className="group w-full text-left bg-[#111] border border-[#1e1e1e] hover:border-[#2c2c2c] rounded-2xl p-5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30 hover:bg-[#131313]"
+      className="group w-full text-left bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2c2c2c] rounded-2xl p-5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30 hover:bg-neutral-50 dark:hover:bg-[#131313]"
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -37,38 +37,38 @@ export default function ClientCard({ client }: Props) {
             <img
               src={client.imageUrl}
               alt={client.name}
-              className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-[#1e1e1e]"
+              className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-neutral-200 dark:ring-[#1e1e1e]"
             />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-[#1a1a1a] border border-[#252525] flex items-center justify-center flex-shrink-0">
-              <User size={18} className="text-[#444]" />
+            <div className="w-11 h-11 rounded-full bg-neutral-100 dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#252525] flex items-center justify-center flex-shrink-0">
+              <User size={18} className="text-neutral-400 dark:text-[#444]" />
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="font-semibold text-[#f0f0f0] truncate text-[15px] leading-tight">
+            <h3 className="font-semibold text-neutral-900 dark:text-[#f0f0f0] truncate text-[15px] leading-tight">
               {client.name}
             </h3>
-            <span className="text-xs text-[#444] mt-0.5 block">
+            <span className="text-xs text-neutral-400 dark:text-[#444] mt-0.5 block">
               {client.content.length} item{client.content.length !== 1 ? 's' : ''}
             </span>
           </div>
         </div>
         <ChevronRight
           size={15}
-          className="text-[#2a2a2a] group-hover:text-[#555] transition-colors flex-shrink-0 mt-1.5"
+          className="text-neutral-300 dark:text-[#2a2a2a] group-hover:text-neutral-500 dark:group-hover:text-[#555] transition-colors flex-shrink-0 mt-1.5"
         />
       </div>
 
       {/* About */}
       {client.about && (
-        <p className="text-sm text-[#555] line-clamp-2 leading-relaxed mb-3">
+        <p className="text-sm text-neutral-500 dark:text-[#555] line-clamp-2 leading-relaxed mb-3">
           {client.about}
         </p>
       )}
 
       {/* Status breakdown */}
       {hasContent && (
-        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[#181818]">
+        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-neutral-100 dark:border-[#181818]">
           {STATUS_ORDER.filter((s) => statusCounts[s]).map((status) => (
             <div
               key={status}

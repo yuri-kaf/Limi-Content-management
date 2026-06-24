@@ -90,7 +90,7 @@ export default function ContentDetailModal({
             <span className="text-xs font-semibold">Client Declined</span>
           </div>
           {item.reviewNote && (
-            <p className="text-xs text-[#666] bg-[#0d0d0d] rounded-lg p-2 border border-[#1a1a1a] leading-relaxed">
+            <p className="text-xs text-neutral-500 dark:text-[#666] bg-neutral-100 dark:bg-[#0d0d0d] rounded-lg p-2 border border-neutral-200 dark:border-[#1a1a1a] leading-relaxed">
               "{item.reviewNote}"
             </p>
           )}
@@ -98,7 +98,7 @@ export default function ContentDetailModal({
       );
     }
     return (
-      <div className="flex items-center gap-1.5 text-[#555]">
+      <div className="flex items-center gap-1.5 text-neutral-400 dark:text-[#555]">
         <Clock size={13} />
         <span className="text-xs font-semibold">Pending Client Review</span>
       </div>
@@ -106,21 +106,19 @@ export default function ContentDetailModal({
   })();
 
   return (
-    /* Backdrop — centres on desktop, aligns to bottom on mobile */
     <div
       className="fixed inset-0 z-50 flex sm:items-center sm:justify-center items-end"
       style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Sheet — rounded-top on mobile, rounded-all on desktop */}
       <div
-        className="bg-[#111] border border-[#1e1e1e] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[92dvh] overflow-y-auto
+        className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[92dvh] overflow-y-auto
                    rounded-t-2xl sm:rounded-2xl sm:mx-4"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Drag handle (mobile only) */}
         <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+          <div className="w-10 h-1 rounded-full bg-neutral-200 dark:bg-[#2a2a2a]" />
         </div>
 
         {/* Thumbnail */}
@@ -133,8 +131,8 @@ export default function ContentDetailModal({
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-[#0c0c0c] flex items-center justify-center">
-              <Film size={36} className="text-[#2a2a2a]" />
+            <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex items-center justify-center">
+              <Film size={36} className="text-neutral-300 dark:text-[#2a2a2a]" />
             </div>
           )}
           <button
@@ -148,50 +146,50 @@ export default function ContentDetailModal({
         {/* Content */}
         <div className="p-5 flex flex-col gap-4">
           {/* Title */}
-          <h2 className="text-base font-bold text-white leading-snug">{item.title}</h2>
+          <h2 className="text-base font-bold text-neutral-900 dark:text-white leading-snug">{item.title}</h2>
 
           {/* Caption */}
           {item.notes ? (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-[#555] uppercase tracking-wider">Caption</span>
+                <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">Caption</span>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 text-xs text-[#444] hover:text-[#dc2626] transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
                 >
                   {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                   <span>{copied ? 'Copied!' : 'Copy'}</span>
                 </button>
               </div>
-              <p className="text-sm text-[#888] leading-relaxed bg-[#0d0d0d] rounded-xl p-3 border border-[#1a1a1a] whitespace-pre-wrap">
+              <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap">
                 {item.notes}
               </p>
             </div>
           ) : (
-            <p className="text-xs text-[#333] italic">No caption added.</p>
+            <p className="text-xs text-neutral-300 dark:text-[#333] italic">No caption added.</p>
           )}
 
           {/* Posting schedule */}
           {scheduledLabel && (
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-[#dc2626] flex-shrink-0" />
-              <span className="text-xs text-[#555]">
+              <span className="text-xs text-neutral-400 dark:text-[#555]">
                 Scheduled:{' '}
-                <span className="text-[#777] font-medium">{scheduledLabel}</span>
+                <span className="text-neutral-500 dark:text-[#777] font-medium">{scheduledLabel}</span>
               </span>
             </div>
           )}
 
           {/* Review status (non-client sees read-only) */}
           {!isClientRole && (
-            <div className="pt-1 border-t border-[#1a1a1a]">
+            <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
               {reviewStatusEl}
             </div>
           )}
 
           {/* Client review UI */}
           {isClientRole && onReview && (
-            <div className="pt-1 border-t border-[#1a1a1a]">
+            <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
               {item.clientReview === 'approved' ? (
                 <div className="flex items-center gap-2 text-emerald-500 text-sm font-semibold">
                   <CheckCircle size={15} />
@@ -204,20 +202,20 @@ export default function ContentDetailModal({
                     You declined this content
                   </div>
                   {item.reviewNote && (
-                    <p className="text-xs text-[#666] bg-[#0d0d0d] rounded-lg p-2 border border-[#1a1a1a] leading-relaxed">
+                    <p className="text-xs text-neutral-500 dark:text-[#666] bg-neutral-50 dark:bg-[#0d0d0d] rounded-lg p-2 border border-neutral-200 dark:border-[#1a1a1a] leading-relaxed">
                       Your note: "{item.reviewNote}"
                     </p>
                   )}
                   <button
                     onClick={() => { setDecliningMode(false); onReview('pending'); }}
-                    className="text-xs text-[#555] hover:text-[#888] transition-colors self-start"
+                    className="text-xs text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#888] transition-colors self-start"
                   >
                     Reset review
                   </button>
                 </div>
               ) : decliningMode ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-[#555] uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-neutral-500 dark:text-[#555] uppercase tracking-wider">
                     Reason / Suggestions
                   </label>
                   <textarea
@@ -225,12 +223,12 @@ export default function ContentDetailModal({
                     onChange={(e) => setDeclineNote(e.target.value)}
                     rows={3}
                     placeholder="Tell us what needs to change..."
-                    className="w-full bg-[#0c0c0c] border border-[#222] rounded-lg px-3 py-2 text-white text-sm placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors resize-none"
+                    className="w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors resize-none"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => setDecliningMode(false)}
-                      className="flex-1 py-3 rounded-xl border border-[#222] text-[#555] text-sm hover:text-[#888] hover:border-[#333] transition-colors"
+                      className="flex-1 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-400 dark:text-[#555] text-sm hover:text-neutral-600 dark:hover:text-[#888] hover:border-neutral-300 dark:hover:border-[#333] transition-colors"
                     >
                       Cancel
                     </button>
@@ -253,7 +251,7 @@ export default function ContentDetailModal({
                   </button>
                   <button
                     onClick={() => setDecliningMode(true)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-[#222] text-[#666] text-sm font-semibold hover:text-red-400 hover:border-red-900/40 hover:bg-red-950/20 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] text-sm font-semibold hover:text-red-400 hover:border-red-900/40 hover:bg-red-950/20 transition-colors"
                   >
                     <XCircle size={13} />
                     Decline
@@ -264,12 +262,12 @@ export default function ContentDetailModal({
           )}
 
           {/* Drive link — always visible for ALL roles */}
-          <div className="flex items-center gap-2 pt-1 border-t border-[#1a1a1a]">
+          <div className="flex items-center gap-2 pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
             <a
               href={item.driveLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#222] text-[#666] hover:text-[#999] hover:border-[#333] active:bg-[#1a1a1a] transition-colors text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] hover:border-neutral-300 dark:hover:border-[#333] active:bg-neutral-100 dark:active:bg-[#1a1a1a] transition-colors text-sm font-medium"
             >
               <ExternalLink size={13} />
               Open in Drive
@@ -279,7 +277,7 @@ export default function ContentDetailModal({
             {!isClientRole && canEdit && (
               <button
                 onClick={onEdit}
-                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#222] text-[#666] hover:text-[#aaa] hover:border-[#333] active:bg-[#1a1a1a] transition-colors text-sm font-medium"
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#aaa] hover:border-neutral-300 dark:hover:border-[#333] active:bg-neutral-100 dark:active:bg-[#1a1a1a] transition-colors text-sm font-medium"
               >
                 <Pencil size={13} />
                 Edit
@@ -292,7 +290,7 @@ export default function ContentDetailModal({
                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   confirmDelete
                     ? 'bg-red-950/40 border border-red-900/60 text-red-400'
-                    : 'border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/40 hover:bg-red-950/20'
+                    : 'border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-red-500 hover:border-red-900/40 hover:bg-red-950/20'
                 }`}
               >
                 <Trash2 size={13} />

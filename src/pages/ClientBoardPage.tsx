@@ -12,8 +12,9 @@ import {
   DragOverlay,
   DragStartEvent,
 } from '@dnd-kit/core';
-import { ArrowLeft, User, LayoutGrid, CalendarDays } from 'lucide-react';
+import { ArrowLeft, User, LayoutGrid, CalendarDays, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useClients } from '../store';
 import { ClientReview, ContentItem, ContentStatus } from '../types';
 import KanbanColumn from '../components/KanbanColumn';
@@ -33,6 +34,7 @@ export default function ClientBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus, updateClientReview } = useClients();
 
   const isAdmin = currentUser?.role === 'admin';
@@ -57,17 +59,17 @@ export default function ClientBoardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen min-h-dvh bg-[#080808] flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+      <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!client) {
     return (
-      <div className="min-h-screen min-h-dvh bg-[#080808] flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[#555] mb-4 text-sm">Client not found.</p>
+          <p className="text-neutral-400 dark:text-[#555] mb-4 text-sm">Client not found.</p>
           <button
             onClick={() => navigate('/')}
             className="text-sm text-[#dc2626] hover:text-[#ef4444] transition-colors"
@@ -165,21 +167,28 @@ export default function ClientBoardPage() {
   const activeMobileCol = COLUMNS.find((c) => c.id === mobileTab)!;
 
   return (
-    <div className="min-h-screen min-h-dvh bg-[#080808]">
-      {/* ── Desktop top nav ─────────────────────────── */}
-      <header className="hidden sm:block border-b border-[#161616] bg-[#080808] sticky top-0 z-10">
+    <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808]">
+      {/* Desktop top nav */}
+      <header className="hidden sm:block border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10">
         <div className="max-w-[1440px] mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
               <span className="text-white font-bold text-xs leading-none">L</span>
             </div>
-            <span className="text-white font-bold text-[15px] tracking-tight">Limi</span>
+            <span className="text-neutral-900 dark:text-white font-bold text-[15px] tracking-tight">Limi</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[#444] text-xs">{currentUser?.email}</span>
+            <span className="text-neutral-400 dark:text-[#444] text-xs">{currentUser?.email}</span>
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             <button
               onClick={logout}
-              className="text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
             >
               Sign out
             </button>
@@ -187,27 +196,29 @@ export default function ClientBoardPage() {
         </div>
       </header>
 
-      {/* ── Mobile top bar ──────────────────────────── */}
+      {/* Mobile top bar */}
       <header
-        className="sm:hidden sticky top-0 z-10 bg-[#080808]/95 border-b border-[#161616] backdrop-blur-md"
+        className="sm:hidden sticky top-0 z-10 bg-white/95 dark:bg-[#080808]/95 border-b border-neutral-200 dark:border-[#161616] backdrop-blur-md"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center justify-center w-8 h-8 rounded-xl text-[#555] active:bg-[#1a1a1a] transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-neutral-400 dark:text-[#555] active:bg-neutral-100 dark:active:bg-[#1a1a1a] transition-colors"
           >
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-white truncate">{client.name}</h1>
+            <h1 className="text-sm font-bold text-neutral-900 dark:text-white truncate">{client.name}</h1>
           </div>
           {!isClientRole && (
-            <div className="flex items-center gap-1 bg-[#111] border border-[#1e1e1e] rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-neutral-100 dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-lg p-0.5">
               <button
                 onClick={() => setView('kanban')}
                 className={`flex items-center justify-center w-7 h-7 rounded-md text-xs transition-colors ${
-                  view === 'kanban' ? 'bg-[#1e1e1e] text-white' : 'text-[#555]'
+                  view === 'kanban'
+                    ? 'bg-white dark:bg-[#1e1e1e] text-neutral-800 dark:text-white shadow-sm'
+                    : 'text-neutral-400 dark:text-[#555]'
                 }`}
               >
                 <LayoutGrid size={13} />
@@ -215,7 +226,9 @@ export default function ClientBoardPage() {
               <button
                 onClick={() => setView('calendar')}
                 className={`flex items-center justify-center w-7 h-7 rounded-md text-xs transition-colors ${
-                  view === 'calendar' ? 'bg-[#1e1e1e] text-white' : 'text-[#555]'
+                  view === 'calendar'
+                    ? 'bg-white dark:bg-[#1e1e1e] text-neutral-800 dark:text-white shadow-sm'
+                    : 'text-neutral-400 dark:text-[#555]'
                 }`}
               >
                 <CalendarDays size={13} />
@@ -224,19 +237,19 @@ export default function ClientBoardPage() {
           )}
           <button
             onClick={logout}
-            className="text-[10px] text-[#555] border border-[#1e1e1e] px-2.5 py-1 rounded-lg"
+            className="text-[10px] text-neutral-400 dark:text-[#555] border border-neutral-200 dark:border-[#1e1e1e] px-2.5 py-1 rounded-lg"
           >
             Out
           </button>
         </div>
       </header>
 
-      {/* ── Desktop client info bar ─────────────────── */}
-      <div className="hidden sm:block border-b border-[#161616] bg-[#0a0a0a]">
+      {/* Desktop client info bar */}
+      <div className="hidden sm:block border-b border-neutral-200 dark:border-[#161616] bg-neutral-50 dark:bg-[#0a0a0a]">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 text-[#444] hover:text-[#888] text-xs mb-3 transition-colors"
+            className="flex items-center gap-1.5 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] text-xs mb-3 transition-colors"
           >
             <ArrowLeft size={13} />
             All Clients
@@ -247,26 +260,28 @@ export default function ClientBoardPage() {
               <img
                 src={client.imageUrl}
                 alt={client.name}
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0 ring-2 ring-[#1e1e1e]"
+                className="w-12 h-12 rounded-full object-cover flex-shrink-0 ring-2 ring-neutral-200 dark:ring-[#1e1e1e]"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center flex-shrink-0">
-                <User size={20} className="text-[#444]" />
+              <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-[#161616] border border-neutral-200 dark:border-[#222] flex items-center justify-center flex-shrink-0">
+                <User size={20} className="text-neutral-400 dark:text-[#444]" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-white leading-tight">{client.name}</h1>
+              <h1 className="text-lg font-bold text-neutral-900 dark:text-white leading-tight">{client.name}</h1>
               {client.about && (
-                <p className="text-sm text-[#555] mt-0.5 truncate max-w-xl">{client.about}</p>
+                <p className="text-sm text-neutral-400 dark:text-[#555] mt-0.5 truncate max-w-xl">{client.about}</p>
               )}
             </div>
 
             {!isClientRole && (
-              <div className="flex items-center gap-1 bg-[#111] border border-[#1e1e1e] rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-lg p-1">
                 <button
                   onClick={() => setView('kanban')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    view === 'kanban' ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'
+                    view === 'kanban'
+                      ? 'bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-800 dark:text-white'
+                      : 'text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#888]'
                   }`}
                 >
                   <LayoutGrid size={12} />
@@ -275,7 +290,9 @@ export default function ClientBoardPage() {
                 <button
                   onClick={() => setView('calendar')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    view === 'calendar' ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'
+                    view === 'calendar'
+                      ? 'bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-800 dark:text-white'
+                      : 'text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#888]'
                   }`}
                 >
                   <CalendarDays size={12} />
@@ -291,11 +308,11 @@ export default function ClientBoardPage() {
                   return (
                     <div
                       key={col.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111] border border-[#1a1a1a]"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1a1a1a]"
                     >
                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
-                      <span className="text-xs text-[#777] font-medium">{count}</span>
-                      <span className="text-xs text-[#444]">{col.label}</span>
+                      <span className="text-xs text-neutral-600 dark:text-[#777] font-medium">{count}</span>
+                      <span className="text-xs text-neutral-400 dark:text-[#444]">{col.label}</span>
                     </div>
                   );
                 })}
@@ -305,18 +322,18 @@ export default function ClientBoardPage() {
         </div>
       </div>
 
-      {/* ── Main content ────────────────────────────── */}
+      {/* Main content */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-6">
         {/* CLIENT ROLE: read-only to-post list */}
         {isClientRole ? (
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#777]">
+              <h2 className="text-sm font-semibold text-neutral-500 dark:text-[#777]">
                 Videos ready to post ({clientVisibleContent.length})
               </h2>
             </div>
             {clientVisibleContent.length === 0 ? (
-              <div className="text-center py-20 text-[#444] text-sm">
+              <div className="text-center py-20 text-neutral-400 dark:text-[#444] text-sm">
                 No videos ready for review yet.
               </div>
             ) : (
@@ -346,9 +363,8 @@ export default function ClientBoardPage() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            {/* ── Mobile: status tabs + single column ── */}
+            {/* Mobile: status tabs + single column */}
             <div className="sm:hidden">
-              {/* Tab bar */}
               <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
                 {COLUMNS.map((col) => {
                   const count = getItemsByStatus(col.id).length;
@@ -357,18 +373,22 @@ export default function ClientBoardPage() {
                     <button
                       key={col.id}
                       onClick={() => setMobileTab(col.id)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                        isActive
+                          ? ''
+                          : 'bg-white dark:bg-[#111] text-neutral-500 dark:text-[#444] border border-neutral-200 dark:border-[#1e1e1e]'
+                      }`}
                       style={
                         isActive
                           ? { backgroundColor: `${col.color}22`, color: col.color, border: `1px solid ${col.color}44` }
-                          : { backgroundColor: '#111', color: '#444', border: '1px solid #1e1e1e' }
+                          : {}
                       }
                     >
                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
                       {col.label}
                       <span
-                        className="text-[11px] font-bold px-1 rounded"
-                        style={isActive ? { color: col.color } : { color: '#333' }}
+                        className={`text-[11px] font-bold px-1 rounded ${isActive ? '' : 'text-neutral-400 dark:text-[#333]'}`}
+                        style={isActive ? { color: col.color } : {}}
                       >
                         {count}
                       </span>
@@ -377,7 +397,6 @@ export default function ClientBoardPage() {
                 })}
               </div>
 
-              {/* Single active column */}
               <KanbanColumn
                 id={activeMobileCol.id}
                 label={activeMobileCol.label}
@@ -393,7 +412,7 @@ export default function ClientBoardPage() {
               />
             </div>
 
-            {/* ── Desktop: 4-column grid ─────────────── */}
+            {/* Desktop: 4-column grid */}
             <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-4">
               {COLUMNS.map((col) => (
                 <KanbanColumn

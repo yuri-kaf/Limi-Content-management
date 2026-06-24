@@ -35,13 +35,13 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
     <div
       ref={setNodeRef}
       style={style}
-      className="group bg-[#161616] border border-[#1e1e1e] hover:border-[#2a2a2a] rounded-xl overflow-hidden transition-colors duration-150 cursor-pointer"
+      className="group bg-white dark:bg-[#161616] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2a2a2a] rounded-xl overflow-hidden transition-colors duration-150 cursor-pointer"
       onClick={onCardClick}
     >
       <div className="flex items-start gap-3 p-3">
         {/* Thumbnail */}
         <div
-          className="relative flex-shrink-0 rounded-lg overflow-hidden bg-[#111]"
+          className="relative flex-shrink-0 rounded-lg overflow-hidden bg-neutral-100 dark:bg-[#111]"
           style={{ width: 80, aspectRatio: '16/9' }}
         >
           {thumbnailUrl && !imgError ? (
@@ -53,10 +53,10 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Film size={14} className="text-[#2a2a2a]" />
+              <Film size={14} className="text-neutral-300 dark:text-[#2a2a2a]" />
             </div>
           )}
-          {/* Drag handle overlay — desktop only */}
+          {/* Drag handle — desktop only */}
           <button
             {...attributes}
             {...listeners}
@@ -71,7 +71,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1">
-            <p className="text-[13px] font-medium text-[#ddd] leading-snug flex-1 min-w-0 line-clamp-2">
+            <p className="text-[13px] font-medium text-neutral-800 dark:text-[#ddd] leading-snug flex-1 min-w-0 line-clamp-2">
               {item.title}
             </p>
             {/* Action buttons: always visible on mobile, hover-only on desktop */}
@@ -79,7 +79,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
               {onEdit && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                  className="p-1.5 rounded-md text-[#444] hover:text-[#aaa] hover:bg-[#222] active:bg-[#222] transition-colors"
+                  className="p-1.5 rounded-md text-neutral-400 dark:text-[#444] hover:text-neutral-700 dark:hover:text-[#aaa] hover:bg-neutral-100 dark:hover:bg-[#222] active:bg-neutral-100 dark:active:bg-[#222] transition-colors"
                   aria-label="Edit"
                 >
                   <Pencil size={12} />
@@ -88,7 +88,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
               {onDelete && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                  className="p-1.5 rounded-md text-[#444] hover:text-[#dc2626] hover:bg-[#1a0808] active:bg-[#1a0808] transition-colors"
+                  className="p-1.5 rounded-md text-neutral-400 dark:text-[#444] hover:text-[#dc2626] hover:bg-red-50 dark:hover:bg-[#1a0808] active:bg-red-50 dark:active:bg-[#1a0808] transition-colors"
                   aria-label="Delete"
                 >
                   <Trash2 size={12} />
@@ -98,7 +98,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
           </div>
 
           {item.notes && (
-            <p className="text-[11px] text-[#4a4a4a] mt-1 line-clamp-1 leading-relaxed">
+            <p className="text-[11px] text-neutral-400 dark:text-[#4a4a4a] mt-1 line-clamp-1 leading-relaxed">
               {item.notes}
             </p>
           )}
@@ -108,14 +108,14 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
               href={item.driveLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2e2e2e] hover:text-[#dc2626] transition-colors"
+              className="text-neutral-300 dark:text-[#2e2e2e] hover:text-[#dc2626] transition-colors"
               onClick={(e) => e.stopPropagation()}
               aria-label="Open in Drive"
             >
               <ExternalLink size={11} />
             </a>
             {scheduledLabel && (
-              <div className="flex items-center gap-1 text-[#3a3a3a]">
+              <div className="flex items-center gap-1 text-neutral-400 dark:text-[#3a3a3a]">
                 <Calendar size={10} />
                 <span className="text-[10px] font-medium">{scheduledLabel}</span>
               </div>

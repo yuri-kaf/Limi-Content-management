@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Eye, EyeOff, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, EyeOff, Pencil, Trash2, X, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useUsers } from '../store';
 import { useClients } from '../store';
 import { AppUser, UserRole } from '../types';
@@ -57,8 +58,8 @@ function UserForm({
     onSubmit({ name: name.trim(), email: email.trim().toLowerCase(), password, role, assignedClientIds });
   }
 
-  const inputCls = 'w-full bg-[#0c0c0c] border border-[#222] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
-  const labelCls = 'block text-xs font-semibold text-[#666] mb-1.5 uppercase tracking-wider';
+  const inputCls = 'w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
+  const labelCls = 'block text-xs font-semibold text-neutral-500 dark:text-[#666] mb-1.5 uppercase tracking-wider';
 
   return (
     <div
@@ -66,12 +67,12 @@ function UserForm({
       style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-white">
+          <h2 className="text-base font-bold text-neutral-900 dark:text-white">
             {initial ? 'Edit User' : 'Add User'}
           </h2>
-          <button onClick={onClose} className="text-[#444] hover:text-[#888] transition-colors">
+          <button onClick={onClose} className="text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -101,7 +102,7 @@ function UserForm({
               <button
                 type="button"
                 onClick={() => setShowPw((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors"
               >
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
@@ -115,7 +116,6 @@ function UserForm({
               onChange={(e) => setRole(e.target.value as UserRole)}
               className={inputCls}
               disabled={isEditingSelf}
-              style={{ colorScheme: 'dark' }}
             >
               {ROLE_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
@@ -126,16 +126,16 @@ function UserForm({
           {role === 'client' && clients.length > 0 && (
             <div>
               <label className={labelCls}>Assigned Clients</label>
-              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto p-2 bg-[#0c0c0c] rounded-lg border border-[#222]">
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-100 dark:bg-[#0c0c0c] rounded-lg border border-neutral-200 dark:border-[#222]">
                 {clients.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2.5 cursor-pointer py-1 px-1 rounded-md hover:bg-[#161616] transition-colors">
+                  <label key={c.id} className="flex items-center gap-2.5 cursor-pointer py-1 px-1 rounded-md hover:bg-neutral-200 dark:hover:bg-[#161616] transition-colors">
                     <input
                       type="checkbox"
                       checked={assignedClientIds.includes(c.id)}
                       onChange={() => toggleClient(c.id)}
                       className="accent-[#dc2626]"
                     />
-                    <span className="text-sm text-[#aaa]">{c.name}</span>
+                    <span className="text-sm text-neutral-600 dark:text-[#aaa]">{c.name}</span>
                   </label>
                 ))}
               </div>
@@ -146,7 +146,7 @@ function UserForm({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-transparent border border-[#222] text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-[#161616] hover:text-[#999] transition-colors"
+              className="flex-1 bg-transparent border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-[#161616] hover:text-neutral-700 dark:hover:text-[#999] transition-colors"
             >
               Cancel
             </button>
@@ -167,6 +167,7 @@ function UserForm({
 export default function UserManagementPage() {
   const navigate = useNavigate();
   const { currentUser, refreshCurrentUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { users, loading, addUser, updateUser, deleteUser } = useUsers();
   const { clients } = useClients();
   const isAdmin = currentUser?.role === 'admin';
@@ -214,22 +215,31 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080808]">
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#080808]">
       {/* Header */}
-      <header className="border-b border-[#161616] bg-[#080808] sticky top-0 z-10">
+      <header className="border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
               <span className="text-white font-bold text-xs leading-none">L</span>
             </div>
-            <span className="text-white font-bold text-[15px] tracking-tight">Limi</span>
+            <span className="text-neutral-900 dark:text-white font-bold text-[15px] tracking-tight">Limi</span>
           </div>
-          <button
-            onClick={() => navigate('/')}
-            className="text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Home
+            </button>
+          </div>
         </div>
       </header>
 
@@ -239,14 +249,14 @@ export default function UserManagementPage() {
           <div>
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 text-[#444] hover:text-[#888] text-xs mb-2 transition-colors"
+              className="flex items-center gap-1.5 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] text-xs mb-2 transition-colors"
             >
               <ArrowLeft size={13} />
               Back
             </button>
-            <h1 className="text-xl font-bold text-white">Team</h1>
+            <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Team</h1>
             {!loading && (
-              <p className="text-sm text-[#555] mt-1">{users.length} member{users.length !== 1 ? 's' : ''}</p>
+              <p className="text-sm text-neutral-400 dark:text-[#555] mt-1">{users.length} member{users.length !== 1 ? 's' : ''}</p>
             )}
           </div>
           {isAdmin && (
@@ -262,7 +272,7 @@ export default function UserManagementPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
-            <div className="w-5 h-5 border-2 border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -274,7 +284,7 @@ export default function UserManagementPage() {
               return (
                 <div
                   key={user.id}
-                  className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 flex items-center gap-4"
+                  className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-4 flex items-center gap-4"
                 >
                   {/* Avatar */}
                   <div
@@ -287,8 +297,12 @@ export default function UserManagementPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-white">{user.name}</span>
-                      {isMe && <span className="text-[10px] text-[#555] border border-[#222] rounded-full px-2 py-0.5">You</span>}
+                      <span className="text-sm font-semibold text-neutral-900 dark:text-white">{user.name}</span>
+                      {isMe && (
+                        <span className="text-[10px] text-neutral-400 dark:text-[#555] border border-neutral-200 dark:border-[#222] rounded-full px-2 py-0.5">
+                          You
+                        </span>
+                      )}
                       <span
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
                         style={{ backgroundColor: colors.bg, color: colors.text }}
@@ -296,9 +310,9 @@ export default function UserManagementPage() {
                         {ROLE_LABELS[user.role]}
                       </span>
                     </div>
-                    <p className="text-xs text-[#555] mt-0.5 truncate">{user.email}</p>
+                    <p className="text-xs text-neutral-400 dark:text-[#555] mt-0.5 truncate">{user.email}</p>
                     {user.role === 'client' && user.assignedClientIds?.length > 0 && (
-                      <p className="text-[11px] text-[#444] mt-0.5">
+                      <p className="text-[11px] text-neutral-300 dark:text-[#444] mt-0.5">
                         {user.assignedClientIds.length} client{user.assignedClientIds.length !== 1 ? 's' : ''} assigned
                       </p>
                     )}
@@ -306,13 +320,13 @@ export default function UserManagementPage() {
 
                   {/* Password (admin only) */}
                   {isAdmin && (
-                    <div className="flex items-center gap-1.5 bg-[#0c0c0c] border border-[#1a1a1a] rounded-lg px-2.5 py-1.5">
-                      <span className="text-xs text-[#666] font-mono">
+                    <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg px-2.5 py-1.5">
+                      <span className="text-xs text-neutral-500 dark:text-[#666] font-mono">
                         {pwVisible ? user.password : '••••••••'}
                       </span>
                       <button
                         onClick={() => togglePassword(user.id)}
-                        className="text-[#333] hover:text-[#666] transition-colors ml-1"
+                        className="text-neutral-300 dark:text-[#333] hover:text-neutral-500 dark:hover:text-[#666] transition-colors ml-1"
                       >
                         {pwVisible ? <EyeOff size={12} /> : <Eye size={12} />}
                       </button>
@@ -324,7 +338,7 @@ export default function UserManagementPage() {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => setEditingUser(user)}
-                        className="p-1.5 rounded-lg text-[#444] hover:text-[#aaa] hover:bg-[#1a1a1a] transition-colors"
+                        className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-700 dark:hover:text-[#aaa] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
                         aria-label="Edit"
                       >
                         <Pencil size={13} />
@@ -332,7 +346,7 @@ export default function UserManagementPage() {
                       {!isMe && (
                         <button
                           onClick={() => handleDelete(user)}
-                          className="p-1.5 rounded-lg text-[#444] hover:text-[#dc2626] hover:bg-[#1a0808] transition-colors"
+                          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-[#dc2626] hover:bg-red-50 dark:hover:bg-[#1a0808] transition-colors"
                           aria-label="Delete"
                         >
                           <Trash2 size={13} />
