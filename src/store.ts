@@ -16,18 +16,38 @@ import { generateId } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
+const CLIENTS_CACHE_KEY = 'limi_clients_v1';
+
+function readClientsCache(): Client[] {
+  try {
+    const raw = localStorage.getItem(CLIENTS_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Client[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeClientsCache(clients: Client[]) {
+  try {
+    localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(clients));
+  } catch {
+    // storage quota exceeded — silently ignore
+  }
+}
+
 export function useClients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = readClientsCache();
+  const [clients, setClients] = useState<Client[]>(cached);
+  const [loading, setLoading] = useState(cached.length === 0);
 
   useEffect(() => {
     const q = query(collection(db, 'clients'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        setClients(
-          snapshot.docs.map((d) => ({ ...(d.data() as Omit<Client, 'id'>), id: d.id }))
-        );
+        const fresh = snapshot.docs.map((d) => ({ ...(d.data() as Omit<Client, 'id'>), id: d.id }));
+        setClients(fresh);
+        writeClientsCache(fresh);
         setLoading(false);
       },
       () => setLoading(false)

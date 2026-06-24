@@ -5,6 +5,7 @@ import ClientsPage from './pages/ClientsPage';
 import ClientBoardPage from './pages/ClientBoardPage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
+import BottomNav from './components/BottomNav';
 
 function FirebaseSetupGuide() {
   return (
@@ -43,12 +44,15 @@ function AuthenticatedRoutes() {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
-    <Routes>
-      <Route path="/" element={<ClientsPage />} />
-      <Route path="/client/:id" element={<ClientBoardPage />} />
-      <Route path="/users" element={<UserManagementPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<ClientsPage />} />
+        <Route path="/client/:id" element={<ClientBoardPage />} />
+        <Route path="/users" element={<UserManagementPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <BottomNav />
+    </>
   );
 }
 

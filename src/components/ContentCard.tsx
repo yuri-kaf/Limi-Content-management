@@ -56,11 +56,11 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
               <Film size={14} className="text-[#2a2a2a]" />
             </div>
           )}
-          {/* Drag handle overlay */}
+          {/* Drag handle overlay — desktop only */}
           <button
             {...attributes}
             {...listeners}
-            className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+            className="absolute inset-0 hidden sm:flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
             aria-label="Drag"
             onClick={(e) => e.stopPropagation()}
           >
@@ -74,24 +74,24 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             <p className="text-[13px] font-medium text-[#ddd] leading-snug flex-1 min-w-0 line-clamp-2">
               {item.title}
             </p>
-            {/* Hover action buttons */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1">
+            {/* Action buttons: always visible on mobile, hover-only on desktop */}
+            <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1">
               {onEdit && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                  className="p-1 rounded-md text-[#444] hover:text-[#aaa] hover:bg-[#222] transition-colors"
+                  className="p-1.5 rounded-md text-[#444] hover:text-[#aaa] hover:bg-[#222] active:bg-[#222] transition-colors"
                   aria-label="Edit"
                 >
-                  <Pencil size={11} />
+                  <Pencil size={12} />
                 </button>
               )}
               {onDelete && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                  className="p-1 rounded-md text-[#444] hover:text-[#dc2626] hover:bg-[#1a0808] transition-colors"
+                  className="p-1.5 rounded-md text-[#444] hover:text-[#dc2626] hover:bg-[#1a0808] active:bg-[#1a0808] transition-colors"
                   aria-label="Delete"
                 >
-                  <Trash2 size={11} />
+                  <Trash2 size={12} />
                 </button>
               )}
             </div>

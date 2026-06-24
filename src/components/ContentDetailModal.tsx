@@ -106,12 +106,23 @@ export default function ContentDetailModal({
   })();
 
   return (
+    /* Backdrop — centres on desktop, aligns to bottom on mobile */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.8)' }}
+      className="fixed inset-0 z-50 flex sm:items-center sm:justify-center items-end"
+      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      {/* Sheet — rounded-top on mobile, rounded-all on desktop */}
+      <div
+        className="bg-[#111] border border-[#1e1e1e] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[92dvh] overflow-y-auto
+                   rounded-t-2xl sm:rounded-2xl sm:mx-4"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {/* Drag handle (mobile only) */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+        </div>
+
         {/* Thumbnail */}
         <div className="relative" style={{ aspectRatio: '16/9' }}>
           {thumbnailUrl && !imgError ? (
@@ -148,11 +159,7 @@ export default function ContentDetailModal({
                   onClick={handleCopy}
                   className="flex items-center gap-1.5 text-xs text-[#444] hover:text-[#dc2626] transition-colors"
                 >
-                  {copied ? (
-                    <Check size={11} className="text-emerald-500" />
-                  ) : (
-                    <Copy size={11} />
-                  )}
+                  {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                   <span>{copied ? 'Copied!' : 'Copy'}</span>
                 </button>
               </div>
@@ -175,7 +182,7 @@ export default function ContentDetailModal({
             </div>
           )}
 
-          {/* Review status (non-client sees read-only status) */}
+          {/* Review status (non-client sees read-only) */}
           {!isClientRole && (
             <div className="pt-1 border-t border-[#1a1a1a]">
               {reviewStatusEl}
@@ -223,13 +230,13 @@ export default function ContentDetailModal({
                   <div className="flex gap-2">
                     <button
                       onClick={() => setDecliningMode(false)}
-                      className="flex-1 py-2 rounded-xl border border-[#222] text-[#555] text-sm hover:text-[#888] hover:border-[#333] transition-colors"
+                      className="flex-1 py-3 rounded-xl border border-[#222] text-[#555] text-sm hover:text-[#888] hover:border-[#333] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDeclineSubmit}
-                      className="flex-1 py-2 rounded-xl bg-red-950/40 border border-red-900/60 text-red-400 text-sm font-semibold hover:bg-red-950/60 transition-colors"
+                      className="flex-1 py-3 rounded-xl bg-red-950/40 border border-red-900/60 text-red-400 text-sm font-semibold hover:bg-red-950/60 transition-colors"
                     >
                       Confirm Decline
                     </button>
@@ -239,14 +246,14 @@ export default function ContentDetailModal({
                 <div className="flex gap-2">
                   <button
                     onClick={handleApprove}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-950/40 border border-emerald-900/60 text-emerald-400 text-sm font-semibold hover:bg-emerald-950/60 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-emerald-950/40 border border-emerald-900/60 text-emerald-400 text-sm font-semibold hover:bg-emerald-950/60 transition-colors"
                   >
                     <CheckCircle size={13} />
                     Approve
                   </button>
                   <button
                     onClick={() => setDecliningMode(true)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#222] text-[#666] text-sm font-semibold hover:text-red-400 hover:border-red-900/40 hover:bg-red-950/20 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-[#222] text-[#666] text-sm font-semibold hover:text-red-400 hover:border-red-900/40 hover:bg-red-950/20 transition-colors"
                   >
                     <XCircle size={13} />
                     Decline
@@ -256,56 +263,43 @@ export default function ContentDetailModal({
             </div>
           )}
 
-          {/* Actions (non-client) */}
-          {!isClientRole && (canEdit || canDelete) && (
-            <div className="flex items-center gap-2 pt-1">
-              <a
-                href={item.driveLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#222] text-[#666] hover:text-[#999] hover:border-[#333] transition-colors text-sm font-medium"
-              >
-                <ExternalLink size={13} />
-                Open in Drive
-              </a>
-              {canEdit && (
-                <button
-                  onClick={onEdit}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#222] text-[#666] hover:text-[#aaa] hover:border-[#333] transition-colors text-sm font-medium"
-                >
-                  <Pencil size={13} />
-                  Edit
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={handleDeleteClick}
-                  onBlur={() => setConfirmDelete(false)}
-                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    confirmDelete
-                      ? 'bg-red-950/40 border border-red-900/60 text-red-400'
-                      : 'border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/40 hover:bg-red-950/20'
-                  }`}
-                >
-                  <Trash2 size={13} />
-                  {confirmDelete ? 'Confirm?' : 'Delete'}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Drive link for client role */}
-          {isClientRole && (
+          {/* Drive link — always visible for ALL roles */}
+          <div className="flex items-center gap-2 pt-1 border-t border-[#1a1a1a]">
             <a
               href={item.driveLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#222] text-[#666] hover:text-[#999] hover:border-[#333] transition-colors text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#222] text-[#666] hover:text-[#999] hover:border-[#333] active:bg-[#1a1a1a] transition-colors text-sm font-medium"
             >
               <ExternalLink size={13} />
               Open in Drive
             </a>
-          )}
+
+            {/* Edit / Delete — only when user has permission */}
+            {!isClientRole && canEdit && (
+              <button
+                onClick={onEdit}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-[#222] text-[#666] hover:text-[#aaa] hover:border-[#333] active:bg-[#1a1a1a] transition-colors text-sm font-medium"
+              >
+                <Pencil size={13} />
+                Edit
+              </button>
+            )}
+            {!isClientRole && canDelete && (
+              <button
+                onClick={handleDeleteClick}
+                onBlur={() => setConfirmDelete(false)}
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  confirmDelete
+                    ? 'bg-red-950/40 border border-red-900/60 text-red-400'
+                    : 'border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/40 hover:bg-red-950/20'
+                }`}
+              >
+                <Trash2 size={13} />
+                {confirmDelete ? 'Confirm?' : 'Delete'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

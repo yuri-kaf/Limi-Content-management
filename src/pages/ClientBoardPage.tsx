@@ -5,6 +5,7 @@ import {
   DragEndEvent,
   DragOverEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -47,14 +48,16 @@ export default function ClientBoardPage() {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
   const [view, setView] = useState<'kanban' | 'calendar'>('kanban');
+  const [mobileTab, setMobileTab] = useState<ContentStatus>('editing');
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-[#080808] flex items-center justify-center">
         <div className="w-5 h-5 border-2 border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
       </div>
     );
@@ -62,7 +65,7 @@ export default function ClientBoardPage() {
 
   if (!client) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <div className="min-h-screen min-h-dvh bg-[#080808] flex items-center justify-center">
         <div className="text-center">
           <p className="text-[#555] mb-4 text-sm">Client not found.</p>
           <button
@@ -76,7 +79,6 @@ export default function ClientBoardPage() {
     );
   }
 
-  // Restrict client role to assigned clients
   if (isClientRole && !currentUser?.assignedClientIds?.includes(client.id)) {
     navigate('/');
     return null;
@@ -156,15 +158,16 @@ export default function ClientBoardPage() {
     }
   }
 
-  // For client role: only show to-post items
   const clientVisibleContent = isClientRole
     ? client.content.filter((item) => item.status === 'to-post')
     : client.content;
 
+  const activeMobileCol = COLUMNS.find((c) => c.id === mobileTab)!;
+
   return (
-    <div className="min-h-screen bg-[#080808]">
-      {/* Top nav */}
-      <header className="border-b border-[#161616] bg-[#080808] sticky top-0 z-10">
+    <div className="min-h-screen min-h-dvh bg-[#080808]">
+      {/* ── Desktop top nav ─────────────────────────── */}
+      <header className="hidden sm:block border-b border-[#161616] bg-[#080808] sticky top-0 z-10">
         <div className="max-w-[1440px] mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
@@ -173,7 +176,7 @@ export default function ClientBoardPage() {
             <span className="text-white font-bold text-[15px] tracking-tight">Limi</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[#444] text-xs hidden sm:block">{currentUser?.email}</span>
+            <span className="text-[#444] text-xs">{currentUser?.email}</span>
             <button
               onClick={logout}
               className="text-xs text-[#666] hover:text-[#999] border border-[#1e1e1e] hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
@@ -184,8 +187,52 @@ export default function ClientBoardPage() {
         </div>
       </header>
 
-      {/* Client info bar */}
-      <div className="border-b border-[#161616] bg-[#0a0a0a]">
+      {/* ── Mobile top bar ──────────────────────────── */}
+      <header
+        className="sm:hidden sticky top-0 z-10 bg-[#080808]/95 border-b border-[#161616] backdrop-blur-md"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-[#555] active:bg-[#1a1a1a] transition-colors"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-sm font-bold text-white truncate">{client.name}</h1>
+          </div>
+          {!isClientRole && (
+            <div className="flex items-center gap-1 bg-[#111] border border-[#1e1e1e] rounded-lg p-0.5">
+              <button
+                onClick={() => setView('kanban')}
+                className={`flex items-center justify-center w-7 h-7 rounded-md text-xs transition-colors ${
+                  view === 'kanban' ? 'bg-[#1e1e1e] text-white' : 'text-[#555]'
+                }`}
+              >
+                <LayoutGrid size={13} />
+              </button>
+              <button
+                onClick={() => setView('calendar')}
+                className={`flex items-center justify-center w-7 h-7 rounded-md text-xs transition-colors ${
+                  view === 'calendar' ? 'bg-[#1e1e1e] text-white' : 'text-[#555]'
+                }`}
+              >
+                <CalendarDays size={13} />
+              </button>
+            </div>
+          )}
+          <button
+            onClick={logout}
+            className="text-[10px] text-[#555] border border-[#1e1e1e] px-2.5 py-1 rounded-lg"
+          >
+            Out
+          </button>
+        </div>
+      </header>
+
+      {/* ── Desktop client info bar ─────────────────── */}
+      <div className="hidden sm:block border-b border-[#161616] bg-[#0a0a0a]">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <button
             onClick={() => navigate('/')}
@@ -214,15 +261,12 @@ export default function ClientBoardPage() {
               )}
             </div>
 
-            {/* View switcher (non-client only) */}
             {!isClientRole && (
               <div className="flex items-center gap-1 bg-[#111] border border-[#1e1e1e] rounded-lg p-1">
                 <button
                   onClick={() => setView('kanban')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    view === 'kanban'
-                      ? 'bg-[#1e1e1e] text-white'
-                      : 'text-[#555] hover:text-[#888]'
+                    view === 'kanban' ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'
                   }`}
                 >
                   <LayoutGrid size={12} />
@@ -231,9 +275,7 @@ export default function ClientBoardPage() {
                 <button
                   onClick={() => setView('calendar')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    view === 'calendar'
-                      ? 'bg-[#1e1e1e] text-white'
-                      : 'text-[#555] hover:text-[#888]'
+                    view === 'calendar' ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'
                   }`}
                 >
                   <CalendarDays size={12} />
@@ -242,7 +284,6 @@ export default function ClientBoardPage() {
               </div>
             )}
 
-            {/* Status counts (non-client) */}
             {!isClientRole && (
               <div className="hidden sm:flex items-center gap-2">
                 {COLUMNS.map((col) => {
@@ -264,8 +305,8 @@ export default function ClientBoardPage() {
         </div>
       </div>
 
-      {/* Main content */}
-      <main className="max-w-[1440px] mx-auto px-6 py-6">
+      {/* ── Main content ────────────────────────────── */}
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-6">
         {/* CLIENT ROLE: read-only to-post list */}
         {isClientRole ? (
           <div className="max-w-2xl mx-auto">
@@ -291,7 +332,6 @@ export default function ClientBoardPage() {
             )}
           </div>
         ) : view === 'calendar' ? (
-          /* CALENDAR VIEW */
           <ContentCalendar
             content={client.content}
             canAdd={canAdd}
@@ -299,7 +339,6 @@ export default function ClientBoardPage() {
             onItemClick={(item) => setSelectedItem(item)}
           />
         ) : (
-          /* KANBAN VIEW */
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -307,7 +346,55 @@ export default function ClientBoardPage() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* ── Mobile: status tabs + single column ── */}
+            <div className="sm:hidden">
+              {/* Tab bar */}
+              <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
+                {COLUMNS.map((col) => {
+                  const count = getItemsByStatus(col.id).length;
+                  const isActive = mobileTab === col.id;
+                  return (
+                    <button
+                      key={col.id}
+                      onClick={() => setMobileTab(col.id)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95"
+                      style={
+                        isActive
+                          ? { backgroundColor: `${col.color}22`, color: col.color, border: `1px solid ${col.color}44` }
+                          : { backgroundColor: '#111', color: '#444', border: '1px solid #1e1e1e' }
+                      }
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
+                      {col.label}
+                      <span
+                        className="text-[11px] font-bold px-1 rounded"
+                        style={isActive ? { color: col.color } : { color: '#333' }}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Single active column */}
+              <KanbanColumn
+                id={activeMobileCol.id}
+                label={activeMobileCol.label}
+                color={activeMobileCol.color}
+                items={getItemsByStatus(activeMobileCol.id)}
+                canAdd={canAdd}
+                canEditItem={canEditItem}
+                canDeleteItem={canDeleteItem}
+                onAddContent={(status) => setAddingToColumn(status)}
+                onCardClick={(item) => setSelectedItem(item)}
+                onEditCard={(item) => setEditingItem(item)}
+                onDeleteCard={(item) => setSelectedItem(item)}
+              />
+            </div>
+
+            {/* ── Desktop: 4-column grid ─────────────── */}
+            <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-4">
               {COLUMNS.map((col) => (
                 <KanbanColumn
                   key={col.id}
@@ -321,9 +408,7 @@ export default function ClientBoardPage() {
                   onAddContent={(status) => setAddingToColumn(status)}
                   onCardClick={(item) => setSelectedItem(item)}
                   onEditCard={(item) => setEditingItem(item)}
-                  onDeleteCard={(item) => {
-                    setSelectedItem(item);
-                  }}
+                  onDeleteCard={(item) => setSelectedItem(item)}
                 />
               ))}
             </div>
@@ -335,38 +420,30 @@ export default function ClientBoardPage() {
         )}
       </main>
 
-      {/* Add content modal — from kanban column */}
+      {/* Modals */}
       {addingToColumn && (
         <AddContentModal
           defaultStatus={addingToColumn}
           onClose={() => setAddingToColumn(null)}
           onSubmit={(data) => {
-            addContent(client.id, {
-              ...data,
-              uploadedByEmail: currentUser?.email ?? '',
-            });
+            addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' });
             setAddingToColumn(null);
           }}
         />
       )}
 
-      {/* Add content modal — from calendar day click */}
       {calendarAddDate && (
         <AddContentModal
           defaultStatus="to-post"
           defaultScheduledAt={calendarAddDate.getTime()}
           onClose={() => setCalendarAddDate(null)}
           onSubmit={(data) => {
-            addContent(client.id, {
-              ...data,
-              uploadedByEmail: currentUser?.email ?? '',
-            });
+            addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' });
             setCalendarAddDate(null);
           }}
         />
       )}
 
-      {/* Edit content modal */}
       {editingItem && (
         <AddContentModal
           defaultStatus={editingItem.status}
@@ -385,7 +462,6 @@ export default function ClientBoardPage() {
         />
       )}
 
-      {/* Detail modal */}
       {selectedItem && (
         <ContentDetailModal
           item={selectedItem}
