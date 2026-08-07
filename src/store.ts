@@ -17,43 +17,103 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth, db, getProvisioningAuth } from './firebase';
+import { useAuth } from './contexts/AuthContext';
 import { AppUser, Client, ClientReview, ContentItem, ContentStatus } from './types';
 import { generateId } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
-const CLIENTS_CACHE_KEY = 'limi_clients_v1';
+// Keyed per user: one browser can be shared, and a client-role user must not
+// start up showing an admin's cached list.
+function clientsCacheKey(uid: string) {
+  return `limi_clients_v2_${uid}`;
+}
 
-function readClientsCache(): Client[] {
+function readClientsCache(uid: string | null): Client[] {
+  if (!uid) return [];
   try {
-    const raw = localStorage.getItem(CLIENTS_CACHE_KEY);
+    const raw = localStorage.getItem(clientsCacheKey(uid));
     return raw ? (JSON.parse(raw) as Client[]) : [];
   } catch {
     return [];
   }
 }
 
-function writeClientsCache(clients: Client[]) {
+function writeClientsCache(uid: string | null, clients: Client[]) {
+  if (!uid) return;
   try {
-    localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(clients));
+    localStorage.setItem(clientsCacheKey(uid), JSON.stringify(clients));
   } catch {
     // storage quota exceeded — silently ignore
   }
 }
 
 export function useClients() {
-  const cached = readClientsCache();
-  const [clients, setClients] = useState<Client[]>(cached);
-  const [loading, setLoading] = useState(cached.length === 0);
+  const { currentUser } = useAuth();
+  const uid = currentUser?.id ?? null;
+  const role = currentUser?.role;
+  // Joined into a primitive so the effect doesn't resubscribe on every render
+  // just because the array identity changed.
+  const assignedKey = (currentUser?.assignedClientIds ?? []).join(',');
+
+  const [clients, setClients] = useState<Client[]>(() => readClientsCache(uid));
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!uid) return;
+
+    // Security rules are not filters: a collection query is rejected outright
+    // unless the rules permit every document it could return. A client-role
+    // user is only allowed their assigned clients, which is a per-document
+    // condition, so the collection query below would be denied wholesale.
+    // Reading each assigned document by ID is the shape rules can evaluate.
+    if (role === 'client') {
+      const ids = assignedKey ? assignedKey.split(',') : [];
+      if (ids.length === 0) {
+        setClients([]);
+        setLoading(false);
+        return;
+      }
+
+      const found = new Map<string, Client>();
+      const emit = () => {
+        const list = ids
+          .map((id) => found.get(id))
+          .filter((c): c is Client => !!c)
+          .sort((a, b) => a.createdAt - b.createdAt);
+        setClients(list);
+        writeClientsCache(uid, list);
+        setLoading(false);
+      };
+
+      const unsubscribes = ids.map((id) =>
+        onSnapshot(
+          doc(db, 'clients', id),
+          (snap) => {
+            if (snap.exists()) {
+              found.set(id, { ...(snap.data() as Omit<Client, 'id'>), id: snap.id });
+            } else {
+              found.delete(id);
+            }
+            emit();
+          },
+          (err) => {
+            console.error(`[limi] client ${id} subscription failed`, err);
+            setLoading(false);
+          }
+        )
+      );
+
+      return () => unsubscribes.forEach((u) => u());
+    }
+
     const q = query(collection(db, 'clients'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const fresh = snapshot.docs.map((d) => ({ ...(d.data() as Omit<Client, 'id'>), id: d.id }));
         setClients(fresh);
-        writeClientsCache(fresh);
+        writeClientsCache(uid, fresh);
         setLoading(false);
       },
       (err) => {
@@ -64,7 +124,7 @@ export function useClients() {
       }
     );
     return unsubscribe;
-  }, []);
+  }, [uid, role, assignedKey]);
 
   const addClient = useCallback(
     async (data: { name: string; imageUrl?: string; about: string }) => {
