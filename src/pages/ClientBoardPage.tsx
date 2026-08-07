@@ -77,7 +77,7 @@ export default function ClientBoardPage() {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus, updateClientReview } = useClients();
+  const { clients, loading, addContent, updateContent, deleteContent, updateContentStatus, updateClientReview, addComment } = useClients();
 
   const isAdmin = currentUser?.role === 'admin';
   const isSMM = currentUser?.role === 'social-media-manager';
@@ -586,6 +586,8 @@ export default function ClientBoardPage() {
 
       {selectedItem && (
         <ContentDetailModal
+          clientId={client.id}
+          onComment={(body, atSeconds) => addComment(client.id, selectedItem.id, body, atSeconds)}
           item={selectedItem}
           isClientRole={isClientRole}
           canEdit={canEditItem(selectedItem)}

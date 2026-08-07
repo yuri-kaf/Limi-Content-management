@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
   X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Film,
-  CheckCircle, XCircle, Clock, Download,
+  CheckCircle, XCircle, Clock, Download, History,
 } from 'lucide-react';
+import CommentThread from './CommentThread';
 import { ClientReview, ContentItem } from '../types';
 import {
   getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
@@ -11,6 +12,8 @@ import {
 type CopyTarget = 'caption' | 'hashtags' | 'both';
 
 interface Props {
+  clientId: string;
+  onComment: (body: string, atSeconds?: number) => Promise<void>;
   item: ContentItem;
   isClientRole: boolean;
   canEdit: boolean;
@@ -22,6 +25,8 @@ interface Props {
 }
 
 export default function ContentDetailModal({
+  clientId,
+  onComment,
   item,
   isClientRole,
   canEdit,
@@ -44,6 +49,7 @@ export default function ContentDetailModal({
   const hashtags = item.hashtags ?? '';
   const teamNotes = teamNotesOf(item);
   const platforms = item.platforms ?? [];
+  const versions = item.versions ?? [];
 
   function handleCopy(which: CopyTarget, text: string) {
     if (!text) return;
@@ -323,6 +329,41 @@ export default function ContentDetailModal({
               )}
             </div>
           )}
+
+          {versions.length > 0 && (
+            <div>
+              <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">
+                Earlier versions
+              </span>
+              <div className="flex flex-col gap-1.5 mt-2">
+                {versions.map((v, i) => (
+                  <a
+                    key={`${v.replacedAt}-${i}`}
+                    href={v.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-neutral-400 dark:text-[#666] hover:text-[#dc2626] transition-colors"
+                  >
+                    <History size={11} />
+                    v{i + 1}
+                    <span className="text-neutral-300 dark:text-[#333]">
+                      · replaced {new Date(v.replacedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </a>
+                ))}
+                <span className="text-xs text-neutral-500 dark:text-[#888] font-medium">
+                  v{versions.length + 1} — current
+                </span>
+              </div>
+            </div>
+          )}
+
+          <CommentThread
+            clientId={clientId}
+            contentId={item.id}
+            showTimestamp={!isGraphic}
+            onSend={onComment}
+          />
 
           {/* Drive link — always visible for ALL roles */}
           <div className="flex items-center gap-2 pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">

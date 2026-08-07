@@ -28,6 +28,8 @@ export interface ContentItem {
   caption?: string;
   hashtags?: string;
   platforms?: Platform[];
+  /** Superseded media links, newest last. */
+  versions?: Version[];
   // Internal remarks for the team. Historically this held caption copy.
   notes?: string;
   status: ContentStatus;
@@ -36,6 +38,27 @@ export interface ContentItem {
   uploadedByEmail: string;
   clientReview: ClientReview;
   reviewNote?: string;
+}
+
+// One thread per content item. System entries are the activity trail —
+// status moves and review decisions — so there's a single chronology to read
+// rather than two parallel logs.
+export interface Comment {
+  id: string;
+  kind: 'user' | 'system';
+  body: string;
+  authorEmail: string;
+  authorName: string;
+  createdAt: number;
+  /** Seconds into the video, when the comment refers to a moment. */
+  atSeconds?: number;
+}
+
+export interface Version {
+  link: string;
+  mediaType?: MediaType;
+  replacedAt: number;
+  replacedByEmail: string;
 }
 
 export interface Client {

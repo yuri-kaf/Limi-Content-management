@@ -67,6 +67,15 @@ service cloud.firestore {
         // per-item restriction that an array field could not express.
         allow update: if isAdmin() || isManager()
           || (isAssigned(clientId) && onlyReviewFieldsChanged());
+
+        // Anyone who can see the item can discuss it, including clients.
+        // Comments are append-only: nobody edits or deletes history except an
+        // admin, so the activity trail can be trusted.
+        match /comments/{commentId} {
+          allow read, create: if isAdmin() || isManager() || isAssigned(clientId);
+          allow update: if false;
+          allow delete: if isAdmin();
+        }
       }
     }
 

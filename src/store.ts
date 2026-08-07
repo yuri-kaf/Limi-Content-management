@@ -8,6 +8,7 @@ import {
   updateDoc,
   deleteDoc,
   writeBatch,
+  arrayUnion,
   query,
   orderBy,
 } from 'firebase/firestore';
@@ -19,7 +20,7 @@ import {
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
-  AppUser, Client, ClientReview, ContentItem, ContentStatus, MediaType, Platform,
+  AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, MediaType, Platform,
 } from './types';
 import { generateId } from './utils';
 
@@ -32,6 +33,79 @@ type BaseClient = Omit<Client, 'content'> & { legacyContent: ContentItem[] };
 
 function contentDoc(clientId: string, contentId: string) {
   return doc(db, 'clients', clientId, 'content', contentId);
+}
+
+function commentsCol(clientId: string, contentId: string) {
+  return collection(db, 'clients', clientId, 'content', contentId, 'comments');
+}
+
+const STATUS_LABELS: Record<ContentStatus, string> = {
+  editing: 'Editing',
+  review: 'Review',
+  'to-post': 'To Post',
+  posted: 'Posted',
+};
+
+interface Actor {
+  email: string;
+  name: string;
+}
+
+// System entries double as the activity trail. Failures here must never fail
+// the action that triggered them — losing a log line is better than losing the
+// status change the user actually asked for.
+async function writeSystemComment(
+  clientId: string,
+  contentId: string,
+  body: string,
+  actor: Actor
+) {
+  try {
+    const id = generateId();
+    const entry: Comment = {
+      id,
+      kind: 'system',
+      body,
+      authorEmail: actor.email,
+      authorName: actor.name,
+      createdAt: Date.now(),
+    };
+    await setDoc(doc(commentsCol(clientId, contentId), id), entry);
+  } catch (err) {
+    console.error('[limi] could not write activity entry', err);
+  }
+}
+
+// ─── Comments ────────────────────────────────────────────────────────────────
+
+export function useComments(clientId: string | undefined, contentId: string | undefined) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!clientId || !contentId) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = onSnapshot(
+      query(commentsCol(clientId, contentId), orderBy('createdAt', 'asc')),
+      (snap) => {
+        setComments(
+          snap.docs.map((d) => ({ ...(d.data() as Omit<Comment, 'id'>), id: d.id }))
+        );
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[limi] comments subscription failed', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, [clientId, contentId]);
+
+  return { comments, loading };
 }
 
 function toBaseClient(id: string, data: Record<string, any>): BaseClient {
@@ -90,6 +164,10 @@ export function useClients() {
   // Joined into a primitive so the effect doesn't resubscribe on every render
   // just because the array identity changed.
   const assignedKey = (currentUser?.assignedClientIds ?? []).join(',');
+  const me = useMemo<Actor>(
+    () => ({ email: currentUser?.email ?? '', name: currentUser?.name ?? 'Someone' }),
+    [currentUser]
+  );
 
   const [baseClients, setBaseClients] = useState<BaseClient[]>(() =>
     readClientsCache(uid).map(toBaseFromCache)
@@ -291,6 +369,15 @@ export function useClients() {
         scheduledAt?: number;
       }
     ) => {
+      const previous = clients
+        .find((c) => c.id === clientId)
+        ?.content.find((i) => i.id === contentId);
+
+      // A changed link means a new cut, not a correction — keep the old one so
+      // the revision history survives. arrayUnion appends atomically, so this
+      // isn't the read-modify-write pattern that used to lose data.
+      const linkChanged = !!previous && previous.driveLink !== data.driveLink;
+
       await updateDoc(contentDoc(clientId, contentId), {
         title: data.title,
         driveLink: data.driveLink,
@@ -301,9 +388,24 @@ export function useClients() {
         platforms: data.platforms ?? [],
         notes: data.notes || '',
         scheduledAt: data.scheduledAt || 0,
+        ...(linkChanged
+          ? {
+              versions: arrayUnion({
+                link: previous!.driveLink,
+                mediaType: previous!.mediaType ?? 'video',
+                replacedAt: Date.now(),
+                replacedByEmail: me.email,
+              }),
+            }
+          : {}),
       });
+
+      if (linkChanged) {
+        const version = (previous?.versions?.length ?? 0) + 2;
+        await writeSystemComment(clientId, contentId, `uploaded v${version}`, me);
+      }
     },
-    []
+    [clients, me]
   );
 
   const deleteContent = useCallback(async (clientId: string, contentId: string) => {
@@ -313,8 +415,9 @@ export function useClients() {
   const updateContentStatus = useCallback(
     async (clientId: string, contentId: string, status: ContentStatus) => {
       await updateDoc(contentDoc(clientId, contentId), { status });
+      await writeSystemComment(clientId, contentId, `moved this to ${STATUS_LABELS[status]}`, me);
     },
-    []
+    [me]
   );
 
   const updateClientReview = useCallback(
@@ -329,8 +432,31 @@ export function useClients() {
         clientReview: review,
         reviewNote: reviewNote || '',
       });
+      await writeSystemComment(
+        clientId,
+        contentId,
+        reviewNote ? `${review} this — "${reviewNote}"` : `${review} this`,
+        me
+      );
     },
-    []
+    [me]
+  );
+
+  const addComment = useCallback(
+    async (clientId: string, contentId: string, body: string, atSeconds?: number) => {
+      const id = generateId();
+      const comment: Comment = {
+        id,
+        kind: 'user',
+        body,
+        authorEmail: me.email,
+        authorName: me.name,
+        createdAt: Date.now(),
+        ...(atSeconds !== undefined ? { atSeconds } : {}),
+      };
+      await setDoc(doc(commentsCol(clientId, contentId), id), comment);
+    },
+    [me]
   );
 
   // Copies each legacy array item into the subcollection. Idempotent: items
@@ -389,6 +515,7 @@ export function useClients() {
     deleteContent,
     updateContentStatus,
     updateClientReview,
+    addComment,
     pendingMigration,
     migrateLegacyContent,
     pendingCaptionMigration,
