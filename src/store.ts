@@ -4,13 +4,19 @@ import {
   doc,
   onSnapshot,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   arrayUnion,
   query,
   orderBy,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import {
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+} from 'firebase/auth';
+import { auth, db, getProvisioningAuth } from './firebase';
 import { AppUser, Client, ClientReview, ContentItem, ContentStatus } from './types';
 import { generateId } from './utils';
 
@@ -50,7 +56,12 @@ export function useClients() {
         writeClientsCache(fresh);
         setLoading(false);
       },
-      () => setLoading(false)
+      (err) => {
+        // Don't swallow this: a denied read means the cached list below is
+        // stale, not live, and every write is going to fail too.
+        console.error('[limi] clients subscription failed', err);
+        setLoading(false);
+      }
     );
     return unsubscribe;
   }, []);
@@ -199,13 +210,43 @@ export function useUsers() {
         );
         setLoading(false);
       },
-      () => setLoading(false)
+      (err) => {
+        console.error('[limi] users subscription failed', err);
+        setLoading(false);
+      }
     );
     return unsubscribe;
   }, []);
 
-  const addUser = useCallback(async (data: Omit<AppUser, 'id' | 'createdAt'>) => {
-    await addDoc(collection(db, 'users'), { ...data, createdAt: Date.now() });
+  // Creates the Auth account and its profile document. The profile is keyed by
+  // the Auth UID so rules can resolve a caller's role from request.auth.uid.
+  const addUser = useCallback(
+    async (data: Omit<AppUser, 'id' | 'createdAt'> & { password: string }) => {
+      const provisioningAuth = getProvisioningAuth();
+      try {
+        const credential = await createUserWithEmailAndPassword(
+          provisioningAuth,
+          data.email,
+          data.password
+        );
+        await setDoc(doc(db, 'users', credential.user.uid), {
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          assignedClientIds: data.assignedClientIds,
+          createdAt: Date.now(),
+        });
+      } finally {
+        // Always drop the secondary session, including when the profile write
+        // fails, so a stray signed-in instance can't linger.
+        await signOut(provisioningAuth);
+      }
+    },
+    []
+  );
+
+  const sendReset = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
   }, []);
 
   const updateUser = useCallback(
@@ -219,5 +260,5 @@ export function useUsers() {
     await deleteDoc(doc(db, 'users', userId));
   }, []);
 
-  return { users, loading, addUser, updateUser, deleteUser };
+  return { users, loading, addUser, updateUser, deleteUser, sendReset };
 }

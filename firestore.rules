@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Access model
+// ------------
+// Credentials live in Firebase Auth; `users/{uid}` holds the profile that grants
+// a role. A signed-in account with no profile document therefore has no access
+// at all — that is how removing someone from the Team page revokes them without
+// deleting their Auth record.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // get() inside rules bypasses rules, so this can't recurse.
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return hasProfile() && profile().role == 'admin';
+    }
+
+    function isManager() {
+      return hasProfile() && profile().role == 'social-media-manager';
+    }
+
+    function isAssigned(clientId) {
+      return hasProfile() && profile().assignedClientIds.hasAny([clientId]);
+    }
+
+    match /users/{userId} {
+      // You can always read your own profile — this is the lookup that resolves
+      // your role at sign-in, so it must not depend on the helpers above.
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow read: if isAdmin();
+
+      // Admin-only writes are what prevent a user from promoting themselves.
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAdmin() || isManager() || isAssigned(clientId);
+      allow create, delete: if isAdmin() || isManager();
+
+      // Client-role users update their own client's document to leave review
+      // decisions. Content is stored as an array on this document, so rules
+      // can't narrow that to just the review fields — see the design doc.
+      allow update: if isAdmin() || isManager() || isAssigned(clientId);
+    }
+
+    // Everything else stays closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -41,9 +41,20 @@ VITE_FIREBASE_APP_ID=your_app_id`}
   );
 }
 
+function AuthSplash() {
+  return (
+    <div className="min-h-screen bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
+      <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function AuthenticatedRoutes() {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const { status } = useAuth();
+  // Wait for Firebase to resolve the session — redirecting during `loading`
+  // would bounce a signed-in user to the login page on every refresh.
+  if (status === 'loading') return <AuthSplash />;
+  if (status !== 'signed-in') return <Navigate to="/login" replace />;
   return (
     <>
       <Routes>
@@ -58,8 +69,9 @@ function AuthenticatedRoutes() {
 }
 
 function LoginRoute() {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  const { status } = useAuth();
+  if (status === 'loading') return <AuthSplash />;
+  if (status === 'signed-in') return <Navigate to="/" replace />;
   return <LoginPage />;
 }
 

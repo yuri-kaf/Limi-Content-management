@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, notice } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,8 +15,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const ok = await login(email, password);
-    if (!ok) setError('Invalid email or password.');
+    const failure = await login(email, password);
+    if (failure) setError(failure);
     setLoading(false);
   }
 
@@ -78,6 +78,12 @@ export default function LoginPage() {
                 className="w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#3a3a3a] focus:outline-none focus:border-[#dc2626] transition-colors"
               />
             </div>
+
+            {notice && !error && (
+              <div className="text-sm text-neutral-500 dark:text-[#888] bg-neutral-100 dark:bg-[#161616] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5">
+                {notice}
+              </div>
+            )}
 
             {error && (
               <div className="text-sm text-[#f87171] bg-[#dc2626]/10 border border-[#dc2626]/25 rounded-lg px-3 py-2.5">

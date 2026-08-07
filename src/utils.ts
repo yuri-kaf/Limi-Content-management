@@ -23,3 +23,22 @@ export function getDriveThumbnailUrl(fileId: string): string {
 export function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
+
+// Firestore writes are fire-and-forget throughout the UI. Without this the
+// promise rejects unhandled and the user just sees nothing happen — which is
+// exactly how expired security rules presented as "the button is broken".
+export async function runWrite(action: () => Promise<unknown>, what: string) {
+  try {
+    await action();
+    return true;
+  } catch (err) {
+    const code = (err as { code?: string })?.code ?? '';
+    const message =
+      code === 'permission-denied'
+        ? `Could not ${what}: the database rejected the write (permission denied). Check the Firestore security rules for this project.`
+        : `Could not ${what}: ${(err as Error)?.message ?? 'unknown error'}`;
+    console.error(`[limi] ${what} failed`, err);
+    alert(message);
+    return false;
+  }
+}

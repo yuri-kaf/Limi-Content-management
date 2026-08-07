@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Eye, EyeOff, Pencil, Trash2, X, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, EyeOff, KeyRound, Pencil, Trash2, X, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUsers } from '../store';
 import { useClients } from '../store';
 import { AppUser, UserRole } from '../types';
+import { runWrite } from '../utils';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'admin', label: 'Admin' },
@@ -33,12 +34,14 @@ function UserForm({
   onClose,
   clients,
   isEditingSelf,
+  isEdit,
 }: {
   initial?: Partial<UserFormData>;
   onSubmit: (data: UserFormData) => void;
   onClose: () => void;
   clients: { id: string; name: string }[];
   isEditingSelf: boolean;
+  isEdit: boolean;
 }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
@@ -85,29 +88,44 @@ function UserForm({
 
           <div>
             <label className={labelCls}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jane@example.com" className={inputCls} disabled={isEditingSelf} />
+            {/* Changing an existing account's email address is an admin-only
+                Auth operation, unavailable to the client SDK. */}
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jane@example.com" className={inputCls} disabled={isEdit} />
+            {isEdit && (
+              <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+                Email can't be changed after the account is created.
+              </p>
+            )}
           </div>
 
-          <div>
-            <label className={labelCls}>Password</label>
-            <div className="relative">
-              <input
-                type={showPw ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Set password"
-                className={`${inputCls} pr-10`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors"
-              >
-                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
+          {/* Only at creation. Existing passwords are hashes we can't read or
+              overwrite from the browser — those go through a reset email. */}
+          {!isEdit && (
+            <div>
+              <label className={labelCls}>Initial Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="At least 6 characters"
+                  className={`${inputCls} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors"
+                >
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+                Share this with them once. It isn't stored and can't be viewed later.
+              </p>
             </div>
-          </div>
+          )}
 
           <div>
             <label className={labelCls}>Role</label>
@@ -152,7 +170,7 @@ function UserForm({
             </button>
             <button
               type="submit"
-              disabled={!name.trim() || !email.trim() || !password}
+              disabled={!name.trim() || !email.trim() || (!isEdit && password.length < 6)}
               className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
             >
               {initial ? 'Save Changes' : 'Add User'}
@@ -166,37 +184,44 @@ function UserForm({
 
 export default function UserManagementPage() {
   const navigate = useNavigate();
-  const { currentUser, refreshCurrentUser } = useAuth();
+  const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { users, loading, addUser, updateUser, deleteUser } = useUsers();
+  const { users, loading, addUser, updateUser, deleteUser, sendReset } = useUsers();
   const { clients } = useClients();
   const isAdmin = currentUser?.role === 'admin';
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
 
-  function togglePassword(userId: string) {
-    setVisiblePasswords((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
+  async function handleAdd(data: UserFormData) {
+    const ok = await runWrite(() => addUser(data), 'add the user');
+    if (ok) setShowAddForm(false);
   }
 
-  async function handleAdd(data: Omit<AppUser, 'id' | 'createdAt'>) {
-    await addUser(data);
-    setShowAddForm(false);
-  }
-
-  async function handleEdit(data: Omit<AppUser, 'id' | 'createdAt'>) {
+  async function handleEdit(data: UserFormData) {
     if (!editingUser) return;
-    await updateUser(editingUser.id, data);
-    if (editingUser.id === currentUser?.id) {
-      refreshCurrentUser({ ...currentUser, ...data });
+    // Password isn't part of the profile document; email can't be reassigned.
+    const ok = await runWrite(
+      () =>
+        updateUser(editingUser.id, {
+          name: data.name,
+          role: data.role,
+          assignedClientIds: data.assignedClientIds,
+        }),
+      'save the user'
+    );
+    // The profile subscription in AuthContext picks up changes to your own
+    // record on its own, so there's nothing to refresh by hand here.
+    if (ok) setEditingUser(null);
+  }
+
+  async function handleSendReset(user: AppUser) {
+    const ok = await runWrite(() => sendReset(user.email), 'send the reset email');
+    if (ok) {
+      setResetSentTo(user.id);
+      setTimeout(() => setResetSentTo((id) => (id === user.id ? null : id)), 4000);
     }
-    setEditingUser(null);
   }
 
   async function handleDelete(user: AppUser) {
@@ -205,7 +230,11 @@ export default function UserManagementPage() {
       alert('Cannot delete the only admin.');
       return;
     }
-    await deleteUser(user.id);
+    const confirmed = confirm(
+      `Remove ${user.name}? They lose access immediately.\n\nTheir sign-in record stays in Firebase Authentication and grants nothing on its own — delete it from the Firebase console if you want it gone entirely.`
+    );
+    if (!confirmed) return;
+    await runWrite(() => deleteUser(user.id), 'delete the user');
   }
 
   const ROLE_LABELS: Record<UserRole, string> = {
@@ -279,7 +308,6 @@ export default function UserManagementPage() {
             {users.map((user) => {
               const colors = ROLE_COLORS[user.role];
               const isMe = user.id === currentUser?.id;
-              const pwVisible = visiblePasswords.has(user.id);
 
               return (
                 <div
@@ -318,19 +346,17 @@ export default function UserManagementPage() {
                     )}
                   </div>
 
-                  {/* Password (admin only) */}
+                  {/* Passwords are hashed by Firebase Auth and can't be read
+                      back by anyone, so the only lever is a reset email. */}
                   {isAdmin && (
-                    <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg px-2.5 py-1.5">
-                      <span className="text-xs text-neutral-500 dark:text-[#666] font-mono">
-                        {pwVisible ? user.password : '••••••••'}
-                      </span>
-                      <button
-                        onClick={() => togglePassword(user.id)}
-                        className="text-neutral-300 dark:text-[#333] hover:text-neutral-500 dark:hover:text-[#666] transition-colors ml-1"
-                      >
-                        {pwVisible ? <EyeOff size={12} /> : <Eye size={12} />}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleSendReset(user)}
+                      disabled={resetSentTo === user.id}
+                      className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg px-2.5 py-1.5 text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] hover:border-neutral-300 dark:hover:border-[#2a2a2a] transition-colors disabled:opacity-60"
+                    >
+                      <KeyRound size={12} />
+                      {resetSentTo === user.id ? 'Reset sent' : 'Send reset'}
+                    </button>
                   )}
 
                   {/* Actions (admin only) */}
@@ -365,6 +391,7 @@ export default function UserManagementPage() {
         <UserForm
           clients={clients}
           isEditingSelf={false}
+          isEdit={false}
           onClose={() => setShowAddForm(false)}
           onSubmit={handleAdd}
         />
@@ -375,12 +402,12 @@ export default function UserManagementPage() {
           initial={{
             name: editingUser.name,
             email: editingUser.email,
-            password: editingUser.password,
             role: editingUser.role,
             assignedClientIds: editingUser.assignedClientIds,
           }}
           clients={clients}
           isEditingSelf={editingUser.id === currentUser?.id}
+          isEdit
           onClose={() => setEditingUser(null)}
           onSubmit={handleEdit}
         />

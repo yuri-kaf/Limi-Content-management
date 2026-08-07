@@ -9,6 +9,7 @@ import ClientCard from '../components/ClientCard';
 import AddClientModal from '../components/AddClientModal';
 import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
+import { runWrite } from '../utils';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -204,9 +205,9 @@ export default function ClientsPage() {
       {showModal && (isAdmin || isSMM) && (
         <AddClientModal
           onClose={() => setShowModal(false)}
-          onAdd={(data) => {
-            addClient(data);
-            setShowModal(false);
+          onAdd={async (data) => {
+            const ok = await runWrite(() => addClient(data), 'add the client');
+            if (ok) setShowModal(false);
           }}
         />
       )}

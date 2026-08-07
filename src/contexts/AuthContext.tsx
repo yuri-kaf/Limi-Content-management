@@ -1,93 +1,130 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { AppUser, UserRole } from '../types';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { AppUser } from '../types';
 
-const SESSION_KEY = 'limi_user_v2';
-const ADMIN_EMAIL = 'ashimkafle@gmail.com';
-const ADMIN_PASSWORD = 'getContent-Limi-098';
+// `loading` matters: Firebase resolves the session asynchronously, so routes
+// must wait rather than assume signed-out and flash the login page.
+// `unprovisioned` means the account authenticated but has no profile document —
+// which is how a deleted user is denied access without deleting their login.
+export type AuthStatus = 'loading' | 'signed-in' | 'signed-out' | 'unprovisioned';
 
 interface AuthContextType {
+  status: AuthStatus;
   isAuthenticated: boolean;
   currentUser: AppUser | null;
   userEmail: string;
-  login: (email: string, password: string) => Promise<boolean>;
+  notice: string;
+  login: (email: string, password: string) => Promise<string | null>;
   logout: () => void;
-  refreshCurrentUser: (updated: AppUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const DEPROVISIONED_NOTICE =
+  'This account no longer has access. Ask an administrator to re-add you to the team.';
+
+function signInErrorMessage(err: unknown): string {
+  switch ((err as { code?: string })?.code) {
+    case 'auth/invalid-email':
+      return 'That email address is not valid.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Invalid email or password.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Try again later or reset your password.';
+    case 'auth/network-request-failed':
+      return 'Could not reach the server. Check your connection.';
+    case 'auth/operation-not-allowed':
+    case 'auth/configuration-not-found':
+      return 'Email/password sign-in is not enabled for this Firebase project yet.';
+    default:
+      return (err as Error)?.message ?? 'Could not sign in.';
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
-    try {
-      const stored = localStorage.getItem(SESSION_KEY);
-      return stored ? (JSON.parse(stored) as AppUser) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    async function seedAdminIfNeeded() {
-      try {
-        const snap = await getDocs(collection(db, 'users'));
-        if (snap.empty) {
-          await addDoc(collection(db, 'users'), {
-            name: 'Ashim Kafle',
-            email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD,
-            role: 'admin' as UserRole,
-            assignedClientIds: [],
-            createdAt: Date.now(),
-          });
-        }
-      } catch {
-        // Firebase may not be ready
+    let unsubscribeProfile: () => void = () => {};
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      unsubscribeProfile();
+      unsubscribeProfile = () => {};
+
+      if (!fbUser) {
+        setCurrentUser(null);
+        setStatus('signed-out');
+        return;
       }
-    }
-    seedAdminIfNeeded();
+
+      setStatus('loading');
+
+      // Live subscription rather than a one-off read, so role changes and
+      // removal from the team take effect without a refresh.
+      unsubscribeProfile = onSnapshot(
+        doc(db, 'users', fbUser.uid),
+        (snap) => {
+          if (!snap.exists()) {
+            setCurrentUser(null);
+            setStatus('unprovisioned');
+            setNotice(DEPROVISIONED_NOTICE);
+            signOut(auth);
+            return;
+          }
+          setCurrentUser({ id: snap.id, ...(snap.data() as Omit<AppUser, 'id'>) });
+          setNotice('');
+          setStatus('signed-in');
+        },
+        (err) => {
+          console.error('[limi] profile subscription failed', err);
+          setCurrentUser(null);
+          setStatus('unprovisioned');
+          setNotice(DEPROVISIONED_NOTICE);
+          signOut(auth);
+        }
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeProfile();
+    };
   }, []);
 
-  async function login(email: string, password: string): Promise<boolean> {
+  // Resolves to an error message, or null on success.
+  async function login(email: string, password: string): Promise<string | null> {
     try {
-      const q = query(
-        collection(db, 'users'),
-        where('email', '==', email.trim().toLowerCase())
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) return false;
-      const docSnap = snap.docs[0];
-      const data = docSnap.data();
-      if (data.password !== password) return false;
-      const user: AppUser = { id: docSnap.id, ...data } as AppUser;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      setCurrentUser(user);
-      return true;
-    } catch {
-      return false;
+      setNotice('');
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      return null;
+    } catch (err) {
+      return signInErrorMessage(err);
     }
   }
 
   function logout() {
-    localStorage.removeItem(SESSION_KEY);
-    setCurrentUser(null);
-  }
-
-  function refreshCurrentUser(updated: AppUser) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
-    setCurrentUser(updated);
+    setNotice('');
+    signOut(auth);
   }
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!currentUser,
+        status,
+        isAuthenticated: status === 'signed-in',
         currentUser,
         userEmail: currentUser?.email ?? '',
+        notice,
         login,
         logout,
-        refreshCurrentUser,
       }}
     >
       {children}

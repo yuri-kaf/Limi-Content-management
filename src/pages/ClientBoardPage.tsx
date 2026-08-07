@@ -22,6 +22,7 @@ import AddContentModal from '../components/AddContentModal';
 import ContentDetailModal from '../components/ContentDetailModal';
 import ContentCard from '../components/ContentCard';
 import ContentCalendar from '../components/ContentCalendar';
+import { runWrite } from '../utils';
 
 const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
   { id: 'editing', label: 'Editing', color: '#d97706' },
@@ -445,7 +446,10 @@ export default function ClientBoardPage() {
           defaultStatus={addingToColumn}
           onClose={() => setAddingToColumn(null)}
           onSubmit={(data) => {
-            addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' });
+            runWrite(
+              () => addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' }),
+              'add the content'
+            );
             setAddingToColumn(null);
           }}
         />
@@ -457,7 +461,10 @@ export default function ClientBoardPage() {
           defaultScheduledAt={calendarAddDate.getTime()}
           onClose={() => setCalendarAddDate(null)}
           onSubmit={(data) => {
-            addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' });
+            runWrite(
+              () => addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' }),
+              'add the content'
+            );
             setCalendarAddDate(null);
           }}
         />
