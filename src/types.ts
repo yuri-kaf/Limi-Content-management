@@ -54,6 +54,29 @@ export interface Comment {
   atSeconds?: number;
 }
 
+// A public review link. The document ID is the token, and holding it is the
+// only credential — so this carries a SNAPSHOT of what a reviewer needs rather
+// than granting access to the real content document.
+export interface Share {
+  id: string;
+  clientId: string;
+  contentId: string;
+  clientName: string;
+  title: string;
+  mediaLink: string;
+  mediaType?: MediaType;
+  caption: string;
+  hashtags: string;
+  createdAt: number;
+  createdByEmail: string;
+  revoked: boolean;
+  decision?: ClientReview;
+  decisionNote?: string;
+  decidedAt?: number;
+  /** When the decision was last written back onto the content item. */
+  syncedAt?: number;
+}
+
 export type IdeaStatus = 'new' | 'accepted' | 'declined';
 
 export interface Idea {

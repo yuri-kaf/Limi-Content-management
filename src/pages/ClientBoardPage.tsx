@@ -15,7 +15,7 @@ import {
 import { ArrowLeft, User, LayoutGrid, CalendarDays, Lightbulb, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useClients } from '../store';
+import { useClients, useShareActions, useShareReconciler } from '../store';
 import { ClientReview, ContentItem, ContentStatus } from '../types';
 import KanbanColumn from '../components/KanbanColumn';
 import AddContentModal from '../components/AddContentModal';
@@ -87,6 +87,13 @@ export default function ClientBoardPage() {
   const canAdd = isAdmin || isSMM;
 
   const client = clients.find((c) => c.id === id);
+
+  // Must sit above the early returns below — hooks cannot be conditional, and
+  // `client` is undefined on the first render while the list loads.
+  const { createShare } = useShareActions(client?.id, client?.name ?? '');
+  // Decisions made through public links land on the share document; there's no
+  // server, so a signed-in team member writes them back onto the item.
+  useShareReconciler(client?.id, !isClientRole);
 
   const [addingToColumn, setAddingToColumn] = useState<ContentStatus | null>(null);
   const [calendarAddDate, setCalendarAddDate] = useState<Date | null>(null);
@@ -637,6 +644,7 @@ export default function ClientBoardPage() {
         <ContentDetailModal
           clientId={client.id}
           onComment={(body, atSeconds) => addComment(client.id, selectedItem.id, body, atSeconds)}
+          onShare={isClientRole ? undefined : () => createShare(selectedItem)}
           item={selectedItem}
           isClientRole={isClientRole}
           canEdit={canEditItem(selectedItem)}

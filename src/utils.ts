@@ -148,6 +148,14 @@ export function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// Share tokens ARE the credential — anyone holding one can read that item —
+// so these must not come from Math.random(), which is predictable.
+export function generateShareToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Firestore writes are fire-and-forget throughout the UI. Without this the
 // promise rejects unhandled and the user just sees nothing happen — which is
 // exactly how expired security rules presented as "the button is broken".

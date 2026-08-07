@@ -6,6 +6,7 @@ import ClientsPage from './pages/ClientsPage';
 import ClientBoardPage from './pages/ClientBoardPage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
+import PublicReviewPage from './pages/PublicReviewPage';
 import BottomNav from './components/BottomNav';
 
 function FirebaseSetupGuide() {
@@ -83,6 +84,8 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            {/* Outside the auth gate on purpose — the token is the credential. */}
+            <Route path="/review/:token" element={<PublicReviewPage />} />
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/*" element={<AuthenticatedRoutes />} />
           </Routes>

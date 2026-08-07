@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Film,
-  CheckCircle, XCircle, Clock, Download, History,
+  CheckCircle, XCircle, Clock, Download, History, Link2,
 } from 'lucide-react';
 import CommentThread from './CommentThread';
 import { ClientReview, ContentItem } from '../types';
@@ -14,6 +14,8 @@ type CopyTarget = 'caption' | 'hashtags' | 'both';
 interface Props {
   clientId: string;
   onComment: (body: string, atSeconds?: number) => Promise<void>;
+  /** Absent for client-role users, who can't create public links. */
+  onShare?: () => Promise<string>;
   item: ContentItem;
   isClientRole: boolean;
   canEdit: boolean;
@@ -27,6 +29,7 @@ interface Props {
 export default function ContentDetailModal({
   clientId,
   onComment,
+  onShare,
   item,
   isClientRole,
   canEdit,
@@ -38,6 +41,7 @@ export default function ContentDetailModal({
 }: Props) {
   const [imgError, setImgError] = useState(false);
   const [copied, setCopied] = useState<CopyTarget | null>(null);
+  const [shareUrl, setShareUrl] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [declineNote, setDeclineNote] = useState(item.reviewNote ?? '');
   const [decliningMode, setDecliningMode] = useState(false);
@@ -355,6 +359,34 @@ export default function ContentDetailModal({
                   v{versions.length + 1} — current
                 </span>
               </div>
+            </div>
+          )}
+
+          {onShare && (
+            <div>
+              <button
+                onClick={async () => {
+                  const url = await onShare();
+                  if (!url) return;
+                  setShareUrl(url);
+                  navigator.clipboard.writeText(url).catch(() => {});
+                }}
+                className="flex items-center gap-2 text-xs font-medium text-neutral-500 dark:text-[#666] hover:text-[#dc2626] transition-colors"
+              >
+                <Link2 size={12} />
+                {shareUrl ? 'Link copied — create another' : 'Create review link'}
+              </button>
+              {shareUrl && (
+                <>
+                  <p className="mt-2 text-[11px] font-mono break-all bg-neutral-50 dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg p-2.5 text-neutral-500 dark:text-[#777]">
+                    {shareUrl}
+                  </p>
+                  <p className="mt-1.5 text-[11px] text-amber-600/80 dark:text-amber-500/60 leading-relaxed">
+                    Anyone with this link can view and review this item without
+                    signing in. Send it only to people who should see it.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

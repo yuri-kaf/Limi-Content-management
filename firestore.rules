@@ -35,6 +35,11 @@ service cloud.firestore {
       return hasProfile() && profile().assignedClientIds.hasAny([clientId]);
     }
 
+    function onlyDecisionFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['decision', 'decisionNote', 'decidedAt']);
+    }
+
     function onlyReviewFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['clientReview', 'reviewNote']);
@@ -89,6 +94,24 @@ service cloud.firestore {
           allow delete: if isAdmin();
         }
       }
+    }
+
+    // Public review links. The document ID is an unguessable token and holding
+    // it is the entire credential, so these carry a snapshot of one item rather
+    // than granting access to the content collection.
+    match /shares/{token} {
+      // `get` only, never `list` — the collection must not be enumerable, or
+      // the tokens would be pointless.
+      allow get: if resource.data.revoked == false;
+      allow list: if isAdmin() || isManager();
+
+      allow create: if isAdmin() || isManager();
+      allow delete: if isAdmin() || isManager();
+
+      // An anonymous reviewer may record a decision and nothing else, and only
+      // while the link is live.
+      allow update: if isAdmin() || isManager()
+        || (resource.data.revoked == false && onlyDecisionFieldsChanged());
     }
 
     // Everything else stays closed.

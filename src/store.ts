@@ -10,6 +10,7 @@ import {
   writeBatch,
   arrayUnion,
   query,
+  where,
   orderBy,
 } from 'firebase/firestore';
 import {
@@ -21,9 +22,9 @@ import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
   AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, Idea, IdeaStatus,
-  MediaType, Platform,
+  MediaType, Platform, Share,
 } from './types';
-import { generateId } from './utils';
+import { generateId, generateShareToken } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,142 @@ function commentsCol(clientId: string, parentId: string, parent: CommentParent =
 
 function ideasCol(clientId: string) {
   return collection(db, 'clients', clientId, 'ideas');
+}
+
+// ─── Public review links ─────────────────────────────────────────────────────
+
+// Rules can't see a token the caller merely holds — only one that's in the
+// path. So a share can't grant access to the real content document; it carries
+// a snapshot instead, and decisions are written back by the app (see
+// useShareReconciler) the next time a team member is signed in.
+export function useShare(token: string | undefined) {
+  const [share, setShare] = useState<Share | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
+
+  useEffect(() => {
+    if (!token) {
+      setState('missing');
+      return;
+    }
+    const unsubscribe = onSnapshot(
+      doc(db, 'shares', token),
+      (snap) => {
+        if (!snap.exists()) {
+          setShare(null);
+          setState('missing');
+          return;
+        }
+        setShare({ ...(snap.data() as Omit<Share, 'id'>), id: snap.id });
+        setState('ready');
+      },
+      (err) => {
+        // A revoked link fails the read rule, which lands here.
+        console.error('[limi] share subscription failed', err);
+        setState('missing');
+      }
+    );
+    return unsubscribe;
+  }, [token]);
+
+  const submitDecision = useCallback(
+    async (decision: ClientReview, note: string) => {
+      if (!token) return;
+      await updateDoc(doc(db, 'shares', token), {
+        decision,
+        decisionNote: note,
+        decidedAt: Date.now(),
+      });
+    },
+    [token]
+  );
+
+  return { share, state, submitDecision };
+}
+
+export function useShares(clientId: string | undefined, enabled: boolean) {
+  const [shares, setShares] = useState<Share[]>([]);
+
+  useEffect(() => {
+    if (!clientId || !enabled) {
+      setShares([]);
+      return;
+    }
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'shares'), where('clientId', '==', clientId)),
+      (snap) => setShares(snap.docs.map((d) => ({ ...(d.data() as Omit<Share, 'id'>), id: d.id }))),
+      (err) => console.error('[limi] shares subscription failed', err)
+    );
+    return unsubscribe;
+  }, [clientId, enabled]);
+
+  return shares;
+}
+
+export function useShareActions(clientId: string | undefined, clientName: string) {
+  const { currentUser } = useAuth();
+
+  const createShare = useCallback(
+    async (item: ContentItem) => {
+      if (!clientId) return '';
+      const token = generateShareToken();
+      const share: Omit<Share, 'id'> = {
+        clientId,
+        contentId: item.id,
+        clientName,
+        title: item.title,
+        mediaLink: item.driveLink,
+        mediaType: item.mediaType ?? 'video',
+        caption: item.caption ?? item.notes ?? '',
+        hashtags: item.hashtags ?? '',
+        createdAt: Date.now(),
+        createdByEmail: currentUser?.email ?? '',
+        revoked: false,
+      };
+      await setDoc(doc(db, 'shares', token), share);
+      return `${window.location.origin}/review/${token}`;
+    },
+    [clientId, clientName, currentUser]
+  );
+
+  const revokeShare = useCallback(async (token: string) => {
+    await updateDoc(doc(db, 'shares', token), { revoked: true });
+  }, []);
+
+  return { createShare, revokeShare };
+}
+
+// Writes decisions made through public links back onto the content items.
+// Runs for signed-in team members only — there is no server to do it.
+export function useShareReconciler(clientId: string | undefined, enabled: boolean) {
+  const shares = useShares(clientId, enabled);
+
+  useEffect(() => {
+    if (!enabled || !clientId) return;
+    const unsynced = shares.filter(
+      (s) => s.decision && s.decidedAt && (s.syncedAt ?? 0) < s.decidedAt
+    );
+    if (unsynced.length === 0) return;
+
+    (async () => {
+      for (const s of unsynced) {
+        try {
+          await updateDoc(contentDoc(s.clientId, s.contentId), {
+            clientReview: s.decision,
+            reviewNote: s.decisionNote ?? '',
+          });
+          await writeSystemComment(
+            s.clientId,
+            s.contentId,
+            `${s.decision} this via a shared link`,
+            { email: s.createdByEmail, name: 'A reviewer' }
+          );
+          await updateDoc(doc(db, 'shares', s.id), { syncedAt: Date.now() });
+        } catch (err) {
+          console.error('[limi] could not sync a shared review decision', err);
+        }
+      }
+    })();
+  }, [shares, clientId, enabled]);
 }
 
 // ─── Ideas ───────────────────────────────────────────────────────────────────
