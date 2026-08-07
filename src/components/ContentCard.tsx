@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ContentItem } from '../types';
 import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
+import { cardInteractive } from '../ui';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar,
   Image as ImageIcon, Download,
@@ -42,7 +43,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
     <div
       ref={setNodeRef}
       style={style}
-      className="group bg-white dark:bg-[#161616] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2a2a2a] rounded-xl overflow-hidden transition-colors duration-150 cursor-pointer"
+      className={`group ${cardInteractive} overflow-hidden`}
       onClick={onCardClick}
     >
       <div className="flex items-start gap-3 p-3">

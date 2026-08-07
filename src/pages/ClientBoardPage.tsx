@@ -25,6 +25,7 @@ import ContentCalendar from '../components/ContentCalendar';
 import IdeasView from '../components/IdeasView';
 import { Idea } from '../types';
 import { runWrite } from '../utils';
+import { page, tile } from '../ui';
 
 // Validated stage palette — see the note in tailwind.config.js. Every use is
 // paired with its text label, which is what permits the CVD warn band.
@@ -55,7 +56,7 @@ function ReadOnlyColumn({
   onCardClick: (item: ContentItem) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#1a1a1a] rounded-2xl p-3">
+    <div className={`${tile} p-3`}>
       <div className="flex items-center gap-2 mb-3 px-1">
         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
         <span className="text-xs font-semibold text-neutral-600 dark:text-[#888]">{label}</span>
@@ -115,7 +116,7 @@ export default function ClientBoardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
+      <div className={`${page} flex items-center justify-center`}>
         <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
       </div>
     );
@@ -123,7 +124,7 @@ export default function ClientBoardPage() {
 
   if (!client) {
     return (
-      <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
+      <div className={`${page} flex items-center justify-center`}>
         <div className="text-center">
           <p className="text-neutral-400 dark:text-[#555] mb-4 text-sm">Client not found.</p>
           <button
@@ -225,9 +226,9 @@ export default function ClientBoardPage() {
   const activeMobileCol = visibleColumns.find((c) => c.id === mobileTab) ?? visibleColumns[0];
 
   return (
-    <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808]">
+    <div className={page}>
       {/* Desktop top nav */}
-      <header className="hidden sm:block border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10">
+      <header className="hidden sm:block bg-canvas/85 dark:bg-canvas-dark/85 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-[1440px] mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
@@ -256,7 +257,7 @@ export default function ClientBoardPage() {
 
       {/* Mobile top bar */}
       <header
-        className="sm:hidden sticky top-0 z-10 bg-white/95 dark:bg-[#080808]/95 border-b border-neutral-200 dark:border-[#161616] backdrop-blur-md"
+        className="sm:hidden sticky top-0 z-10 bg-canvas/85 dark:bg-canvas-dark/85 backdrop-blur-xl"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="flex items-center gap-3 px-4 py-3">
@@ -313,7 +314,7 @@ export default function ClientBoardPage() {
       </header>
 
       {/* Desktop client info bar */}
-      <div className="hidden sm:block border-b border-neutral-200 dark:border-[#161616] bg-neutral-50 dark:bg-[#0a0a0a]">
+      <div className="hidden sm:block">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <button
             onClick={() => navigate('/')}
