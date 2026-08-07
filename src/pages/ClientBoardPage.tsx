@@ -31,6 +31,47 @@ const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
   { id: 'posted', label: 'Posted', color: '#059669' },
 ];
 
+// Clients see a three-stage view: 'editing' is internal and stays hidden, and
+// the labels are written from their point of view rather than the team's.
+const CLIENT_COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
+  { id: 'review', label: 'Needs Your Review', color: '#2563eb' },
+  { id: 'to-post', label: 'Ready to Post', color: '#dc2626' },
+  { id: 'posted', label: 'Posted', color: '#059669' },
+];
+
+function ReadOnlyColumn({
+  label,
+  color,
+  items,
+  onCardClick,
+}: {
+  label: string;
+  color: string;
+  items: ContentItem[];
+  onCardClick: (item: ContentItem) => void;
+}) {
+  return (
+    <div className="bg-white dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#1a1a1a] rounded-2xl p-3">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-xs font-semibold text-neutral-600 dark:text-[#888]">{label}</span>
+        <span className="text-[11px] text-neutral-400 dark:text-[#444] ml-auto">{items.length}</span>
+      </div>
+      {items.length === 0 ? (
+        <div className="text-center py-10 text-xs text-neutral-300 dark:text-[#333]">
+          Nothing here yet
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {items.map((item) => (
+            <ContentCard key={item.id} item={item} onCardClick={() => onCardClick(item)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClientBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -51,7 +92,9 @@ export default function ClientBoardPage() {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
   const [view, setView] = useState<'kanban' | 'calendar'>('kanban');
-  const [mobileTab, setMobileTab] = useState<ContentStatus>('editing');
+  const [mobileTab, setMobileTab] = useState<ContentStatus>(
+    currentUser?.role === 'client' ? 'review' : 'editing'
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -161,11 +204,13 @@ export default function ClientBoardPage() {
     }
   }
 
+  const visibleColumns = isClientRole ? CLIENT_COLUMNS : COLUMNS;
+
   const clientVisibleContent = isClientRole
-    ? client.content.filter((item) => item.status === 'to-post')
+    ? client.content.filter((item) => CLIENT_COLUMNS.some((c) => c.id === item.status))
     : client.content;
 
-  const activeMobileCol = COLUMNS.find((c) => c.id === mobileTab)!;
+  const activeMobileCol = visibleColumns.find((c) => c.id === mobileTab) ?? visibleColumns[0];
 
   return (
     <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808]">
@@ -212,7 +257,7 @@ export default function ClientBoardPage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-neutral-900 dark:text-white truncate">{client.name}</h1>
           </div>
-          {!isClientRole && (
+          {(
             <div className="flex items-center gap-1 bg-neutral-100 dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-lg p-0.5">
               <button
                 onClick={() => setView('kanban')}
@@ -275,7 +320,7 @@ export default function ClientBoardPage() {
               )}
             </div>
 
-            {!isClientRole && (
+            {(
               <div className="flex items-center gap-1 bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-lg p-1">
                 <button
                   onClick={() => setView('kanban')}
@@ -325,30 +370,73 @@ export default function ClientBoardPage() {
 
       {/* Main content */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-6">
-        {/* CLIENT ROLE: read-only to-post list */}
+        {/* CLIENT ROLE: read-only three-stage board, no drag and drop */}
         {isClientRole ? (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-neutral-500 dark:text-[#777]">
-                Videos ready to post ({clientVisibleContent.length})
-              </h2>
-            </div>
-            {clientVisibleContent.length === 0 ? (
-              <div className="text-center py-20 text-neutral-400 dark:text-[#444] text-sm">
-                No videos ready for review yet.
+          view === 'calendar' ? (
+            <ContentCalendar
+              content={clientVisibleContent}
+              canAdd={false}
+              onDayClick={() => {}}
+              onItemClick={(item) => setSelectedItem(item)}
+            />
+          ) : (
+            <>
+              {/* Mobile: stage tabs + single column */}
+              <div className="sm:hidden">
+                <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
+                  {CLIENT_COLUMNS.map((col) => {
+                    const count = getItemsByStatus(col.id).length;
+                    const isActive = mobileTab === col.id;
+                    return (
+                      <button
+                        key={col.id}
+                        onClick={() => setMobileTab(col.id)}
+                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
+                          isActive
+                            ? ''
+                            : 'bg-white dark:bg-[#111] text-neutral-500 dark:text-[#444] border border-neutral-200 dark:border-[#1e1e1e]'
+                        }`}
+                        style={
+                          isActive
+                            ? { backgroundColor: `${col.color}22`, color: col.color, border: `1px solid ${col.color}44` }
+                            : {}
+                        }
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
+                        {col.label}
+                        <span
+                          className={`text-[11px] font-bold px-1 rounded ${isActive ? '' : 'text-neutral-400 dark:text-[#333]'}`}
+                          style={isActive ? { color: col.color } : {}}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <ReadOnlyColumn
+                  label={activeMobileCol.label}
+                  color={activeMobileCol.color}
+                  items={getItemsByStatus(activeMobileCol.id)}
+                  onCardClick={(item) => setSelectedItem(item)}
+                />
               </div>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {clientVisibleContent.map((item) => (
-                  <ContentCard
-                    key={item.id}
-                    item={item}
-                    onCardClick={() => setSelectedItem(item)}
+
+              {/* Desktop: three columns */}
+              <div className="hidden sm:grid grid-cols-3 gap-4">
+                {CLIENT_COLUMNS.map((col) => (
+                  <ReadOnlyColumn
+                    key={col.id}
+                    label={col.label}
+                    color={col.color}
+                    items={getItemsByStatus(col.id)}
+                    onCardClick={(item) => setSelectedItem(item)}
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </>
+          )
         ) : view === 'calendar' ? (
           <ContentCalendar
             content={client.content}
@@ -476,13 +564,18 @@ export default function ClientBoardPage() {
           existingItem={editingItem}
           onClose={() => setEditingItem(null)}
           onSubmit={(data) => {
-            updateContent(client.id, editingItem.id, {
-              title: data.title,
-              driveLink: data.driveLink,
-              driveFileId: data.driveFileId,
-              notes: data.notes,
-              scheduledAt: data.scheduledAt,
-            });
+            runWrite(
+              () =>
+                updateContent(client.id, editingItem.id, {
+                  title: data.title,
+                  driveLink: data.driveLink,
+                  driveFileId: data.driveFileId,
+                  mediaType: data.mediaType,
+                  notes: data.notes,
+                  scheduledAt: data.scheduledAt,
+                }),
+              'save the content'
+            );
             setEditingItem(null);
           }}
         />
@@ -497,7 +590,9 @@ export default function ClientBoardPage() {
           onClose={() => setSelectedItem(null)}
           onEdit={handleEditFromDetail}
           onDelete={handleDeleteFromDetail}
-          onReview={isClientRole ? handleReview : undefined}
+          // Approve/decline is offered only while the item sits in Review, so
+          // "it's in Review" always means "it's waiting on the client".
+          onReview={isClientRole && selectedItem.status === 'review' ? handleReview : undefined}
         />
       )}
     </div>

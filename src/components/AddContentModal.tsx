@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { X, Film } from 'lucide-react';
-import { ContentItem, ContentStatus } from '../types';
-import { extractDriveFileId, getDriveThumbnailUrl } from '../utils';
+import { X, Film, Image as ImageIcon } from 'lucide-react';
+import { ContentItem, ContentStatus, MediaType } from '../types';
+import { extractDriveFileId, getDriveThumbnailUrl, mediaTypeOf } from '../utils';
 
 interface SubmitData {
   title: string;
   driveLink: string;
   driveFileId: string;
+  mediaType: MediaType;
   notes?: string;
   status: ContentStatus;
   scheduledAt?: number;
@@ -26,7 +27,11 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
   const [title, setTitle] = useState(existingItem?.title ?? '');
   const [driveLink, setDriveLink] = useState(existingItem?.driveLink ?? '');
   const [notes, setNotes] = useState(existingItem?.notes ?? '');
+  const [mediaType, setMediaType] = useState<MediaType>(
+    existingItem ? mediaTypeOf(existingItem) : 'video'
+  );
   const [imgError, setImgError] = useState(false);
+  const isGraphic = mediaType === 'graphic';
 
   const [schedDate, setSchedDate] = useState(() => {
     const ts = existingItem?.scheduledAt ?? defaultScheduledAt;
@@ -64,6 +69,7 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
       title: title.trim(),
       driveLink: driveLink.trim(),
       driveFileId: fileId || '',
+      mediaType,
       notes: notes.trim() || undefined,
       status: existingItem?.status ?? defaultStatus,
       scheduledAt: getScheduledAt(),
@@ -91,12 +97,39 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
+            <label className={labelCls}>Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: 'video' as const, label: 'Video', Icon: Film },
+                { value: 'graphic' as const, label: 'Graphic', Icon: ImageIcon },
+              ]).map(({ value, label, Icon }) => {
+                const active = mediaType === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => { setMediaType(value); setImgError(false); }}
+                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium border transition-colors ${
+                      active
+                        ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#dc2626]'
+                        : 'bg-neutral-100 dark:bg-[#0c0c0c] border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999]'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
             <label className={labelCls}>Content Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Video title..."
+              placeholder={isGraphic ? 'Graphic title...' : 'Video title...'}
               required
               className={inputCls}
             />
@@ -112,6 +145,11 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
               required
               className={inputCls}
             />
+            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+              {isGraphic
+                ? 'Link to the image in Drive. Share it as "anyone with the link" so the preview and download work.'
+                : 'Link to the video in Drive.'}
+            </p>
           </div>
 
           {thumbnailUrl && (
@@ -124,8 +162,15 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex items-center justify-center">
-                  <Film size={22} className="text-neutral-300 dark:text-[#333]" />
+                <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex flex-col items-center justify-center gap-1.5">
+                  {isGraphic ? (
+                    <ImageIcon size={22} className="text-neutral-300 dark:text-[#333]" />
+                  ) : (
+                    <Film size={22} className="text-neutral-300 dark:text-[#333]" />
+                  )}
+                  <span className="text-[10px] text-neutral-400 dark:text-[#444] px-4 text-center">
+                    No preview — check the file is shared as "anyone with the link"
+                  </span>
                 </div>
               )}
             </div>

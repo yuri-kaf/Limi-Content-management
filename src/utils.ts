@@ -1,4 +1,6 @@
-﻿export function extractDriveFileId(url: string): string | null {
+﻿import { MediaType } from './types';
+
+export function extractDriveFileId(url: string): string | null {
   if (!url) return null;
 
   const filePathMatch = url.match(/\/file\/d\/([-\w]{25,})/);
@@ -18,6 +20,19 @@
 
 export function getDriveThumbnailUrl(fileId: string): string {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+}
+
+// Downloads the file directly instead of opening Drive's viewer. Requires the
+// file to be shared as "anyone with the link" — same requirement the thumbnail
+// endpoint above already has.
+export function getDriveDownloadUrl(fileId: string): string {
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
+// Content created before graphics support has no mediaType stored; everything
+// from that era was a video.
+export function mediaTypeOf(item: { mediaType?: MediaType }): MediaType {
+  return item.mediaType ?? 'video';
 }
 
 export function generateId(): string {

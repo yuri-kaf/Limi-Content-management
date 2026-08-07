@@ -1,6 +1,7 @@
 export type ContentStatus = 'editing' | 'review' | 'to-post' | 'posted';
 export type UserRole = 'admin' | 'social-media-manager' | 'client';
 export type ClientReview = 'pending' | 'approved' | 'declined';
+export type MediaType = 'video' | 'graphic';
 
 // Profile only. Credentials live in Firebase Auth, and `id` is the Auth UID —
 // a profile document existing is what grants a signed-in account any access.
@@ -18,6 +19,9 @@ export interface ContentItem {
   title: string;
   driveLink: string;
   driveFileId: string;
+  // Optional because content created before graphics support has no value
+  // stored. Read it through mediaTypeOf(), which treats absent as 'video'.
+  mediaType?: MediaType;
   notes?: string;
   status: ContentStatus;
   createdAt: number;

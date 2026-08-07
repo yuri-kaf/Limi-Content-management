@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ContentItem } from '../types';
-import { getDriveThumbnailUrl } from '../utils';
-import { Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar } from 'lucide-react';
+import { getDriveThumbnailUrl, getDriveDownloadUrl, mediaTypeOf } from '../utils';
+import {
+  Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar,
+  Image as ImageIcon, Download,
+} from 'lucide-react';
 
 interface Props {
   item: ContentItem;
@@ -15,6 +18,7 @@ interface Props {
 export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Props) {
   const [imgError, setImgError] = useState(false);
   const thumbnailUrl = item.driveFileId ? getDriveThumbnailUrl(item.driveFileId) : null;
+  const isGraphic = mediaTypeOf(item) === 'graphic';
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -53,7 +57,11 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Film size={14} className="text-neutral-300 dark:text-[#2a2a2a]" />
+              {isGraphic ? (
+                <ImageIcon size={14} className="text-neutral-300 dark:text-[#2a2a2a]" />
+              ) : (
+                <Film size={14} className="text-neutral-300 dark:text-[#2a2a2a]" />
+              )}
             </div>
           )}
           {/* Drag handle — desktop only */}
@@ -114,6 +122,19 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             >
               <ExternalLink size={11} />
             </a>
+            {isGraphic && item.driveFileId && (
+              <a
+                href={getDriveDownloadUrl(item.driveFileId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] font-medium text-neutral-400 dark:text-[#3a3a3a] hover:text-[#dc2626] transition-colors"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Download image"
+              >
+                <Download size={11} />
+                Download
+              </a>
+            )}
             {scheduledLabel && (
               <div className="flex items-center gap-1 text-neutral-400 dark:text-[#3a3a3a]">
                 <Calendar size={10} />

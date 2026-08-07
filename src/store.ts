@@ -18,7 +18,7 @@ import {
 } from 'firebase/auth';
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
-import { AppUser, Client, ClientReview, ContentItem, ContentStatus } from './types';
+import { AppUser, Client, ClientReview, ContentItem, ContentStatus, MediaType } from './types';
 import { generateId } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
@@ -146,6 +146,7 @@ export function useClients() {
         title: string;
         driveLink: string;
         driveFileId: string;
+        mediaType: MediaType;
         notes?: string;
         status: ContentStatus;
         scheduledAt?: number;
@@ -157,6 +158,7 @@ export function useClients() {
         title: data.title,
         driveLink: data.driveLink,
         driveFileId: data.driveFileId,
+        mediaType: data.mediaType,
         notes: data.notes || '',
         status: data.status,
         createdAt: Date.now(),
@@ -178,6 +180,7 @@ export function useClients() {
         title: string;
         driveLink: string;
         driveFileId: string;
+        mediaType: MediaType;
         notes?: string;
         scheduledAt?: number;
       }
@@ -191,6 +194,7 @@ export function useClients() {
               title: data.title,
               driveLink: data.driveLink,
               driveFileId: data.driveFileId,
+              mediaType: data.mediaType,
               notes: data.notes || '',
               scheduledAt: data.scheduledAt || 0,
             }

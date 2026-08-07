@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
   X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Film,
-  CheckCircle, XCircle, Clock,
+  CheckCircle, XCircle, Clock, Download,
 } from 'lucide-react';
 import { ClientReview, ContentItem } from '../types';
-import { getDriveThumbnailUrl } from '../utils';
+import { getDriveThumbnailUrl, getDriveDownloadUrl, mediaTypeOf } from '../utils';
 
 interface Props {
   item: ContentItem;
@@ -34,6 +34,7 @@ export default function ContentDetailModal({
   const [decliningMode, setDecliningMode] = useState(false);
 
   const thumbnailUrl = item.driveFileId ? getDriveThumbnailUrl(item.driveFileId) : null;
+  const isGraphic = mediaTypeOf(item) === 'graphic';
 
   function handleCopy() {
     if (item.notes) {
@@ -272,6 +273,18 @@ export default function ContentDetailModal({
               <ExternalLink size={13} />
               Open in Drive
             </a>
+
+            {isGraphic && item.driveFileId && (
+              <a
+                href={getDriveDownloadUrl(item.driveFileId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white transition-colors text-sm font-semibold"
+              >
+                <Download size={13} />
+                Download
+              </a>
+            )}
 
             {/* Edit / Delete — only when user has permission */}
             {!isClientRole && canEdit && (
