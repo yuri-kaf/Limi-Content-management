@@ -106,10 +106,23 @@ function SMMDashboard({ clients }: { clients: Client[] }) {
 }
 
 export default function ClientsPage() {
-  const { clients, loading, addClient, pendingMigration, migrateLegacyContent } = useClients();
+  const {
+    clients, loading, addClient,
+    pendingMigration, migrateLegacyContent,
+    pendingCaptionMigration, migrateLegacyCaptions,
+  } = useClients();
   const { currentUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [migrating, setMigrating] = useState(false);
+
+  async function handleCaptionMigrate() {
+    setMigrating(true);
+    await runWrite(async () => {
+      const moved = await migrateLegacyCaptions();
+      alert(`Moved ${moved} caption${moved === 1 ? '' : 's'} into the new Caption field.`);
+    }, 'migrate the captions');
+    setMigrating(false);
+  }
 
   async function handleMigrate() {
     setMigrating(true);
@@ -141,6 +154,27 @@ export default function ClientsPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         {showStats && <NotifPermissionBanner />}
+
+        {isAdmin && pendingMigration.length === 0 && pendingCaptionMigration.length > 0 && (
+          <div className="mb-5 rounded-xl border border-amber-300 dark:border-amber-900/50 bg-amber-50 dark:bg-[#1a1405] p-4">
+            <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Captions need moving
+            </h2>
+            <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+              {pendingCaptionMigration.length} item
+              {pendingCaptionMigration.length === 1 ? '' : 's'} still keep their caption in the
+              old notes field. Moving them frees up Team Notes for internal remarks the client
+              can't see. Your text is copied across, not retyped.
+            </p>
+            <button
+              onClick={handleCaptionMigrate}
+              disabled={migrating}
+              className="mt-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              {migrating ? 'Moving…' : 'Move captions now'}
+            </button>
+          </div>
+        )}
 
         {isAdmin && pendingMigration.length > 0 && (
           <div className="mb-5 rounded-xl border border-amber-300 dark:border-amber-900/50 bg-amber-50 dark:bg-[#1a1405] p-4">

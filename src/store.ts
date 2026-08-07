@@ -18,7 +18,9 @@ import {
 } from 'firebase/auth';
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
-import { AppUser, Client, ClientReview, ContentItem, ContentStatus, MediaType } from './types';
+import {
+  AppUser, Client, ClientReview, ContentItem, ContentStatus, MediaType, Platform,
+} from './types';
 import { generateId } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
@@ -237,6 +239,9 @@ export function useClients() {
         driveLink: string;
         driveFileId: string;
         mediaType: MediaType;
+        caption?: string;
+        hashtags?: string;
+        platforms?: Platform[];
         notes?: string;
         status: ContentStatus;
         scheduledAt?: number;
@@ -250,6 +255,9 @@ export function useClients() {
         driveLink: data.driveLink,
         driveFileId: data.driveFileId,
         mediaType: data.mediaType,
+        caption: data.caption || '',
+        hashtags: data.hashtags || '',
+        platforms: data.platforms ?? [],
         notes: data.notes || '',
         status: data.status,
         createdAt: Date.now(),
@@ -276,6 +284,9 @@ export function useClients() {
         driveLink: string;
         driveFileId: string;
         mediaType: MediaType;
+        caption?: string;
+        hashtags?: string;
+        platforms?: Platform[];
         notes?: string;
         scheduledAt?: number;
       }
@@ -285,6 +296,9 @@ export function useClients() {
         driveLink: data.driveLink,
         driveFileId: data.driveFileId,
         mediaType: data.mediaType,
+        caption: data.caption || '',
+        hashtags: data.hashtags || '',
+        platforms: data.platforms ?? [],
         notes: data.notes || '',
         scheduledAt: data.scheduledAt || 0,
       });
@@ -339,6 +353,33 @@ export function useClients() {
     return migrated;
   }, [pendingMigration, contentByClient]);
 
+  // Legacy items keep their caption copy in `notes`. Until this runs, the UI
+  // falls back via captionOf(); afterwards `notes` means internal remarks only.
+  const pendingCaptionMigration = useMemo(
+    () =>
+      clients.flatMap((c) =>
+        c.content
+          .filter((i) => i.caption === undefined && (i.notes ?? '') !== '')
+          .map((i) => ({ clientId: c.id, item: i }))
+      ),
+    [clients]
+  );
+
+  const migrateLegacyCaptions = useCallback(async () => {
+    if (pendingCaptionMigration.length === 0) return 0;
+    const batch = writeBatch(db);
+    for (const { clientId, item } of pendingCaptionMigration) {
+      batch.update(contentDoc(clientId, item.id), {
+        caption: item.notes ?? '',
+        hashtags: '',
+        platforms: [],
+        notes: '',
+      });
+    }
+    await batch.commit();
+    return pendingCaptionMigration.length;
+  }, [pendingCaptionMigration]);
+
   return {
     clients,
     loading,
@@ -350,6 +391,8 @@ export function useClients() {
     updateClientReview,
     pendingMigration,
     migrateLegacyContent,
+    pendingCaptionMigration,
+    migrateLegacyCaptions,
   };
 }
 

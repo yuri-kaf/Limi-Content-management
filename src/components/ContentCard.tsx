@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ContentItem } from '../types';
-import { getDriveThumbnailUrl, getDriveDownloadUrl, mediaTypeOf } from '../utils';
+import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar,
   Image as ImageIcon, Download,
@@ -17,8 +17,11 @@ interface Props {
 
 export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Props) {
   const [imgError, setImgError] = useState(false);
-  const thumbnailUrl = item.driveFileId ? getDriveThumbnailUrl(item.driveFileId) : null;
+  const media = getMediaInfo(item.driveLink);
+  const thumbnailUrl = media.previewUrl;
   const isGraphic = mediaTypeOf(item) === 'graphic';
+  const caption = captionOf(item);
+  const platforms = item.platforms ?? [];
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -105,10 +108,23 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             </div>
           </div>
 
-          {item.notes && (
+          {caption && (
             <p className="text-[11px] text-neutral-400 dark:text-[#4a4a4a] mt-1 line-clamp-1 leading-relaxed">
-              {item.notes}
+              {caption}
             </p>
+          )}
+
+          {platforms.length > 0 && (
+            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+              {platforms.map((p) => (
+                <span
+                  key={p}
+                  className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-500 dark:text-[#666]"
+                >
+                  {PLATFORM_LABELS[p]}
+                </span>
+              ))}
+            </div>
           )}
 
           <div className="flex items-center gap-2.5 mt-1.5">
@@ -122,9 +138,9 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
             >
               <ExternalLink size={11} />
             </a>
-            {isGraphic && item.driveFileId && (
+            {isGraphic && media.downloadUrl && (
               <a
-                href={getDriveDownloadUrl(item.driveFileId)}
+                href={media.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-[10px] font-medium text-neutral-400 dark:text-[#3a3a3a] hover:text-[#dc2626] transition-colors"

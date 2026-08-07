@@ -43,9 +43,14 @@ Detect the provider from the URL and degrade gracefully:
 |---|---|---|
 | Google Drive | yes | yes |
 | Dropbox | yes (URL transform) | yes |
-| YouTube / Vimeo | yes (oEmbed) | n/a |
+| YouTube | yes (thumbnail URL, no API) | n/a |
 | Direct image URL | yes | yes |
+| Vimeo | no — see below | n/a |
 | **OneDrive / SharePoint** | **no — needs auth** | no |
+
+Vimeo was specced as previewing via oEmbed but ships without one: oEmbed needs a network
+request per card, and Vimeo is not a provider this team uses. Vimeo links render as a
+labelled card. Revisit if it starts being used.
 
 The team uses Drive plus OneDrive/SharePoint, so OneDrive links render as a labelled
 provider card with a working open-link, not a thumbnail. This is a limitation of those

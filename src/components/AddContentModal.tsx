@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { X, Film, Image as ImageIcon } from 'lucide-react';
-import { ContentItem, ContentStatus, MediaType } from '../types';
-import { extractDriveFileId, getDriveThumbnailUrl, mediaTypeOf } from '../utils';
+import { ContentItem, ContentStatus, MediaType, Platform } from '../types';
+import {
+  extractDriveFileId, getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
+} from '../utils';
 
 interface SubmitData {
   title: string;
   driveLink: string;
   driveFileId: string;
   mediaType: MediaType;
+  caption?: string;
+  hashtags?: string;
+  platforms?: Platform[];
   notes?: string;
   status: ContentStatus;
   scheduledAt?: number;
@@ -26,7 +31,10 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
 
   const [title, setTitle] = useState(existingItem?.title ?? '');
   const [driveLink, setDriveLink] = useState(existingItem?.driveLink ?? '');
-  const [notes, setNotes] = useState(existingItem?.notes ?? '');
+  const [caption, setCaption] = useState(existingItem ? captionOf(existingItem) : '');
+  const [hashtags, setHashtags] = useState(existingItem?.hashtags ?? '');
+  const [platforms, setPlatforms] = useState<Platform[]>(existingItem?.platforms ?? []);
+  const [notes, setNotes] = useState(existingItem ? teamNotesOf(existingItem) : '');
   const [mediaType, setMediaType] = useState<MediaType>(
     existingItem ? mediaTypeOf(existingItem) : 'video'
   );
@@ -47,8 +55,10 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
     return '';
   });
 
-  const fileId = extractDriveFileId(driveLink.trim());
-  const thumbnailUrl = fileId ? getDriveThumbnailUrl(fileId) : null;
+  const media = getMediaInfo(driveLink);
+  // Still stored for Drive links so existing content keeps working unchanged.
+  const fileId = media.provider === 'drive' ? extractDriveFileId(driveLink.trim()) : '';
+  const thumbnailUrl = media.previewUrl;
 
   function handleDriveLinkChange(val: string) {
     setDriveLink(val);
@@ -70,6 +80,9 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
       driveLink: driveLink.trim(),
       driveFileId: fileId || '',
       mediaType,
+      caption: caption.trim(),
+      hashtags: hashtags.trim(),
+      platforms,
       notes: notes.trim() || undefined,
       status: existingItem?.status ?? defaultStatus,
       scheduledAt: getScheduledAt(),
@@ -146,9 +159,11 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
               className={inputCls}
             />
             <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
-              {isGraphic
-                ? 'Link to the image in Drive. Share it as "anyone with the link" so the preview and download work.'
-                : 'Link to the video in Drive.'}
+              {driveLink.trim() === ''
+                ? 'Google Drive, OneDrive, Dropbox, YouTube or a direct image URL.'
+                : media.previewNote
+                  ? `${media.label} — ${media.previewNote}`
+                  : `${media.label}${isGraphic ? ' — share as "anyone with the link" so the preview and download work.' : ''}`}
             </p>
           </div>
 
@@ -179,15 +194,79 @@ export default function AddContentModal({ defaultStatus, defaultScheduledAt, exi
           <div>
             <label className={labelCls}>
               Caption{' '}
+              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(the client sees this)</span>
+            </label>
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="The copy that goes out with this post..."
+              rows={3}
+              className={`${inputCls} resize-none`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>
+              Hashtags{' '}
               <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            </label>
+            <textarea
+              value={hashtags}
+              onChange={(e) => setHashtags(e.target.value)}
+              placeholder="#example #tags"
+              rows={2}
+              className={`${inputCls} resize-none`}
+            />
+            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+              Kept separate so they can be copied on their own.
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>
+              Platforms{' '}
+              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(PLATFORM_LABELS) as Platform[]).map((p) => {
+                const active = platforms.includes(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() =>
+                      setPlatforms((prev) =>
+                        prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#dc2626]'
+                        : 'bg-neutral-100 dark:bg-[#0c0c0c] border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999]'
+                    }`}
+                  >
+                    {PLATFORM_LABELS[p]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>
+              Team Notes{' '}
+              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(internal only)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Caption or notes for this video..."
-              rows={3}
+              placeholder="Reshoot the intro, waiting on logo files..."
+              rows={2}
               className={`${inputCls} resize-none`}
             />
+            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+              Not shown to the client.
+            </p>
           </div>
 
           <div>

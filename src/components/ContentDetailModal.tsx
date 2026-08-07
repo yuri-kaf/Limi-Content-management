@@ -4,7 +4,11 @@ import {
   CheckCircle, XCircle, Clock, Download,
 } from 'lucide-react';
 import { ClientReview, ContentItem } from '../types';
-import { getDriveThumbnailUrl, getDriveDownloadUrl, mediaTypeOf } from '../utils';
+import {
+  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
+} from '../utils';
+
+type CopyTarget = 'caption' | 'hashtags' | 'both';
 
 interface Props {
   item: ContentItem;
@@ -28,20 +32,24 @@ export default function ContentDetailModal({
   onReview,
 }: Props) {
   const [imgError, setImgError] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<CopyTarget | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [declineNote, setDeclineNote] = useState(item.reviewNote ?? '');
   const [decliningMode, setDecliningMode] = useState(false);
 
-  const thumbnailUrl = item.driveFileId ? getDriveThumbnailUrl(item.driveFileId) : null;
+  const media = getMediaInfo(item.driveLink);
+  const thumbnailUrl = media.previewUrl;
   const isGraphic = mediaTypeOf(item) === 'graphic';
+  const caption = captionOf(item);
+  const hashtags = item.hashtags ?? '';
+  const teamNotes = teamNotesOf(item);
+  const platforms = item.platforms ?? [];
 
-  function handleCopy() {
-    if (item.notes) {
-      navigator.clipboard.writeText(item.notes);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  function handleCopy(which: CopyTarget, text: string) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(which);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   function handleDeleteClick() {
@@ -149,25 +157,79 @@ export default function ContentDetailModal({
           {/* Title */}
           <h2 className="text-base font-bold text-neutral-900 dark:text-white leading-snug">{item.title}</h2>
 
+          {platforms.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {platforms.map((p) => (
+                <span
+                  key={p}
+                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-500 dark:text-[#777]"
+                >
+                  {PLATFORM_LABELS[p]}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Caption */}
-          {item.notes ? (
+          {caption ? (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">Caption</span>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
-                >
-                  {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                  <span>{copied ? 'Copied!' : 'Copy'}</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleCopy('caption', caption)}
+                    className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
+                  >
+                    {copied === 'caption' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                    <span>{copied === 'caption' ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                  {hashtags && (
+                    <button
+                      onClick={() => handleCopy('both', `${caption}\n\n${hashtags}`)}
+                      className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
+                    >
+                      {copied === 'both' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                      <span>{copied === 'both' ? 'Copied!' : '+ tags'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap">
-                {item.notes}
+                {caption}
               </p>
             </div>
           ) : (
             <p className="text-xs text-neutral-300 dark:text-[#333] italic">No caption added.</p>
+          )}
+
+          {hashtags && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">Hashtags</span>
+                <button
+                  onClick={() => handleCopy('hashtags', hashtags)}
+                  className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
+                >
+                  {copied === 'hashtags' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                  <span>{copied === 'hashtags' ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+              <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap break-words">
+                {hashtags}
+              </p>
+            </div>
+          )}
+
+          {/* Internal notes — never shown to the client */}
+          {!isClientRole && teamNotes && (
+            <div>
+              <span className="text-xs font-semibold text-amber-600/80 dark:text-amber-500/70 uppercase tracking-wider">
+                Team Notes
+              </span>
+              <p className="mt-2 text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-amber-50 dark:bg-[#17130a] rounded-xl p-3 border border-amber-200 dark:border-amber-900/40 whitespace-pre-wrap">
+                {teamNotes}
+              </p>
+            </div>
           )}
 
           {/* Posting schedule */}
@@ -274,9 +336,9 @@ export default function ContentDetailModal({
               Open in Drive
             </a>
 
-            {isGraphic && item.driveFileId && (
+            {isGraphic && media.downloadUrl && (
               <a
-                href={getDriveDownloadUrl(item.driveFileId)}
+                href={media.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white transition-colors text-sm font-semibold"

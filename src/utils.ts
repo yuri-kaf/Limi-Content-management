@@ -1,4 +1,4 @@
-﻿import { MediaType } from './types';
+﻿import { ContentItem, MediaType, Platform } from './types';
 
 export function extractDriveFileId(url: string): string | null {
   if (!url) return null;
@@ -34,6 +34,115 @@ export function getDriveDownloadUrl(fileId: string): string {
 export function mediaTypeOf(item: { mediaType?: MediaType }): MediaType {
   return item.mediaType ?? 'video';
 }
+
+// ─── Media providers ─────────────────────────────────────────────────────────
+
+export type MediaProvider =
+  | 'drive'
+  | 'onedrive'
+  | 'dropbox'
+  | 'youtube'
+  | 'vimeo'
+  | 'image'
+  | 'other';
+
+export interface MediaInfo {
+  provider: MediaProvider;
+  label: string;
+  previewUrl: string | null;
+  downloadUrl: string | null;
+  /** Why there's no preview, when there isn't one. */
+  previewNote?: string;
+}
+
+const NEEDS_AUTH =
+  'OneDrive and SharePoint require sign-in, so no preview can be shown here.';
+
+// Derived from the URL rather than stored on the item, so it is always correct
+// and legacy content needs no migration.
+export function getMediaInfo(url: string): MediaInfo {
+  const link = (url ?? '').trim();
+  if (!link) return { provider: 'other', label: 'Link', previewUrl: null, downloadUrl: null };
+
+  if (/drive\.google\.com|docs\.google\.com/i.test(link)) {
+    const id = extractDriveFileId(link);
+    return {
+      provider: 'drive',
+      label: 'Google Drive',
+      previewUrl: id ? getDriveThumbnailUrl(id) : null,
+      downloadUrl: id ? getDriveDownloadUrl(id) : null,
+      previewNote: id ? undefined : 'Could not read a file ID from this Drive link.',
+    };
+  }
+
+  if (/1drv\.ms|onedrive\.live\.com|sharepoint\.com/i.test(link)) {
+    return {
+      provider: 'onedrive',
+      label: 'OneDrive',
+      previewUrl: null,
+      downloadUrl: null,
+      previewNote: NEEDS_AUTH,
+    };
+  }
+
+  if (/dropbox\.com/i.test(link)) {
+    // raw=1 serves the file itself; dl=1 forces a download.
+    const base = link.replace(/([?&])dl=\d/, '$1').replace(/[?&]$/, '');
+    const sep = base.includes('?') ? '&' : '?';
+    return {
+      provider: 'dropbox',
+      label: 'Dropbox',
+      previewUrl: `${base}${sep}raw=1`,
+      downloadUrl: `${base}${sep}dl=1`,
+    };
+  }
+
+  const yt = link.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})/i
+  );
+  if (yt) {
+    return {
+      provider: 'youtube',
+      label: 'YouTube',
+      previewUrl: `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`,
+      downloadUrl: null,
+    };
+  }
+
+  if (/vimeo\.com/i.test(link)) {
+    return {
+      provider: 'vimeo',
+      label: 'Vimeo',
+      previewUrl: null,
+      downloadUrl: null,
+      previewNote: 'Vimeo thumbnails need an extra API call, so none is shown.',
+    };
+  }
+
+  if (/\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(link)) {
+    return { provider: 'image', label: 'Image', previewUrl: link, downloadUrl: link };
+  }
+
+  return { provider: 'other', label: 'Link', previewUrl: null, downloadUrl: null };
+}
+
+// ─── Caption ─────────────────────────────────────────────────────────────────
+
+// Before the caption migration runs, legacy items still hold their caption in
+// `notes`. These two keep that from showing up twice in the UI.
+export function captionOf(item: Pick<ContentItem, 'caption' | 'notes'>): string {
+  return item.caption ?? item.notes ?? '';
+}
+
+export function teamNotesOf(item: Pick<ContentItem, 'caption' | 'notes'>): string {
+  return item.caption === undefined ? '' : item.notes ?? '';
+}
+
+export const PLATFORM_LABELS: Record<Platform, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+};
 
 export function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
