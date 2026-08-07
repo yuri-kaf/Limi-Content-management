@@ -35,6 +35,11 @@ service cloud.firestore {
       return hasProfile() && profile().assignedClientIds.hasAny([clientId]);
     }
 
+    function onlyReviewFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['clientReview', 'reviewNote']);
+    }
+
     match /users/{userId} {
       // You can always read your own profile — this is the lookup that resolves
       // your role at sign-in, so it must not depend on the helpers above.
@@ -47,12 +52,22 @@ service cloud.firestore {
 
     match /clients/{clientId} {
       allow read: if isAdmin() || isManager() || isAssigned(clientId);
-      allow create, delete: if isAdmin() || isManager();
+      // Clients no longer write here at all — their review decisions live on
+      // the individual content documents below.
+      allow create, update, delete: if isAdmin() || isManager();
 
-      // Client-role users update their own client's document to leave review
-      // decisions. Content is stored as an array on this document, so rules
-      // can't narrow that to just the review fields — see the design doc.
-      allow update: if isAdmin() || isManager() || isAssigned(clientId);
+      match /content/{contentId} {
+        // clientId is fixed by the path and this rule doesn't depend on
+        // contentId, so an assigned client can run a normal list query here —
+        // unlike the top-level clients collection.
+        allow read: if isAdmin() || isManager() || isAssigned(clientId);
+        allow create, delete: if isAdmin() || isManager();
+
+        // A client may record a review decision and nothing else. This is the
+        // per-item restriction that an array field could not express.
+        allow update: if isAdmin() || isManager()
+          || (isAssigned(clientId) && onlyReviewFieldsChanged());
+      }
     }
 
     // Everything else stays closed.

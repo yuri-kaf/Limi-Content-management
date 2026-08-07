@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   collection,
   doc,
@@ -7,7 +7,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  arrayUnion,
+  writeBatch,
   query,
   orderBy,
 } from 'firebase/firestore';
@@ -22,6 +22,39 @@ import { AppUser, Client, ClientReview, ContentItem, ContentStatus, MediaType } 
 import { generateId } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
+
+// Content lives in clients/{clientId}/content/{itemId}. `legacyContent` holds
+// whatever remains in the pre-migration array field so the migration can find
+// it; it is not surfaced to the UI.
+type BaseClient = Omit<Client, 'content'> & { legacyContent: ContentItem[] };
+
+function contentDoc(clientId: string, contentId: string) {
+  return doc(db, 'clients', clientId, 'content', contentId);
+}
+
+function toBaseClient(id: string, data: Record<string, any>): BaseClient {
+  return {
+    id,
+    name: data.name as string,
+    imageUrl: data.imageUrl as string | undefined,
+    about: data.about as string,
+    createdAt: data.createdAt as number,
+    legacyContent: (data.content as ContentItem[]) ?? [],
+  };
+}
+
+// Cached clients are already-merged reads, so they carry no legacy array —
+// which keeps a cold start from falsely reporting a pending migration.
+function toBaseFromCache(c: Client): BaseClient {
+  return {
+    id: c.id,
+    name: c.name,
+    imageUrl: c.imageUrl,
+    about: c.about,
+    createdAt: c.createdAt,
+    legacyContent: [],
+  };
+}
 
 // Keyed per user: one browser can be shared, and a client-role user must not
 // start up showing an admin's cached list.
@@ -56,7 +89,12 @@ export function useClients() {
   // just because the array identity changed.
   const assignedKey = (currentUser?.assignedClientIds ?? []).join(',');
 
-  const [clients, setClients] = useState<Client[]>(() => readClientsCache(uid));
+  const [baseClients, setBaseClients] = useState<BaseClient[]>(() =>
+    readClientsCache(uid).map(toBaseFromCache)
+  );
+  const [contentByClient, setContentByClient] = useState<Record<string, ContentItem[]>>(() =>
+    Object.fromEntries(readClientsCache(uid).map((c) => [c.id, c.content]))
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,19 +108,18 @@ export function useClients() {
     if (role === 'client') {
       const ids = assignedKey ? assignedKey.split(',') : [];
       if (ids.length === 0) {
-        setClients([]);
+        setBaseClients([]);
         setLoading(false);
         return;
       }
 
-      const found = new Map<string, Client>();
+      const found = new Map<string, BaseClient>();
       const emit = () => {
         const list = ids
           .map((id) => found.get(id))
-          .filter((c): c is Client => !!c)
+          .filter((c): c is BaseClient => !!c)
           .sort((a, b) => a.createdAt - b.createdAt);
-        setClients(list);
-        writeClientsCache(uid, list);
+        setBaseClients(list);
         setLoading(false);
       };
 
@@ -91,7 +128,7 @@ export function useClients() {
           doc(db, 'clients', id),
           (snap) => {
             if (snap.exists()) {
-              found.set(id, { ...(snap.data() as Omit<Client, 'id'>), id: snap.id });
+              found.set(id, toBaseClient(snap.id, snap.data()));
             } else {
               found.delete(id);
             }
@@ -111,9 +148,7 @@ export function useClients() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fresh = snapshot.docs.map((d) => ({ ...(d.data() as Omit<Client, 'id'>), id: d.id }));
-        setClients(fresh);
-        writeClientsCache(uid, fresh);
+        setBaseClients(snapshot.docs.map((d) => toBaseClient(d.id, d.data())));
         setLoading(false);
       },
       (err) => {
@@ -126,13 +161,68 @@ export function useClients() {
     return unsubscribe;
   }, [uid, role, assignedKey]);
 
+  // One subscription per client's content subcollection. Accurate by
+  // construction, unlike denormalised counters; revisit around 50+ clients.
+  const clientIdsKey = baseClients.map((c) => c.id).join(',');
+
+  useEffect(() => {
+    if (!uid) return;
+    const ids = clientIdsKey ? clientIdsKey.split(',') : [];
+    if (ids.length === 0) {
+      setContentByClient({});
+      return;
+    }
+
+    const unsubscribes = ids.map((id) =>
+      onSnapshot(
+        query(collection(db, 'clients', id, 'content'), orderBy('createdAt', 'asc')),
+        (snap) => {
+          const items = snap.docs.map((d) => ({
+            ...(d.data() as Omit<ContentItem, 'id'>),
+            id: d.id,
+          }));
+          setContentByClient((prev) => ({ ...prev, [id]: items }));
+        },
+        (err) => console.error(`[limi] content subscription for ${id} failed`, err)
+      )
+    );
+
+    return () => unsubscribes.forEach((u) => u());
+  }, [uid, clientIdsKey]);
+
+  const clients = useMemo<Client[]>(
+    () =>
+      baseClients.map((c) => ({
+        id: c.id,
+        name: c.name,
+        imageUrl: c.imageUrl,
+        about: c.about,
+        createdAt: c.createdAt,
+        content: contentByClient[c.id] ?? [],
+      })),
+    [baseClients, contentByClient]
+  );
+
+  useEffect(() => {
+    if (uid && clients.length > 0) writeClientsCache(uid, clients);
+  }, [uid, clients]);
+
+  // Clients still holding array items that aren't in the subcollection yet.
+  const pendingMigration = useMemo(
+    () =>
+      baseClients.filter((c) => {
+        const existing = new Set((contentByClient[c.id] ?? []).map((i) => i.id));
+        return c.legacyContent.some((i) => !existing.has(i.id));
+      }),
+    [baseClients, contentByClient]
+  );
+
   const addClient = useCallback(
     async (data: { name: string; imageUrl?: string; about: string }) => {
       await addDoc(collection(db, 'clients'), {
         name: data.name,
         imageUrl: data.imageUrl || '',
         about: data.about,
-        content: [],
         createdAt: Date.now(),
       });
     },
@@ -153,8 +243,9 @@ export function useClients() {
         uploadedByEmail: string;
       }
     ) => {
+      const id = generateId();
       const newItem: ContentItem = {
-        id: generateId(),
+        id,
         title: data.title,
         driveLink: data.driveLink,
         driveFileId: data.driveFileId,
@@ -167,11 +258,15 @@ export function useClients() {
         clientReview: 'pending',
         reviewNote: '',
       };
-      await updateDoc(doc(db, 'clients', clientId), { content: arrayUnion(newItem) });
+      await setDoc(contentDoc(clientId, id), newItem);
     },
     []
   );
 
+  // Every mutation below writes only the fields it changes, on the item's own
+  // document. The previous implementation read the whole content array out of
+  // local state and wrote it back, so two people acting at once silently
+  // overwrote each other.
   const updateContent = useCallback(
     async (
       clientId: string,
@@ -185,46 +280,27 @@ export function useClients() {
         scheduledAt?: number;
       }
     ) => {
-      const client = clients.find((c) => c.id === clientId);
-      if (!client) return;
-      const updatedContent = client.content.map((item) =>
-        item.id === contentId
-          ? {
-              ...item,
-              title: data.title,
-              driveLink: data.driveLink,
-              driveFileId: data.driveFileId,
-              mediaType: data.mediaType,
-              notes: data.notes || '',
-              scheduledAt: data.scheduledAt || 0,
-            }
-          : item
-      );
-      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+      await updateDoc(contentDoc(clientId, contentId), {
+        title: data.title,
+        driveLink: data.driveLink,
+        driveFileId: data.driveFileId,
+        mediaType: data.mediaType,
+        notes: data.notes || '',
+        scheduledAt: data.scheduledAt || 0,
+      });
     },
-    [clients]
+    []
   );
 
-  const deleteContent = useCallback(
-    async (clientId: string, contentId: string) => {
-      const client = clients.find((c) => c.id === clientId);
-      if (!client) return;
-      const updatedContent = client.content.filter((item) => item.id !== contentId);
-      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
-    },
-    [clients]
-  );
+  const deleteContent = useCallback(async (clientId: string, contentId: string) => {
+    await deleteDoc(contentDoc(clientId, contentId));
+  }, []);
 
   const updateContentStatus = useCallback(
     async (clientId: string, contentId: string, status: ContentStatus) => {
-      const client = clients.find((c) => c.id === clientId);
-      if (!client) return;
-      const updatedContent = client.content.map((item) =>
-        item.id === contentId ? { ...item, status } : item
-      );
-      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+      await updateDoc(contentDoc(clientId, contentId), { status });
     },
-    [clients]
+    []
   );
 
   const updateClientReview = useCallback(
@@ -234,17 +310,34 @@ export function useClients() {
       review: ClientReview,
       reviewNote?: string
     ) => {
-      const client = clients.find((c) => c.id === clientId);
-      if (!client) return;
-      const updatedContent = client.content.map((item) =>
-        item.id === contentId
-          ? { ...item, clientReview: review, reviewNote: reviewNote || '' }
-          : item
-      );
-      await updateDoc(doc(db, 'clients', clientId), { content: updatedContent });
+      // Exactly the two fields the security rules permit a client to touch.
+      await updateDoc(contentDoc(clientId, contentId), {
+        clientReview: review,
+        reviewNote: reviewNote || '',
+      });
     },
-    [clients]
+    []
   );
+
+  // Copies each legacy array item into the subcollection. Idempotent: items
+  // already migrated are skipped, so a partial failure is safe to re-run. The
+  // legacy array is left in place as a rollback path.
+  const migrateLegacyContent = useCallback(async () => {
+    let migrated = 0;
+    for (const client of pendingMigration) {
+      const existing = new Set((contentByClient[client.id] ?? []).map((i) => i.id));
+      const missing = client.legacyContent.filter((i) => !existing.has(i.id));
+      if (missing.length === 0) continue;
+
+      const batch = writeBatch(db);
+      for (const item of missing) {
+        batch.set(contentDoc(client.id, item.id), item);
+      }
+      await batch.commit();
+      migrated += missing.length;
+    }
+    return migrated;
+  }, [pendingMigration, contentByClient]);
 
   return {
     clients,
@@ -255,6 +348,8 @@ export function useClients() {
     deleteContent,
     updateContentStatus,
     updateClientReview,
+    pendingMigration,
+    migrateLegacyContent,
   };
 }
 

@@ -106,9 +106,20 @@ function SMMDashboard({ clients }: { clients: Client[] }) {
 }
 
 export default function ClientsPage() {
-  const { clients, loading, addClient } = useClients();
+  const { clients, loading, addClient, pendingMigration, migrateLegacyContent } = useClients();
   const { currentUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+
+  async function handleMigrate() {
+    setMigrating(true);
+    const ok = await runWrite(async () => {
+      const moved = await migrateLegacyContent();
+      alert(`Moved ${moved} content item${moved === 1 ? '' : 's'} into the new structure.`);
+    }, 'migrate the content');
+    setMigrating(false);
+    if (!ok) return;
+  }
 
   const isAdmin = currentUser?.role === 'admin';
   const isSMM = currentUser?.role === 'social-media-manager';
@@ -130,6 +141,27 @@ export default function ClientsPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         {showStats && <NotifPermissionBanner />}
+
+        {isAdmin && pendingMigration.length > 0 && (
+          <div className="mb-5 rounded-xl border border-amber-300 dark:border-amber-900/50 bg-amber-50 dark:bg-[#1a1405] p-4">
+            <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Content needs migrating
+            </h2>
+            <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+              {pendingMigration.length} client{pendingMigration.length === 1 ? '' : 's'} still
+              store content in the old format. Move it to the new structure to enable comments,
+              versions and per-item permissions. Your existing data is copied, not deleted, so
+              this is safe to run and safe to repeat.
+            </p>
+            <button
+              onClick={handleMigrate}
+              disabled={migrating}
+              className="mt-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              {migrating ? 'Migrating…' : 'Migrate content now'}
+            </button>
+          </div>
+        )}
 
         {showStats && !loading && visibleClients.length > 0 && (
           <SMMDashboard clients={visibleClients} />
