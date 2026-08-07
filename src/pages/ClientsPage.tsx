@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Video, CheckCircle, XCircle, Sun, Moon } from 'lucide-react';
+import { Plus, Users, Sun, Moon } from 'lucide-react';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Client } from '../types';
 import ClientCard from '../components/ClientCard';
 import AddClientModal from '../components/AddClientModal';
 import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
+import Dashboard from '../components/Dashboard';
 import { runWrite } from '../utils';
+import { shell, heading, badge, page } from '../ui';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -24,23 +25,23 @@ function Header() {
   const isAdmin = currentUser?.role === 'admin';
 
   return (
-    <header className="border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10"
+    <header className="bg-canvas/85 dark:bg-canvas-dark/85 backdrop-blur-xl sticky top-0 z-10"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+      <div className={`${shell} py-4 flex items-center justify-between`}>
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
+          <div className="w-8 h-8 bg-brand rounded-xl flex items-center justify-center shadow-pill">
             <span className="text-white font-bold text-xs leading-none">L</span>
           </div>
-          <span className="text-neutral-900 dark:text-white font-bold text-[15px] tracking-tight">Limi</span>
+          <span className={`${heading} text-[15px]`}>Limi</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {currentUser && (
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-              style={{
-                color: isAdmin ? '#dc2626' : '#888',
-                backgroundColor: isAdmin ? '#dc262620' : '#1a1a1a',
-              }}
+              className={`${badge} ${
+                isAdmin
+                  ? 'bg-brand-soft dark:bg-brand-softdark text-brand'
+                  : 'bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark'
+              }`}
             >
               {ROLE_LABELS[currentUser.role] ?? currentUser.role}
             </span>
@@ -69,39 +70,6 @@ function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-function SMMDashboard({ clients }: { clients: Client[] }) {
-  const allContent = clients.flatMap((c) => c.content);
-  const toPostCount = allContent.filter((i) => i.status === 'to-post').length;
-  const approvedCount = allContent.filter((i) => i.clientReview === 'approved').length;
-  const declinedCount = allContent.filter((i) => i.clientReview === 'declined').length;
-
-  return (
-    <div className="grid grid-cols-3 gap-2.5 mb-6">
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
-        <Video size={14} className="text-[#dc2626]" />
-        <span className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white tabular-nums leading-none">
-          {toPostCount}
-        </span>
-        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Ready to Post</span>
-      </div>
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
-        <CheckCircle size={14} className="text-emerald-500" />
-        <span className="text-2xl sm:text-3xl font-bold text-emerald-500 dark:text-emerald-400 tabular-nums leading-none">
-          {approvedCount}
-        </span>
-        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Client Approved</span>
-      </div>
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-3 sm:p-4 flex flex-col gap-1.5">
-        <XCircle size={14} className="text-red-500" />
-        <span className="text-2xl sm:text-3xl font-bold text-red-500 dark:text-red-400 tabular-nums leading-none">
-          {declinedCount}
-        </span>
-        <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-[#555] leading-tight">Client Declined</span>
-      </div>
-    </div>
   );
 }
 
@@ -149,10 +117,10 @@ export default function ClientsPage() {
   const totalContent = visibleClients.reduce((sum, c) => sum + c.content.length, 0);
 
   return (
-    <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808]">
+    <div className={page}>
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
+      <main className={`${shell} py-6 sm:py-8 pb-24 sm:pb-8`}>
         {showStats && <NotifPermissionBanner />}
 
         {isAdmin && pendingMigration.length === 0 && pendingCaptionMigration.length > 0 && (
@@ -197,8 +165,8 @@ export default function ClientsPage() {
           </div>
         )}
 
-        {showStats && !loading && visibleClients.length > 0 && (
-          <SMMDashboard clients={visibleClients} />
+        {!loading && visibleClients.length > 0 && currentUser && (
+          <Dashboard clients={visibleClients} role={currentUser.role} />
         )}
 
         {/* Page header */}

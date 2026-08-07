@@ -26,18 +26,20 @@ import IdeasView from '../components/IdeasView';
 import { Idea } from '../types';
 import { runWrite } from '../utils';
 
+// Validated stage palette — see the note in tailwind.config.js. Every use is
+// paired with its text label, which is what permits the CVD warn band.
 const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
-  { id: 'editing', label: 'Editing', color: '#d97706' },
-  { id: 'review', label: 'Review', color: '#2563eb' },
-  { id: 'to-post', label: 'To Post', color: '#dc2626' },
+  { id: 'editing', label: 'Editing', color: '#8b5cf6' },
+  { id: 'review', label: 'Review', color: '#0284c7' },
+  { id: 'to-post', label: 'To Post', color: '#d97706' },
   { id: 'posted', label: 'Posted', color: '#059669' },
 ];
 
 // Clients see a three-stage view: 'editing' is internal and stays hidden, and
 // the labels are written from their point of view rather than the team's.
 const CLIENT_COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
-  { id: 'review', label: 'Needs Your Review', color: '#2563eb' },
-  { id: 'to-post', label: 'Ready to Post', color: '#dc2626' },
+  { id: 'review', label: 'Needs Your Review', color: '#0284c7' },
+  { id: 'to-post', label: 'Ready to Post', color: '#d97706' },
   { id: 'posted', label: 'Posted', color: '#059669' },
 ];
 
