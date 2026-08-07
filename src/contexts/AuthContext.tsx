@@ -39,9 +39,12 @@ function signInErrorMessage(err: unknown): string {
       return 'Too many failed attempts. Try again later or reset your password.';
     case 'auth/network-request-failed':
       return 'Could not reach the server. Check your connection.';
-    case 'auth/operation-not-allowed':
+    // Distinct states with distinct fixes: the product was never provisioned,
+    // versus provisioned with the email/password provider switched off.
     case 'auth/configuration-not-found':
-      return 'Email/password sign-in is not enabled for this Firebase project yet.';
+      return 'Firebase Authentication is not set up for this project yet. In the Firebase console, open Authentication and click "Get started".';
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is turned off. Enable it under Authentication → Sign-in method.';
     default:
       return (err as Error)?.message ?? 'Could not sign in.';
   }
