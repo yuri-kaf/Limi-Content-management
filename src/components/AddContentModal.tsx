@@ -21,17 +21,25 @@ interface SubmitData {
 interface Props {
   defaultStatus: ContentStatus;
   defaultScheduledAt?: number;
+  defaultTitle?: string;
+  defaultCaption?: string;
+  defaultLink?: string;
   existingItem?: ContentItem;
   onClose: () => void;
   onSubmit: (data: SubmitData) => void;
 }
 
-export default function AddContentModal({ defaultStatus, defaultScheduledAt, existingItem, onClose, onSubmit }: Props) {
+export default function AddContentModal({
+  defaultStatus, defaultScheduledAt, defaultTitle, defaultCaption, defaultLink,
+  existingItem, onClose, onSubmit,
+}: Props) {
   const isEdit = !!existingItem;
 
-  const [title, setTitle] = useState(existingItem?.title ?? '');
-  const [driveLink, setDriveLink] = useState(existingItem?.driveLink ?? '');
-  const [caption, setCaption] = useState(existingItem ? captionOf(existingItem) : '');
+  const [title, setTitle] = useState(existingItem?.title ?? defaultTitle ?? '');
+  const [driveLink, setDriveLink] = useState(existingItem?.driveLink ?? defaultLink ?? '');
+  const [caption, setCaption] = useState(
+    existingItem ? captionOf(existingItem) : defaultCaption ?? ''
+  );
   const [hashtags, setHashtags] = useState(existingItem?.hashtags ?? '');
   const [platforms, setPlatforms] = useState<Platform[]>(existingItem?.platforms ?? []);
   const [notes, setNotes] = useState(existingItem ? teamNotesOf(existingItem) : '');

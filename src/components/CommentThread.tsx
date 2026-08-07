@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Send, Clock } from 'lucide-react';
-import { useComments } from '../store';
+import { useComments, CommentParent } from '../store';
 import { runWrite } from '../utils';
 
 interface Props {
   clientId: string;
   contentId: string;
+  parent?: CommentParent;
   /** Video items get the optional timestamp field. */
   showTimestamp: boolean;
   onSend: (body: string, atSeconds?: number) => Promise<void>;
@@ -36,8 +37,10 @@ function relativeTime(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export default function CommentThread({ clientId, contentId, showTimestamp, onSend }: Props) {
-  const { comments, loading } = useComments(clientId, contentId);
+export default function CommentThread({
+  clientId, contentId, parent = 'content', showTimestamp, onSend,
+}: Props) {
+  const { comments, loading } = useComments(clientId, contentId, parent);
   const [body, setBody] = useState('');
   const [stamp, setStamp] = useState('');
   const [sending, setSending] = useState(false);

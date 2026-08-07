@@ -77,6 +77,18 @@ service cloud.firestore {
           allow delete: if isAdmin();
         }
       }
+
+      // Clients submit ideas; only the team triages them.
+      match /ideas/{ideaId} {
+        allow read, create: if isAdmin() || isManager() || isAssigned(clientId);
+        allow update, delete: if isAdmin() || isManager();
+
+        match /comments/{commentId} {
+          allow read, create: if isAdmin() || isManager() || isAssigned(clientId);
+          allow update: if false;
+          allow delete: if isAdmin();
+        }
+      }
     }
 
     // Everything else stays closed.

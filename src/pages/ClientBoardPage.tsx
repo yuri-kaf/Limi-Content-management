@@ -12,7 +12,7 @@ import {
   DragOverlay,
   DragStartEvent,
 } from '@dnd-kit/core';
-import { ArrowLeft, User, LayoutGrid, CalendarDays, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, User, LayoutGrid, CalendarDays, Lightbulb, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClients } from '../store';
@@ -22,6 +22,8 @@ import AddContentModal from '../components/AddContentModal';
 import ContentDetailModal from '../components/ContentDetailModal';
 import ContentCard from '../components/ContentCard';
 import ContentCalendar from '../components/ContentCalendar';
+import IdeasView from '../components/IdeasView';
+import { Idea } from '../types';
 import { runWrite } from '../utils';
 
 const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
@@ -91,7 +93,8 @@ export default function ClientBoardPage() {
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
-  const [view, setView] = useState<'kanban' | 'calendar'>('kanban');
+  const [view, setView] = useState<'kanban' | 'calendar' | 'ideas'>('kanban');
+  const [convertingIdea, setConvertingIdea] = useState<Idea | null>(null);
   const [mobileTab, setMobileTab] = useState<ContentStatus>(
     currentUser?.role === 'client' ? 'review' : 'editing'
   );
@@ -279,6 +282,16 @@ export default function ClientBoardPage() {
               >
                 <CalendarDays size={13} />
               </button>
+              <button
+                onClick={() => setView('ideas')}
+                className={`flex items-center justify-center w-7 h-7 rounded-md text-xs transition-colors ${
+                  view === 'ideas'
+                    ? 'bg-white dark:bg-[#1e1e1e] text-neutral-800 dark:text-white shadow-sm'
+                    : 'text-neutral-400 dark:text-[#555]'
+                }`}
+              >
+                <Lightbulb size={13} />
+              </button>
             </div>
           )}
           <button
@@ -344,6 +357,17 @@ export default function ClientBoardPage() {
                   <CalendarDays size={12} />
                   Calendar
                 </button>
+                <button
+                  onClick={() => setView('ideas')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    view === 'ideas'
+                      ? 'bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-800 dark:text-white'
+                      : 'text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#888]'
+                  }`}
+                >
+                  <Lightbulb size={12} />
+                  Ideas
+                </button>
               </div>
             )}
 
@@ -370,8 +394,14 @@ export default function ClientBoardPage() {
 
       {/* Main content */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-6">
-        {/* CLIENT ROLE: read-only three-stage board, no drag and drop */}
-        {isClientRole ? (
+        {/* Ideas are open to every role — clients submit, the team triages. */}
+        {view === 'ideas' ? (
+          <IdeasView
+            clientId={client.id}
+            canTriage={!isClientRole}
+            onConvert={(idea) => setConvertingIdea(idea)}
+          />
+        ) : isClientRole ? (
           view === 'calendar' ? (
             <ContentCalendar
               content={clientVisibleContent}
@@ -539,6 +569,25 @@ export default function ClientBoardPage() {
               'add the content'
             );
             setAddingToColumn(null);
+          }}
+        />
+      )}
+
+      {/* Accepted idea → content card, carrying its title, description and
+          first link across so nothing is retyped. */}
+      {convertingIdea && (
+        <AddContentModal
+          defaultStatus="editing"
+          defaultTitle={convertingIdea.title}
+          defaultCaption={convertingIdea.description}
+          defaultLink={convertingIdea.links[0] ?? ''}
+          onClose={() => setConvertingIdea(null)}
+          onSubmit={(data) => {
+            runWrite(
+              () => addContent(client.id, { ...data, uploadedByEmail: currentUser?.email ?? '' }),
+              'create the content'
+            );
+            setConvertingIdea(null);
           }}
         />
       )}

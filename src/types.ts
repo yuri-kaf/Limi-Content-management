@@ -54,6 +54,23 @@ export interface Comment {
   atSeconds?: number;
 }
 
+export type IdeaStatus = 'new' | 'accepted' | 'declined';
+
+export interface Idea {
+  id: string;
+  title: string;
+  description: string;
+  /** Anything the submitter wants to point at — refs, Drive files, articles. */
+  links: string[];
+  status: IdeaStatus;
+  createdByEmail: string;
+  createdByName: string;
+  createdAt: number;
+  decisionNote?: string;
+  /** Set once an accepted idea has been turned into a content item. */
+  convertedContentId?: string;
+}
+
 export interface Version {
   link: string;
   mediaType?: MediaType;

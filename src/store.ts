@@ -20,7 +20,8 @@ import {
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
-  AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, MediaType, Platform,
+  AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, Idea, IdeaStatus,
+  MediaType, Platform,
 } from './types';
 import { generateId } from './utils';
 
@@ -35,8 +36,108 @@ function contentDoc(clientId: string, contentId: string) {
   return doc(db, 'clients', clientId, 'content', contentId);
 }
 
-function commentsCol(clientId: string, contentId: string) {
-  return collection(db, 'clients', clientId, 'content', contentId, 'comments');
+// Comments hang off content items and ideas alike — one primitive, two parents.
+export type CommentParent = 'content' | 'ideas';
+
+function commentsCol(clientId: string, parentId: string, parent: CommentParent = 'content') {
+  return collection(db, 'clients', clientId, parent, parentId, 'comments');
+}
+
+function ideasCol(clientId: string) {
+  return collection(db, 'clients', clientId, 'ideas');
+}
+
+// ─── Ideas ───────────────────────────────────────────────────────────────────
+
+export function useIdeas(clientId: string | undefined) {
+  const { currentUser } = useAuth();
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!clientId) {
+      setIdeas([]);
+      setLoading(false);
+      return;
+    }
+    const unsubscribe = onSnapshot(
+      query(ideasCol(clientId), orderBy('createdAt', 'desc')),
+      (snap) => {
+        setIdeas(snap.docs.map((d) => ({ ...(d.data() as Omit<Idea, 'id'>), id: d.id })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[limi] ideas subscription failed', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, [clientId]);
+
+  const addIdea = useCallback(
+    async (data: { title: string; description: string; links: string[] }) => {
+      if (!clientId) return;
+      const id = generateId();
+      const idea: Idea = {
+        id,
+        title: data.title,
+        description: data.description,
+        links: data.links,
+        status: 'new',
+        createdByEmail: currentUser?.email ?? '',
+        createdByName: currentUser?.name ?? 'Someone',
+        createdAt: Date.now(),
+      };
+      await setDoc(doc(ideasCol(clientId), id), idea);
+    },
+    [clientId, currentUser]
+  );
+
+  const setIdeaStatus = useCallback(
+    async (ideaId: string, status: IdeaStatus, decisionNote?: string) => {
+      if (!clientId) return;
+      await updateDoc(doc(ideasCol(clientId), ideaId), {
+        status,
+        decisionNote: decisionNote ?? '',
+      });
+    },
+    [clientId]
+  );
+
+  const markConverted = useCallback(
+    async (ideaId: string, contentId: string) => {
+      if (!clientId) return;
+      await updateDoc(doc(ideasCol(clientId), ideaId), { convertedContentId: contentId });
+    },
+    [clientId]
+  );
+
+  const deleteIdea = useCallback(
+    async (ideaId: string) => {
+      if (!clientId) return;
+      await deleteDoc(doc(ideasCol(clientId), ideaId));
+    },
+    [clientId]
+  );
+
+  const addIdeaComment = useCallback(
+    async (ideaId: string, body: string) => {
+      if (!clientId) return;
+      const id = generateId();
+      const comment: Comment = {
+        id,
+        kind: 'user',
+        body,
+        authorEmail: currentUser?.email ?? '',
+        authorName: currentUser?.name ?? 'Someone',
+        createdAt: Date.now(),
+      };
+      await setDoc(doc(commentsCol(clientId, ideaId, 'ideas'), id), comment);
+    },
+    [clientId, currentUser]
+  );
+
+  return { ideas, loading, addIdea, setIdeaStatus, markConverted, deleteIdea, addIdeaComment };
 }
 
 const STATUS_LABELS: Record<ContentStatus, string> = {
@@ -78,7 +179,11 @@ async function writeSystemComment(
 
 // ─── Comments ────────────────────────────────────────────────────────────────
 
-export function useComments(clientId: string | undefined, contentId: string | undefined) {
+export function useComments(
+  clientId: string | undefined,
+  contentId: string | undefined,
+  parent: CommentParent = 'content'
+) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,7 +195,7 @@ export function useComments(clientId: string | undefined, contentId: string | un
     }
     setLoading(true);
     const unsubscribe = onSnapshot(
-      query(commentsCol(clientId, contentId), orderBy('createdAt', 'asc')),
+      query(commentsCol(clientId, contentId, parent), orderBy('createdAt', 'asc')),
       (snap) => {
         setComments(
           snap.docs.map((d) => ({ ...(d.data() as Omit<Comment, 'id'>), id: d.id }))
@@ -103,7 +208,7 @@ export function useComments(clientId: string | undefined, contentId: string | un
       }
     );
     return unsubscribe;
-  }, [clientId, contentId]);
+  }, [clientId, contentId, parent]);
 
   return { comments, loading };
 }
