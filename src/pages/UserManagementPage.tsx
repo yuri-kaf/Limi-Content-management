@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Eye, EyeOff, KeyRound, Pencil, Trash2, X, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, EyeOff, KeyRound, Pencil, Trash2, X, Sun, Moon, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUsers } from '../store';
 import { useClients } from '../store';
 import { AppUser, UserRole } from '../types';
 import { runWrite } from '../utils';
+import {
+  page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint,
+  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon,
+} from '../ui';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'admin', label: 'Admin' },
@@ -14,10 +18,27 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'client', label: 'Client' },
 ];
 
-const ROLE_COLORS: Record<UserRole, { bg: string; text: string }> = {
-  admin: { bg: '#dc262620', text: '#dc2626' },
-  'social-media-manager': { bg: '#2563eb20', text: '#60a5fa' },
-  client: { bg: '#05966920', text: '#34d399' },
+// Role tints. Admin borrows the brand red; the other two reuse stage hues that
+// are already validated for contrast, and every chip carries its text label.
+const ROLE_TONE: Record<UserRole, { chip: string; avatar: string }> = {
+  admin: {
+    chip: 'bg-brand-soft dark:bg-brand-softdark text-brand',
+    avatar: 'bg-brand-soft dark:bg-brand-softdark text-brand',
+  },
+  'social-media-manager': {
+    chip: 'bg-sky-50 dark:bg-sky-950/40 text-stage-review dark:text-sky-400',
+    avatar: 'bg-sky-50 dark:bg-sky-950/40 text-stage-review dark:text-sky-400',
+  },
+  client: {
+    chip: 'bg-emerald-50 dark:bg-emerald-950/40 text-stage-posted dark:text-emerald-400',
+    avatar: 'bg-emerald-50 dark:bg-emerald-950/40 text-stage-posted dark:text-emerald-400',
+  },
+};
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
+  'social-media-manager': 'Social Media Manager',
+  client: 'Client',
 };
 
 interface UserFormData {
@@ -61,40 +82,47 @@ function UserForm({
     onSubmit({ name: name.trim(), email: email.trim().toLowerCase(), password, role, assignedClientIds });
   }
 
-  const inputCls = 'w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
-  const labelCls = 'block text-xs font-semibold text-neutral-500 dark:text-[#666] mb-1.5 uppercase tracking-wider';
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
+      className={overlay}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className={modalPanel}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-neutral-900 dark:text-white">
-            {initial ? 'Edit User' : 'Add User'}
-          </h2>
-          <button onClick={onClose} className="text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors">
+          <h2 className={modalTitle}>{initial ? 'Edit User' : 'Add User'}</h2>
+          <button onClick={onClose} className={btnIcon} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={labelCls}>Full Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Jane Smith" className={inputCls} />
+            <label className={label}>Full Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Jane Smith"
+              className={input}
+            />
           </div>
 
           <div>
-            <label className={labelCls}>Email</label>
+            <label className={label}>Email</label>
             {/* Changing an existing account's email address is an admin-only
                 Auth operation, unavailable to the client SDK. */}
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jane@example.com" className={inputCls} disabled={isEdit} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="jane@example.com"
+              className={`${input} disabled:opacity-60`}
+              disabled={isEdit}
+            />
             {isEdit && (
-              <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
-                Email can't be changed after the account is created.
-              </p>
+              <p className={hint}>Email can't be changed after the account is created.</p>
             )}
           </div>
 
@@ -102,7 +130,7 @@ function UserForm({
               overwrite from the browser — those go through a reset email. */}
           {!isEdit && (
             <div>
-              <label className={labelCls}>Initial Password</label>
+              <label className={label}>Initial Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -111,49 +139,56 @@ function UserForm({
                   required
                   minLength={6}
                   placeholder="At least 6 characters"
-                  className={`${inputCls} pr-10`}
+                  className={`${input} pr-11`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors"
+                  className={`${btnIcon} absolute right-1 top-1/2 -translate-y-1/2`}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
                 >
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-              <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+              <p className={hint}>
                 Share this with them once. It isn't stored and can't be viewed later.
               </p>
             </div>
           )}
 
           <div>
-            <label className={labelCls}>Role</label>
+            <label className={label}>Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className={inputCls}
+              className={`${input} disabled:opacity-60`}
               disabled={isEditingSelf}
             >
               {ROLE_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
+            {isEditingSelf && <p className={hint}>You can't change your own role.</p>}
           </div>
 
           {role === 'client' && clients.length > 0 && (
             <div>
-              <label className={labelCls}>Assigned Clients</label>
-              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto p-2 bg-neutral-100 dark:bg-[#0c0c0c] rounded-lg border border-neutral-200 dark:border-[#222]">
+              <label className={label}>
+                Assigned Clients <span className={labelAside}>({assignedClientIds.length} selected)</span>
+              </label>
+              <div className={`${inset} flex flex-col gap-0.5 max-h-40 overflow-y-auto p-2`}>
                 {clients.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2.5 cursor-pointer py-1 px-1 rounded-md hover:bg-neutral-200 dark:hover:bg-[#161616] transition-colors">
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-2.5 cursor-pointer py-1.5 px-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors"
+                  >
                     <input
                       type="checkbox"
                       checked={assignedClientIds.includes(c.id)}
                       onChange={() => toggleClient(c.id)}
-                      className="accent-[#dc2626]"
+                      className="accent-brand w-4 h-4"
                     />
-                    <span className="text-sm text-neutral-600 dark:text-[#aaa]">{c.name}</span>
+                    <span className={`text-sm ${bodyText}`}>{c.name}</span>
                   </label>
                 ))}
               </div>
@@ -161,17 +196,13 @@ function UserForm({
           )}
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-transparent border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-[#161616] hover:text-neutral-700 dark:hover:text-[#999] transition-colors"
-            >
+            <button type="button" onClick={onClose} className={`${btnGhost} flex-1`}>
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || !email.trim() || (!isEdit && password.length < 6)}
-              className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
+              className={`${btnPrimary} flex-1`}
             >
               {initial ? 'Save Changes' : 'Add User'}
             </button>
@@ -237,87 +268,86 @@ export default function UserManagementPage() {
     await runWrite(() => deleteUser(user.id), 'delete the user');
   }
 
-  const ROLE_LABELS: Record<UserRole, string> = {
-    admin: 'Admin',
-    'social-media-manager': 'Social Media Manager',
-    client: 'Client',
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#080808]">
-      {/* Header */}
-      <header className="border-b border-neutral-200 dark:border-[#161616] bg-white dark:bg-[#080808] sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between">
+    <div className={page}>
+      {/* Header — mirrors the clients page so the two never drift apart */}
+      <header
+        className="bg-canvas/85 dark:bg-canvas-dark/85 backdrop-blur-xl sticky top-0 z-10"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
+            <div className="w-8 h-8 bg-brand rounded-xl flex items-center justify-center shadow-pill">
               <span className="text-white font-bold text-xs leading-none">L</span>
             </div>
-            <span className="text-neutral-900 dark:text-white font-bold text-[15px] tracking-tight">Limi</span>
+            <span className={`${heading} text-[15px]`}>Limi</span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
-              aria-label="Toggle theme"
-            >
+            <button onClick={toggleTheme} className={btnIcon} aria-label="Toggle theme">
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             </button>
-            <button
-              onClick={() => navigate('/')}
-              className="text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
-            >
+            <button onClick={() => navigate('/')} className={`${btnGhost} h-9 min-h-0 px-3.5 text-xs`}>
               Home
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         {/* Page header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-start justify-between gap-4 mb-5 sm:mb-8">
           <div>
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] text-xs mb-2 transition-colors"
+              className={`flex items-center gap-1.5 text-xs mb-2 transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark`}
             >
               <ArrowLeft size={13} />
               Back
             </button>
-            <h1 className="text-xl font-bold text-neutral-900 dark:text-white">Team</h1>
+            <h1 className={`${heading} text-lg sm:text-xl`}>Team</h1>
             {!loading && (
-              <p className="text-sm text-neutral-400 dark:text-[#555] mt-1">{users.length} member{users.length !== 1 ? 's' : ''}</p>
+              <p className={`text-sm mt-0.5 ${faintText}`}>
+                {users.length} member{users.length !== 1 ? 's' : ''}
+              </p>
             )}
           </div>
           {isAdmin && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-[#dc2626] hover:bg-[#b91c1c] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-red-900/30"
-            >
+            <button onClick={() => setShowAddForm(true)} className={btnPrimary}>
               <Plus size={15} />
-              Add Member
+              <span className="hidden sm:inline">Add Member</span>
+              <span className="sm:hidden">Add</span>
             </button>
           )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
-            <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-hairline dark:border-hairline-dark border-t-brand rounded-full animate-spin" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className={`${tile} w-16 h-16 flex items-center justify-center mb-4`}>
+              <Users size={24} className={faintText} />
+            </div>
+            <h2 className={`${heading} text-base mb-2`}>No team members yet</h2>
+            <p className={`text-sm max-w-xs leading-relaxed ${faintText}`}>
+              Add your first member to give them access to the boards.
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {users.map((user) => {
-              const colors = ROLE_COLORS[user.role];
+              const tone = ROLE_TONE[user.role];
               const isMe = user.id === currentUser?.id;
 
               return (
                 <div
                   key={user.id}
-                  className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-xl p-4 flex items-center gap-4"
+                  className={`${card} p-4 flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap`}
                 >
                   {/* Avatar */}
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                    style={{ backgroundColor: `${colors.text}20`, color: colors.text }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${tone.avatar}`}
                   >
                     {user.name.charAt(0).toUpperCase()}
                   </div>
@@ -325,57 +355,52 @@ export default function UserManagementPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-neutral-900 dark:text-white">{user.name}</span>
+                      <span className={`text-sm ${heading}`}>{user.name}</span>
                       {isMe && (
-                        <span className="text-[10px] text-neutral-400 dark:text-[#555] border border-neutral-200 dark:border-[#222] rounded-full px-2 py-0.5">
+                        <span
+                          className={`${badge} border border-hairline dark:border-hairline-dark ${faintText}`}
+                        >
                           You
                         </span>
                       )}
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                        style={{ backgroundColor: colors.bg, color: colors.text }}
-                      >
-                        {ROLE_LABELS[user.role]}
-                      </span>
+                      <span className={`${badge} ${tone.chip}`}>{ROLE_LABELS[user.role]}</span>
                     </div>
-                    <p className="text-xs text-neutral-400 dark:text-[#555] mt-0.5 truncate">{user.email}</p>
+                    <p className={`text-xs mt-0.5 truncate ${bodyText}`}>{user.email}</p>
                     {user.role === 'client' && user.assignedClientIds?.length > 0 && (
-                      <p className="text-[11px] text-neutral-300 dark:text-[#444] mt-0.5">
-                        {user.assignedClientIds.length} client{user.assignedClientIds.length !== 1 ? 's' : ''} assigned
+                      <p className={`text-[11px] mt-0.5 ${faintText}`}>
+                        {user.assignedClientIds.length} client
+                        {user.assignedClientIds.length !== 1 ? 's' : ''} assigned
                       </p>
                     )}
                   </div>
 
-                  {/* Passwords are hashed by Firebase Auth and can't be read
-                      back by anyone, so the only lever is a reset email. */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleSendReset(user)}
-                      disabled={resetSentTo === user.id}
-                      className="flex items-center gap-1.5 bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg px-2.5 py-1.5 text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] hover:border-neutral-300 dark:hover:border-[#2a2a2a] transition-colors disabled:opacity-60"
-                    >
-                      <KeyRound size={12} />
-                      {resetSentTo === user.id ? 'Reset sent' : 'Send reset'}
-                    </button>
-                  )}
-
                   {/* Actions (admin only) */}
                   {isAdmin && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+                      {/* Passwords are hashed by Firebase Auth and can't be read
+                          back by anyone, so the only lever is a reset email. */}
+                      <button
+                        onClick={() => handleSendReset(user)}
+                        disabled={resetSentTo === user.id}
+                        className={`${btnGhost} h-9 min-h-0 px-3 text-xs disabled:opacity-60`}
+                      >
+                        <KeyRound size={12} />
+                        {resetSentTo === user.id ? 'Reset sent' : 'Send reset'}
+                      </button>
                       <button
                         onClick={() => setEditingUser(user)}
-                        className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-700 dark:hover:text-[#aaa] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
-                        aria-label="Edit"
+                        className={btnIcon}
+                        aria-label={`Edit ${user.name}`}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
                       {!isMe && (
                         <button
                           onClick={() => handleDelete(user)}
-                          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-[#dc2626] hover:bg-red-50 dark:hover:bg-[#1a0808] transition-colors"
-                          aria-label="Delete"
+                          className={`${btnIcon} hover:text-brand hover:bg-brand-soft dark:hover:bg-brand-softdark`}
+                          aria-label={`Remove ${user.name}`}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>

@@ -3,4 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Honour PORT so a harness that assigns a free port gets the server it asked
+  // for, instead of Vite silently walking to the next one.
+  server: process.env.PORT ? { port: Number(process.env.PORT), strictPort: true } : undefined,
 })

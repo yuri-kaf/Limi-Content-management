@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Send, Clock } from 'lucide-react';
 import { useComments, CommentParent } from '../store';
 import { runWrite } from '../utils';
+import {
+  sectionLabel, divider, inset, textarea, faintText, bodyText, heading, btnPrimary,
+} from '../ui';
 
 interface Props {
   clientId: string;
@@ -58,48 +61,39 @@ export default function CommentThread({
   }
 
   return (
-    <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
-      <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">
-        Activity
-      </span>
+    <div className={divider}>
+      <span className={sectionLabel}>Activity</span>
 
       <div className="flex flex-col gap-3 mt-3 max-h-64 overflow-y-auto pr-1">
         {loading ? (
-          <p className="text-xs text-neutral-300 dark:text-[#333]">Loading…</p>
+          <p className={`text-xs ${faintText}`}>Loading…</p>
         ) : comments.length === 0 ? (
-          <p className="text-xs text-neutral-300 dark:text-[#333] italic">
+          <p className={`text-xs italic ${faintText}`}>
             No comments yet. Feedback and status changes both show up here.
           </p>
         ) : (
           comments.map((c) =>
             c.kind === 'system' ? (
-              <p key={c.id} className="text-[11px] text-neutral-400 dark:text-[#4a4a4a]">
-                <span className="font-medium text-neutral-500 dark:text-[#666]">
-                  {c.authorName}
-                </span>{' '}
+              <p key={c.id} className={`text-[11px] ${faintText}`}>
+                <span className={`font-medium ${bodyText}`}>{c.authorName}</span>{' '}
                 {c.body}
-                <span className="text-neutral-300 dark:text-[#333]"> · {relativeTime(c.createdAt)}</span>
+                <span> · {relativeTime(c.createdAt)}</span>
               </p>
             ) : (
-              <div
-                key={c.id}
-                className="bg-neutral-50 dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#1a1a1a] rounded-xl p-3"
-              >
+              <div key={c.id} className={`${inset} p-3`}>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-xs font-semibold text-neutral-700 dark:text-[#bbb]">
-                    {c.authorName}
-                  </span>
+                  <span className={`text-xs ${heading}`}>{c.authorName}</span>
                   {c.atSeconds !== undefined && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-[#dc2626] bg-[#dc2626]/10 px-1.5 py-0.5 rounded">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-brand bg-brand-soft dark:bg-brand-softdark px-1.5 py-0.5 rounded">
                       <Clock size={9} />
                       {formatTimestamp(c.atSeconds)}
                     </span>
                   )}
-                  <span className="text-[10px] text-neutral-300 dark:text-[#333] ml-auto">
+                  <span className={`text-[10px] ml-auto ${faintText}`}>
                     {relativeTime(c.createdAt)}
                   </span>
                 </div>
-                <p className="text-sm text-neutral-600 dark:text-[#999] leading-relaxed whitespace-pre-wrap">
+                <p className={`text-sm leading-relaxed whitespace-pre-wrap ${bodyText}`}>
                   {c.body}
                 </p>
               </div>
@@ -115,7 +109,7 @@ export default function CommentThread({
             onChange={(e) => setBody(e.target.value)}
             placeholder="Leave feedback…"
             rows={2}
-            className="w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors resize-none"
+            className={textarea}
           />
           {showTimestamp && (
             <div className="flex items-center gap-2">
@@ -123,13 +117,11 @@ export default function CommentThread({
                 value={stamp}
                 onChange={(e) => setStamp(e.target.value)}
                 placeholder="0:14"
-                className={`w-20 bg-neutral-100 dark:bg-[#0c0c0c] border rounded-lg px-2 py-1 text-xs focus:outline-none transition-colors ${
-                  stampInvalid
-                    ? 'border-[#dc2626] text-[#dc2626]'
-                    : 'border-neutral-200 dark:border-[#222] text-neutral-600 dark:text-[#999] focus:border-[#dc2626]'
+                className={`${textarea} w-20 px-2 py-1 text-xs ${
+                  stampInvalid ? 'border-brand text-brand' : ''
                 }`}
               />
-              <span className="text-[10px] text-neutral-400 dark:text-[#444]">
+              <span className={`text-[10px] ${faintText}`}>
                 {stampInvalid ? 'Use m:ss, e.g. 0:14' : 'Optional — point at a moment'}
               </span>
             </div>
@@ -138,7 +130,7 @@ export default function CommentThread({
         <button
           onClick={handleSend}
           disabled={!body.trim() || sending || stampInvalid}
-          className="bg-[#dc2626] hover:bg-[#b91c1c] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg p-2.5 transition-colors"
+          className={`${btnPrimary} w-11 !px-0 flex-shrink-0`}
           aria-label="Post comment"
         >
           <Send size={14} />

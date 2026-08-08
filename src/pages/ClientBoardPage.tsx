@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   DndContext,
   DragEndEvent,
-  DragOverEvent,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -167,36 +166,29 @@ export default function ClientBoardPage() {
     if (item) setActiveItem(item);
   }
 
-  function handleDragOver(event: DragOverEvent) {
-    if (!canAdd) return;
-    const { active, over } = event;
-    if (!over || !client) return;
-    const activeId = active.id as string;
-    const overId = over.id as string;
-    const overColumn = COLUMNS.find((col) => col.id === overId);
-    if (overColumn) {
-      const activeEl = client.content.find((c) => c.id === activeId);
-      if (activeEl && activeEl.status !== overColumn.id)
-        updateContentStatus(client.id, activeId, overColumn.id);
-      return;
-    }
-    const overItem = client.content.find((c) => c.id === overId);
-    const activeEl2 = client.content.find((c) => c.id === activeId);
-    if (overItem && activeEl2 && activeEl2.status !== overItem.status)
-      updateContentStatus(client.id, activeId, overItem.status);
+  // The drop target is either a column or one of the cards inside it, since
+  // collision detection reports whichever is closest.
+  function resolveDropStatus(overId: string): ContentStatus | null {
+    const column = COLUMNS.find((col) => col.id === overId);
+    if (column) return column.id;
+    return client?.content.find((c) => c.id === overId)?.status ?? null;
   }
 
+  // Committing on drag-over used to look like a live move, but each commit
+  // reorders the board under the cursor, which fires another drag-over and
+  // commits again — a dozen racing Firestore writes per drag, landing the card
+  // wherever the last one happened to win. The move belongs on drop; the hover
+  // highlight comes from useDroppable's own isOver and needs no state write.
   function handleDragEnd(event: DragEndEvent) {
     setActiveItem(null);
     if (!canAdd) return;
     const { active, over } = event;
     if (!over || !client) return;
     const activeId = active.id as string;
-    const overId = over.id as string;
-    const activeItemData = client.content.find((c) => c.id === activeId);
-    const overColumn = COLUMNS.find((col) => col.id === overId);
-    if (overColumn && activeItemData && activeItemData.status !== overColumn.id)
-      updateContentStatus(client.id, activeId, overColumn.id);
+    const target = resolveDropStatus(over.id as string);
+    const item = client.content.find((c) => c.id === activeId);
+    if (!target || !item || item.status === target) return;
+    runWrite(() => updateContentStatus(client.id, activeId, target), 'move the content');
   }
 
   function handleEditFromDetail() {
@@ -489,8 +481,8 @@ export default function ClientBoardPage() {
             sensors={sensors}
             collisionDetection={closestCorners}
             onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveItem(null)}
           >
             {/* Mobile: status tabs + single column */}
             <div className="sm:hidden">
@@ -562,7 +554,7 @@ export default function ClientBoardPage() {
             </div>
 
             <DragOverlay>
-              {activeItem ? <ContentCard item={activeItem} /> : null}
+              {activeItem ? <ContentCard item={activeItem} isOverlay /> : null}
             </DragOverlay>
           </DndContext>
         )}

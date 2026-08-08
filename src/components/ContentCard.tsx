@@ -14,9 +14,15 @@ interface Props {
   onCardClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /**
+   * True for the copy rendered inside <DragOverlay>. That copy shares the
+   * dragged item's id, so leaving it enabled would register a drop target that
+   * follows the cursor and wins every collision test against the real columns.
+   */
+  isOverlay?: boolean;
 }
 
-export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Props) {
+export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOverlay }: Props) {
   const [imgError, setImgError] = useState(false);
   const media = getMediaInfo(item.driveLink);
   const thumbnailUrl = media.previewUrl;
@@ -26,13 +32,16 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete }: Pro
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
+    disabled: isOverlay,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.25 : 1,
-  };
+  const style = isOverlay
+    ? { cursor: 'grabbing' as const }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.25 : 1,
+      };
 
   const hasSchedule = item.scheduledAt && item.scheduledAt > 0;
   const scheduledLabel = hasSchedule

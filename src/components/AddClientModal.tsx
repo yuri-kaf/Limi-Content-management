@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import {
+  overlay, modalPanel, modalTitle, btnIcon, label, labelAside,
+  input, textarea, btnPrimary, btnGhost,
+} from '../ui';
 
 interface Props {
   onClose: () => void;
@@ -18,74 +22,61 @@ export default function AddClientModal({ onClose, onAdd }: Props) {
     onClose();
   }
 
-  const inputCls =
-    'w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
-  const labelCls = 'block text-xs font-semibold text-neutral-500 dark:text-[#666] mb-1.5 uppercase tracking-wider';
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
+      className={overlay}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div className={modalPanel}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-neutral-900 dark:text-white">New Client</h2>
-          <button onClick={onClose} className="text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors">
+          <h2 className={modalTitle}>New Client</h2>
+          <button onClick={onClose} className={btnIcon} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={labelCls}>Name</label>
+            <label className={label}>Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Client name"
               required
-              className={inputCls}
+              className={input}
             />
           </div>
 
           <div>
-            <label className={labelCls}>
-              Profile Image URL <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            <label className={label}>
+              Profile Image URL <span className={labelAside}>(optional)</span>
             </label>
             <input
               type="text"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://..."
-              className={inputCls}
+              className={input}
             />
           </div>
 
           <div>
-            <label className={labelCls}>About</label>
+            <label className={label}>About</label>
             <textarea
               value={about}
               onChange={(e) => setAbout(e.target.value)}
               placeholder="Brief description of the client..."
               rows={3}
-              className={`${inputCls} resize-none`}
+              className={textarea}
             />
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-transparent border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-[#161616] hover:text-neutral-700 dark:hover:text-[#999] transition-colors"
-            >
+            <button type="button" onClick={onClose} className={`${btnGhost} flex-1`}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
-            >
+            <button type="submit" disabled={!name.trim()} className={`${btnPrimary} flex-1`}>
               Add Client
             </button>
           </div>

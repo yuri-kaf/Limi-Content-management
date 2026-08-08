@@ -51,12 +51,32 @@ export interface MediaInfo {
   label: string;
   previewUrl: string | null;
   downloadUrl: string | null;
+  /**
+   * A URL that can be put in an <iframe> to play or view the item in place.
+   * Distinct from previewUrl, which is a still image for the card thumbnail.
+   */
+  embedUrl?: string | null;
   /** Why there's no preview, when there isn't one. */
   previewNote?: string;
 }
 
+// There is no anonymous thumbnail endpoint for OneDrive/SharePoint — the Graph
+// `shares` API requires a user context for business tenants — so the card still
+// shows a placeholder. An embedded viewer is a different matter: appending
+// action=embedview to an "Anyone with the link" share URL is Microsoft's
+// documented iframe path, and that is what onedriveEmbedUrl() builds.
 const NEEDS_AUTH =
-  'OneDrive and SharePoint require sign-in, so no preview can be shown here.';
+  'OneDrive shows no still thumbnail, but the detail view embeds a player.';
+
+function onedriveEmbedUrl(link: string): string {
+  // Personal OneDrive still hands out /redir? links, whose embed form is a
+  // straight swap rather than an extra parameter.
+  if (/onedrive\.live\.com\/redir\?/i.test(link)) {
+    return link.replace(/\/redir\?/i, '/embed?');
+  }
+  if (/[?&]action=/i.test(link)) return link;
+  return `${link}${link.includes('?') ? '&' : '?'}action=embedview`;
+}
 
 // Derived from the URL rather than stored on the item, so it is always correct
 // and legacy content needs no migration.
@@ -81,6 +101,7 @@ export function getMediaInfo(url: string): MediaInfo {
       label: 'OneDrive',
       previewUrl: null,
       downloadUrl: null,
+      embedUrl: onedriveEmbedUrl(link),
       previewNote: NEEDS_AUTH,
     };
   }

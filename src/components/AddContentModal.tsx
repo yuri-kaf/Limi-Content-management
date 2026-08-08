@@ -4,6 +4,10 @@ import { ContentItem, ContentStatus, MediaType, Platform } from '../types';
 import {
   extractDriveFileId, getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
 } from '../utils';
+import {
+  overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
+  input, textarea, chip, btnPrimary, btnGhost, faintText,
+} from '../ui';
 
 interface SubmitData {
   title: string;
@@ -98,75 +102,63 @@ export default function AddContentModal({
     onClose();
   }
 
-  const inputCls =
-    'w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors';
-  const labelCls = 'block text-xs font-semibold text-neutral-500 dark:text-[#666] mb-1.5 uppercase tracking-wider';
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.7)' }}
+      className={overlay}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className={modalPanel}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold text-neutral-900 dark:text-white">{isEdit ? 'Edit Content' : 'Add Content'}</h2>
-          <button onClick={onClose} className="text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] transition-colors">
+          <h2 className={modalTitle}>{isEdit ? 'Edit Content' : 'Add Content'}</h2>
+          <button onClick={onClose} className={btnIcon} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={labelCls}>Type</label>
+            <label className={label}>Type</label>
             <div className="grid grid-cols-2 gap-2">
               {([
                 { value: 'video' as const, label: 'Video', Icon: Film },
                 { value: 'graphic' as const, label: 'Graphic', Icon: ImageIcon },
-              ]).map(({ value, label, Icon }) => {
-                const active = mediaType === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => { setMediaType(value); setImgError(false); }}
-                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium border transition-colors ${
-                      active
-                        ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#dc2626]'
-                        : 'bg-neutral-100 dark:bg-[#0c0c0c] border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999]'
-                    }`}
-                  >
-                    <Icon size={14} />
-                    {label}
-                  </button>
-                );
-              })}
+              ]).map(({ value, label: optionLabel, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => { setMediaType(value); setImgError(false); }}
+                  className={`${chip(mediaType === value)} min-h-11`}
+                >
+                  <Icon size={14} />
+                  {optionLabel}
+                </button>
+              ))}
             </div>
           </div>
 
           <div>
-            <label className={labelCls}>Content Title</label>
+            <label className={label}>Content Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={isGraphic ? 'Graphic title...' : 'Video title...'}
               required
-              className={inputCls}
+              className={input}
             />
           </div>
 
           <div>
-            <label className={labelCls}>Drive Link</label>
+            <label className={label}>Drive Link</label>
             <input
               type="text"
               value={driveLink}
               onChange={(e) => handleDriveLinkChange(e.target.value)}
               placeholder="https://drive.google.com/..."
               required
-              className={inputCls}
+              className={input}
             />
-            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
+            <p className={hint}>
               {driveLink.trim() === ''
                 ? 'Google Drive, OneDrive, Dropbox, YouTube or a direct image URL.'
                 : media.previewNote
@@ -176,7 +168,10 @@ export default function AddContentModal({
           </div>
 
           {thumbnailUrl && (
-            <div className="rounded-xl overflow-hidden border border-neutral-200 dark:border-[#1e1e1e]" style={{ aspectRatio: '16/9' }}>
+            <div
+              className="rounded-tile overflow-hidden border border-hairline dark:border-hairline-dark"
+              style={{ aspectRatio: '16/9' }}
+            >
               {!imgError ? (
                 <img
                   src={thumbnailUrl}
@@ -185,13 +180,13 @@ export default function AddContentModal({
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex flex-col items-center justify-center gap-1.5">
+                <div className="w-full h-full bg-raised dark:bg-raised-dark flex flex-col items-center justify-center gap-1.5">
                   {isGraphic ? (
-                    <ImageIcon size={22} className="text-neutral-300 dark:text-[#333]" />
+                    <ImageIcon size={22} className={faintText} />
                   ) : (
-                    <Film size={22} className="text-neutral-300 dark:text-[#333]" />
+                    <Film size={22} className={faintText} />
                   )}
-                  <span className="text-[10px] text-neutral-400 dark:text-[#444] px-4 text-center">
+                  <span className={`text-[10px] px-4 text-center ${faintText}`}>
                     No preview — check the file is shared as "anyone with the link"
                   </span>
                 </div>
@@ -200,117 +195,97 @@ export default function AddContentModal({
           )}
 
           <div>
-            <label className={labelCls}>
-              Caption{' '}
-              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(the client sees this)</span>
+            <label className={label}>
+              Caption <span className={labelAside}>(the client sees this)</span>
             </label>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="The copy that goes out with this post..."
               rows={3}
-              className={`${inputCls} resize-none`}
+              className={textarea}
             />
           </div>
 
           <div>
-            <label className={labelCls}>
-              Hashtags{' '}
-              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            <label className={label}>
+              Hashtags <span className={labelAside}>(optional)</span>
             </label>
             <textarea
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
               placeholder="#example #tags"
               rows={2}
-              className={`${inputCls} resize-none`}
+              className={textarea}
             />
-            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
-              Kept separate so they can be copied on their own.
-            </p>
+            <p className={hint}>Kept separate so they can be copied on their own.</p>
           </div>
 
           <div>
-            <label className={labelCls}>
-              Platforms{' '}
-              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            <label className={label}>
+              Platforms <span className={labelAside}>(optional)</span>
             </label>
             <div className="flex flex-wrap gap-2">
-              {(Object.keys(PLATFORM_LABELS) as Platform[]).map((p) => {
-                const active = platforms.includes(p);
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() =>
-                      setPlatforms((prev) =>
-                        prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      active
-                        ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#dc2626]'
-                        : 'bg-neutral-100 dark:bg-[#0c0c0c] border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999]'
-                    }`}
-                  >
-                    {PLATFORM_LABELS[p]}
-                  </button>
-                );
-              })}
+              {(Object.keys(PLATFORM_LABELS) as Platform[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() =>
+                    setPlatforms((prev) =>
+                      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+                    )
+                  }
+                  className={chip(platforms.includes(p))}
+                >
+                  {PLATFORM_LABELS[p]}
+                </button>
+              ))}
             </div>
           </div>
 
           <div>
-            <label className={labelCls}>
-              Team Notes{' '}
-              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(internal only)</span>
+            <label className={label}>
+              Team Notes <span className={labelAside}>(internal only)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Reshoot the intro, waiting on logo files..."
               rows={2}
-              className={`${inputCls} resize-none`}
+              className={textarea}
             />
-            <p className="text-[11px] text-neutral-400 dark:text-[#555] mt-1.5">
-              Not shown to the client.
-            </p>
+            <p className={hint}>Not shown to the client.</p>
           </div>
 
           <div>
-            <label className={labelCls}>
-              Posting Schedule{' '}
-              <span className="text-neutral-300 dark:text-[#333] normal-case font-normal tracking-normal">(optional)</span>
+            <label className={label}>
+              Posting Schedule <span className={labelAside}>(optional)</span>
             </label>
             <div className="flex gap-2">
               <input
                 type="date"
                 value={schedDate}
                 onChange={(e) => setSchedDate(e.target.value)}
-                className={`${inputCls} flex-1`}
+                className={`${input} flex-1`}
               />
               <input
                 type="time"
                 value={schedTime}
                 onChange={(e) => setSchedTime(e.target.value)}
                 disabled={!schedDate}
-                className={`${inputCls} w-32 disabled:opacity-40`}
+                className={`${input} w-32 disabled:opacity-40`}
               />
             </div>
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-transparent border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-[#161616] hover:text-neutral-700 dark:hover:text-[#999] transition-colors"
-            >
+            <button type="button" onClick={onClose} className={`${btnGhost} flex-1`}>
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !driveLink.trim()}
-              className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-900/30"
+              className={`${btnPrimary} flex-1`}
             >
               {isEdit ? 'Save Changes' : 'Add Content'}
             </button>

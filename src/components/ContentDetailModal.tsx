@@ -8,8 +8,16 @@ import { ClientReview, ContentItem } from '../types';
 import {
   getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
 } from '../utils';
+import {
+  sheetOverlay, sheetPanel, heading, faintText, bodyText, badge, sectionLabel,
+  readout, textarea, divider, btnGhost, btnPrimary, btnSuccess, btnDanger,
+} from '../ui';
 
 type CopyTarget = 'caption' | 'hashtags' | 'both';
+
+// Small quiet action next to a section heading (Copy, + tags, Create link).
+const inlineAction =
+  'inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand transition-colors';
 
 interface Props {
   clientId: string;
@@ -95,7 +103,7 @@ export default function ContentDetailModal({
   const reviewStatusEl = (() => {
     if (item.clientReview === 'approved') {
       return (
-        <div className="flex items-center gap-1.5 text-emerald-500">
+        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
           <CheckCircle size={13} />
           <span className="text-xs font-semibold">Client Approved</span>
         </div>
@@ -103,21 +111,17 @@ export default function ContentDetailModal({
     }
     if (item.clientReview === 'declined') {
       return (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-red-400">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 text-brand dark:text-red-400">
             <XCircle size={13} />
             <span className="text-xs font-semibold">Client Declined</span>
           </div>
-          {item.reviewNote && (
-            <p className="text-xs text-neutral-500 dark:text-[#666] bg-neutral-100 dark:bg-[#0d0d0d] rounded-lg p-2 border border-neutral-200 dark:border-[#1a1a1a] leading-relaxed">
-              "{item.reviewNote}"
-            </p>
-          )}
+          {item.reviewNote && <p className={readout}>"{item.reviewNote}"</p>}
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-1.5 text-neutral-400 dark:text-[#555]">
+      <div className={`flex items-center gap-1.5 ${faintText}`}>
         <Clock size={13} />
         <span className="text-xs font-semibold">Pending Client Review</span>
       </div>
@@ -126,23 +130,27 @@ export default function ContentDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex sm:items-center sm:justify-center items-end"
-      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.75)' }}
+      className={sheetOverlay}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div
-        className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[92dvh] overflow-y-auto
-                   rounded-t-2xl sm:rounded-2xl sm:mx-4"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
+      <div className={sheetPanel} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Drag handle (mobile only) */}
         <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-neutral-200 dark:bg-[#2a2a2a]" />
+          <div className="w-10 h-1 rounded-full bg-hairline dark:bg-hairline-dark" />
         </div>
 
-        {/* Thumbnail */}
-        <div className="relative" style={{ aspectRatio: '16/9' }}>
-          {thumbnailUrl && !imgError ? (
+        {/* Media — an embedded viewer when the provider offers one, otherwise
+            the still thumbnail, otherwise a placeholder. */}
+        <div className="relative bg-raised dark:bg-raised-dark" style={{ aspectRatio: '16/9' }}>
+          {media.embedUrl ? (
+            <iframe
+              src={media.embedUrl}
+              title={item.title}
+              className="w-full h-full border-0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : thumbnailUrl && !imgError ? (
             <img
               src={thumbnailUrl}
               alt={item.title}
@@ -150,29 +158,39 @@ export default function ContentDetailModal({
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-neutral-100 dark:bg-[#0c0c0c] flex items-center justify-center">
-              <Film size={36} className="text-neutral-300 dark:text-[#2a2a2a]" />
+            <div className="w-full h-full flex items-center justify-center">
+              <Film size={36} className={faintText} />
             </div>
           )}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/70 text-[#888] hover:text-white transition-colors"
+            className="absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/55 text-white/80 hover:text-white hover:bg-black/70 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+            aria-label="Close"
           >
             <X size={15} />
           </button>
         </div>
 
+        {/* A cross-origin frame reports a successful load even when what it
+            rendered is a sign-in wall, so failure can't be detected here — the
+            way out is signposted instead. */}
+        {media.embedUrl && (
+          <p className={`px-5 pt-3 text-[11px] ${faintText}`}>
+            Not loading? The file needs to be shared as “Anyone with the link” —
+            otherwise use Open in {media.label} below.
+          </p>
+        )}
+
         {/* Content */}
         <div className="p-5 flex flex-col gap-4">
-          {/* Title */}
-          <h2 className="text-base font-bold text-neutral-900 dark:text-white leading-snug">{item.title}</h2>
+          <h2 className={`${heading} text-base leading-snug`}>{item.title}</h2>
 
           {platforms.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {platforms.map((p) => (
                 <span
                   key={p}
-                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-[#1e1e1e] text-neutral-500 dark:text-[#777]"
+                  className={`${badge} bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark`}
                 >
                   {PLATFORM_LABELS[p]}
                 </span>
@@ -183,60 +201,56 @@ export default function ContentDetailModal({
           {/* Caption */}
           {caption ? (
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">Caption</span>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className={sectionLabel}>Caption</span>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleCopy('caption', caption)}
-                    className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
-                  >
-                    {copied === 'caption' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                  <button onClick={() => handleCopy('caption', caption)} className={inlineAction}>
+                    {copied === 'caption'
+                      ? <Check size={11} className="text-emerald-500" />
+                      : <Copy size={11} />}
                     <span>{copied === 'caption' ? 'Copied!' : 'Copy'}</span>
                   </button>
                   {hashtags && (
                     <button
                       onClick={() => handleCopy('both', `${caption}\n\n${hashtags}`)}
-                      className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
+                      className={inlineAction}
                     >
-                      {copied === 'both' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                      {copied === 'both'
+                        ? <Check size={11} className="text-emerald-500" />
+                        : <Copy size={11} />}
                       <span>{copied === 'both' ? 'Copied!' : '+ tags'}</span>
                     </button>
                   )}
                 </div>
               </div>
-              <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap">
-                {caption}
-              </p>
+              <p className={readout}>{caption}</p>
             </div>
           ) : (
-            <p className="text-xs text-neutral-300 dark:text-[#333] italic">No caption added.</p>
+            <p className={`text-xs italic ${faintText}`}>No caption added.</p>
           )}
 
           {hashtags && (
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">Hashtags</span>
-                <button
-                  onClick={() => handleCopy('hashtags', hashtags)}
-                  className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-[#444] hover:text-[#dc2626] transition-colors"
-                >
-                  {copied === 'hashtags' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className={sectionLabel}>Hashtags</span>
+                <button onClick={() => handleCopy('hashtags', hashtags)} className={inlineAction}>
+                  {copied === 'hashtags'
+                    ? <Check size={11} className="text-emerald-500" />
+                    : <Copy size={11} />}
                   <span>{copied === 'hashtags' ? 'Copied!' : 'Copy'}</span>
                 </button>
               </div>
-              <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap break-words">
-                {hashtags}
-              </p>
+              <p className={`${readout} break-words`}>{hashtags}</p>
             </div>
           )}
 
           {/* Internal notes — never shown to the client */}
           {!isClientRole && teamNotes && (
             <div>
-              <span className="text-xs font-semibold text-amber-600/80 dark:text-amber-500/70 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-500/80">
                 Team Notes
               </span>
-              <p className="mt-2 text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-amber-50 dark:bg-[#17130a] rounded-xl p-3 border border-amber-200 dark:border-amber-900/40 whitespace-pre-wrap">
+              <p className="mt-2 rounded-tile border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm leading-relaxed whitespace-pre-wrap text-ink-soft dark:text-ink-softdark">
                 {teamNotes}
               </p>
             </div>
@@ -245,86 +259,69 @@ export default function ContentDetailModal({
           {/* Posting schedule */}
           {scheduledLabel && (
             <div className="flex items-center gap-2">
-              <Calendar size={13} className="text-[#dc2626] flex-shrink-0" />
-              <span className="text-xs text-neutral-400 dark:text-[#555]">
+              <Calendar size={13} className="text-brand flex-shrink-0" />
+              <span className={`text-xs ${faintText}`}>
                 Scheduled:{' '}
-                <span className="text-neutral-500 dark:text-[#777] font-medium">{scheduledLabel}</span>
+                <span className={`font-medium ${bodyText}`}>{scheduledLabel}</span>
               </span>
             </div>
           )}
 
           {/* Review status (non-client sees read-only) */}
-          {!isClientRole && (
-            <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
-              {reviewStatusEl}
-            </div>
-          )}
+          {!isClientRole && <div className={divider}>{reviewStatusEl}</div>}
 
           {/* Client review UI */}
           {isClientRole && onReview && (
-            <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
+            <div className={divider}>
               {item.clientReview === 'approved' ? (
-                <div className="flex items-center gap-2 text-emerald-500 text-sm font-semibold">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
                   <CheckCircle size={15} />
                   You approved this content
                 </div>
               ) : item.clientReview === 'declined' ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-red-400 text-sm font-semibold">
+                  <div className="flex items-center gap-2 text-brand dark:text-red-400 text-sm font-semibold">
                     <XCircle size={15} />
                     You declined this content
                   </div>
                   {item.reviewNote && (
-                    <p className="text-xs text-neutral-500 dark:text-[#666] bg-neutral-50 dark:bg-[#0d0d0d] rounded-lg p-2 border border-neutral-200 dark:border-[#1a1a1a] leading-relaxed">
-                      Your note: "{item.reviewNote}"
-                    </p>
+                    <p className={readout}>Your note: "{item.reviewNote}"</p>
                   )}
                   <button
                     onClick={() => { setDecliningMode(false); onReview('pending'); }}
-                    className="text-xs text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#888] transition-colors self-start"
+                    className={`self-start text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark`}
                   >
                     Reset review
                   </button>
                 </div>
               ) : decliningMode ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-neutral-500 dark:text-[#555] uppercase tracking-wider">
-                    Reason / Suggestions
-                  </label>
+                  <label className={sectionLabel}>Reason / Suggestions</label>
                   <textarea
                     value={declineNote}
                     onChange={(e) => setDeclineNote(e.target.value)}
                     rows={3}
                     placeholder="Tell us what needs to change..."
-                    className="w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] transition-colors resize-none"
+                    className={textarea}
                   />
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setDecliningMode(false)}
-                      className="flex-1 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-400 dark:text-[#555] text-sm hover:text-neutral-600 dark:hover:text-[#888] hover:border-neutral-300 dark:hover:border-[#333] transition-colors"
-                    >
+                    <button onClick={() => setDecliningMode(false)} className={`${btnGhost} flex-1`}>
                       Cancel
                     </button>
-                    <button
-                      onClick={handleDeclineSubmit}
-                      className="flex-1 py-3 rounded-xl bg-red-950/40 border border-red-900/60 text-red-400 text-sm font-semibold hover:bg-red-950/60 transition-colors"
-                    >
+                    <button onClick={handleDeclineSubmit} className={`${btnDanger} flex-1`}>
                       Confirm Decline
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleApprove}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-emerald-950/40 border border-emerald-900/60 text-emerald-400 text-sm font-semibold hover:bg-emerald-950/60 transition-colors"
-                  >
+                  <button onClick={handleApprove} className={`${btnSuccess} flex-1`}>
                     <CheckCircle size={13} />
                     Approve
                   </button>
                   <button
                     onClick={() => setDecliningMode(true)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] text-sm font-semibold hover:text-red-400 hover:border-red-900/40 hover:bg-red-950/20 transition-colors"
+                    className={`${btnGhost} flex-1 hover:text-brand hover:border-brand/30`}
                   >
                     <XCircle size={13} />
                     Decline
@@ -336,9 +333,7 @@ export default function ContentDetailModal({
 
           {versions.length > 0 && (
             <div>
-              <span className="text-xs font-semibold text-neutral-400 dark:text-[#555] uppercase tracking-wider">
-                Earlier versions
-              </span>
+              <span className={sectionLabel}>Earlier versions</span>
               <div className="flex flex-col gap-1.5 mt-2">
                 {versions.map((v, i) => (
                   <a
@@ -346,16 +341,16 @@ export default function ContentDetailModal({
                     href={v.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-xs text-neutral-400 dark:text-[#666] hover:text-[#dc2626] transition-colors"
+                    className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand`}
                   >
                     <History size={11} />
                     v{i + 1}
-                    <span className="text-neutral-300 dark:text-[#333]">
+                    <span className={faintText}>
                       · replaced {new Date(v.replacedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                   </a>
                 ))}
-                <span className="text-xs text-neutral-500 dark:text-[#888] font-medium">
+                <span className={`text-xs font-medium ${bodyText}`}>
                   v{versions.length + 1} — current
                 </span>
               </div>
@@ -371,17 +366,15 @@ export default function ContentDetailModal({
                   setShareUrl(url);
                   navigator.clipboard.writeText(url).catch(() => {});
                 }}
-                className="flex items-center gap-2 text-xs font-medium text-neutral-500 dark:text-[#666] hover:text-[#dc2626] transition-colors"
+                className={inlineAction}
               >
                 <Link2 size={12} />
                 {shareUrl ? 'Link copied — create another' : 'Create review link'}
               </button>
               {shareUrl && (
                 <>
-                  <p className="mt-2 text-[11px] font-mono break-all bg-neutral-50 dark:bg-[#0d0d0d] border border-neutral-200 dark:border-[#1a1a1a] rounded-lg p-2.5 text-neutral-500 dark:text-[#777]">
-                    {shareUrl}
-                  </p>
-                  <p className="mt-1.5 text-[11px] text-amber-600/80 dark:text-amber-500/60 leading-relaxed">
+                  <p className={`${readout} mt-2 text-[11px] font-mono break-all`}>{shareUrl}</p>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-500/70">
                     Anyone with this link can view and review this item without
                     signing in. Send it only to people who should see it.
                   </p>
@@ -398,15 +391,15 @@ export default function ContentDetailModal({
           />
 
           {/* Drive link — always visible for ALL roles */}
-          <div className="flex items-center gap-2 pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
+          <div className={`${divider} flex items-center gap-2`}>
             <a
               href={item.driveLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] hover:border-neutral-300 dark:hover:border-[#333] active:bg-neutral-100 dark:active:bg-[#1a1a1a] transition-colors text-sm font-medium"
+              className={`${btnGhost} flex-1`}
             >
               <ExternalLink size={13} />
-              Open in Drive
+              Open in {media.label}
             </a>
 
             {isGraphic && media.downloadUrl && (
@@ -414,7 +407,7 @@ export default function ContentDetailModal({
                 href={media.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white transition-colors text-sm font-semibold"
+                className={`${btnPrimary} flex-1`}
               >
                 <Download size={13} />
                 Download
@@ -423,10 +416,7 @@ export default function ContentDetailModal({
 
             {/* Edit / Delete — only when user has permission */}
             {!isClientRole && canEdit && (
-              <button
-                onClick={onEdit}
-                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#aaa] hover:border-neutral-300 dark:hover:border-[#333] active:bg-neutral-100 dark:active:bg-[#1a1a1a] transition-colors text-sm font-medium"
-              >
+              <button onClick={onEdit} className={btnGhost}>
                 <Pencil size={13} />
                 Edit
               </button>
@@ -435,11 +425,11 @@ export default function ContentDetailModal({
               <button
                 onClick={handleDeleteClick}
                 onBlur={() => setConfirmDelete(false)}
-                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                className={
                   confirmDelete
-                    ? 'bg-red-950/40 border border-red-900/60 text-red-400'
-                    : 'border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-red-500 hover:border-red-900/40 hover:bg-red-950/20'
-                }`}
+                    ? btnDanger
+                    : `${btnGhost} hover:text-brand hover:border-brand/30`
+                }
               >
                 <Trash2 size={13} />
                 {confirmDelete ? 'Confirm?' : 'Delete'}

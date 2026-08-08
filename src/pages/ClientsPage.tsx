@@ -10,7 +10,7 @@ import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
 import Dashboard from '../components/Dashboard';
 import { runWrite } from '../utils';
-import { shell, heading, badge, page } from '../ui';
+import { shell, heading, badge, page, btnGhost, btnIcon } from '../ui';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -47,24 +47,17 @@ function Header() {
             </span>
           )}
           {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-lg text-neutral-400 dark:text-[#444] hover:text-neutral-600 dark:hover:text-[#888] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
-            aria-label="Toggle theme"
-          >
+          <button onClick={toggleTheme} className={btnIcon} aria-label="Toggle theme">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           {/* Team button: only on desktop */}
           <button
             onClick={() => navigate('/users')}
-            className="hidden sm:block text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
+            className={`${btnGhost} hidden sm:inline-flex h-9 min-h-0 px-3.5 text-xs`}
           >
             Team
           </button>
-          <button
-            onClick={logout}
-            className="text-xs text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2e2e2e] px-3 py-1.5 rounded-lg transition-colors"
-          >
+          <button onClick={logout} className={`${btnGhost} h-9 min-h-0 px-3.5 text-xs`}>
             Sign out
           </button>
         </div>
