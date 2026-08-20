@@ -179,3 +179,39 @@ export const emptyState =
   'flex flex-col items-center justify-center gap-2 py-14 px-6 text-center';
 export const emptyTitle = 'text-[13px] font-semibold text-ink dark:text-ink-dark';
 export const emptyBody = 'text-xs leading-relaxed text-ink-faint dark:text-ink-faintdark max-w-xs';
+
+// ---------------------------------------------------------------------------
+// Board
+// ---------------------------------------------------------------------------
+
+// The shell owns the viewport and nothing outside a designated region scrolls.
+// A kanban board needs to know how tall it is so its columns can scroll
+// independently; a page that grows forever cannot offer that.
+export const appRoot = 'h-dvh overflow-hidden flex bg-canvas dark:bg-canvas-dark';
+
+// One horizontal row of fixed-width columns. Replaces a 2x2 grid, in which a
+// move between stages on different rows was a diagonal drag — the geometry that
+// made drag-and-drop unreliable in the first place.
+export const boardScroller = 'flex-1 min-h-0 overflow-x-auto overflow-y-hidden';
+export const boardRow = 'flex gap-2 h-full px-4 pb-4 min-w-max';
+// 280px so four columns plus the 248px sidebar fit a 1440px window without
+// horizontal scroll — the most common desktop size — while still leaving the
+// next column peeking on a phone, which is what advertises the scroll.
+export const boardColumn = 'flex flex-col w-[280px] flex-shrink-0 h-full min-h-0';
+
+// Pinned so you always know which stage you are looking at, however far down
+// the column you have scrolled.
+export const columnHeader =
+  'flex items-center gap-2 h-9 px-1 flex-shrink-0 sticky top-0 z-10 bg-canvas dark:bg-canvas-dark';
+
+export const columnBody =
+  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 p-2 rounded-card bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
+
+// A page toolbar: one row, everything on it, so the board keeps the height.
+export const pageToolbar =
+  'flex items-center gap-3 px-4 h-12 flex-shrink-0 border-b border-hairline dark:border-hairline-dark';
+
+// A quiet inline "add" that lives in a column header rather than shouting from
+// the page.
+export const columnAdd =
+  'w-6 h-6 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';

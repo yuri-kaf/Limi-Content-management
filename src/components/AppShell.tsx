@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useClients } from '../store';
 import { buildNav } from '../nav';
 import {
-  page, breadcrumbBar, breadcrumbText, drawerScrim, btnIcon,
+  appRoot, breadcrumbBar, breadcrumbText, drawerScrim, btnIcon,
   SIDEBAR_WIDTH, SIDEBAR_RAIL,
 } from '../ui';
 
@@ -61,10 +61,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`${page} flex`}>
+    <div className={appRoot}>
       {/* Desktop: in flow, so the main region never sits under it. */}
       <div
-        className="hidden lg:block flex-shrink-0 sticky top-0 h-dvh"
+        className="hidden lg:block flex-shrink-0 h-full"
         style={{ width }}
       >
         <Sidebar {...sidebarProps} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
@@ -87,9 +87,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         <header
-          className={`${breadcrumbBar} sticky top-0 z-30`}
+          className={`${breadcrumbBar} flex-shrink-0`}
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
           <button
@@ -102,7 +102,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <span className={breadcrumbText}>{crumb}</span>
         </header>
 
-        <main className="flex-1 min-w-0">{children}</main>
+        {/* No scrolling here — each page owns its own scroll region, so a board
+            can give its columns independent height. */}
+        <main className="flex-1 min-w-0 min-h-0 flex flex-col">{children}</main>
       </div>
     </div>
   );

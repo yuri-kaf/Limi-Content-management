@@ -66,7 +66,9 @@ export default function ClientsPage() {
   const bannerBtn = 'mt-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-tile transition-colors';
 
   return (
-    <div className={`${shell} py-6`}>
+    // The shell no longer scrolls, so this page owns its scroll region.
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className={`${shell} py-6`}>
       {showStats && <NotifPermissionBanner />}
 
       {isAdmin && pendingMigration.length === 0 && pendingCaptionMigration.length > 0 && (
@@ -191,6 +193,7 @@ export default function ClientsPage() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

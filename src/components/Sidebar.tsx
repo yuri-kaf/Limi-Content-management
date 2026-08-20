@@ -1,8 +1,48 @@
-import { LayoutGrid, Users, Sun, Moon, PanelLeftClose, PanelLeftOpen, LogOut } from 'lucide-react';
-import { NavModel } from '../nav';
+import {
+  LayoutGrid, Users, Sun, Moon, PanelLeftClose, PanelLeftOpen, LogOut,
+  Columns3, Building2,
+} from 'lucide-react';
+import { NavModel, NavClient } from '../nav';
 import {
   sidebar, navItem, navGroupLabel, navBadge, btnIcon, heading, faintText,
 } from '../ui';
+
+// A client's own picture is far faster to recognise than its initial, and it is
+// the thing that makes a workspace feel like *your* workspace. The lettered
+// square stays as the fallback, and also covers an image that fails to load.
+function ClientAvatar({ client }: { client: NavClient }) {
+  const base =
+    'w-[18px] h-[18px] rounded flex-shrink-0 inline-flex items-center justify-center overflow-hidden';
+  if (client.imageUrl) {
+    return (
+      <span className={base} aria-hidden="true">
+        <img
+          src={client.imageUrl}
+          alt=""
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fall back to the initial rather than leaving a broken frame.
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.parentElement?.classList.add(
+              'bg-hover', 'dark:bg-hover-dark', 'text-[9px]', 'font-semibold'
+            );
+            if (e.currentTarget.parentElement) {
+              e.currentTarget.parentElement.textContent = client.name.charAt(0).toUpperCase();
+            }
+          }}
+        />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`${base} bg-hover dark:bg-hover-dark text-[9px] font-semibold text-ink-soft dark:text-ink-softdark`}
+      aria-hidden="true"
+    >
+      {client.name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 interface Props {
   nav: NavModel;
@@ -48,7 +88,15 @@ export default function Sidebar({
           {!collapsed && <span className="truncate">Clients</span>}
         </button>
 
-        {!collapsed && <div className={navGroupLabel}>Boards</div>}
+        {!collapsed && (
+          <div className={`${navGroupLabel} flex items-center gap-1.5`}>
+            <Columns3 size={11} />
+            Boards
+            <span className="ml-auto normal-case tracking-normal tabular-nums">
+              {nav.clients.length}
+            </span>
+          </div>
+        )}
 
         {nav.clients.map((c) => {
           const active = c.id === activeClientId;
@@ -62,12 +110,7 @@ export default function Sidebar({
               aria-label={label}
               title={label}
             >
-              <span
-                className="w-4 h-4 rounded flex-shrink-0 bg-hover dark:bg-hover-dark inline-flex items-center justify-center text-[9px] font-semibold text-ink-soft dark:text-ink-softdark"
-                aria-hidden="true"
-              >
-                {c.name.charAt(0).toUpperCase()}
-              </span>
+              <ClientAvatar client={c} />
               {!collapsed && <span className="truncate">{c.name}</span>}
               {!collapsed && c.attention > 0 && <span className={navBadge}>{c.attention}</span>}
             </button>
@@ -80,7 +123,12 @@ export default function Sidebar({
 
         {nav.showTeam && (
           <>
-            {!collapsed && <div className={navGroupLabel}>Workspace</div>}
+            {!collapsed && (
+              <div className={`${navGroupLabel} flex items-center gap-1.5`}>
+                <Building2 size={11} />
+                Workspace
+              </div>
+            )}
             <button
               onClick={() => onNavigate('/users')}
               className={navItem(activePath === '/users')}
