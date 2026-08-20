@@ -10,9 +10,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem('limi_theme') as Theme) ?? 'dark'
-  );
+  // Light is the default. A stored choice wins, but only if it is a real theme
+  // — a stale or hand-edited value used to be cast straight to Theme and
+  // applied. The OS `prefers-color-scheme` hint is deliberately not consulted:
+  // this product is white by default and dark on request.
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = localStorage.getItem('limi_theme');
+    return stored === 'dark' || stored === 'light' ? stored : 'light';
+  });
 
   useEffect(() => {
     const root = document.documentElement;
