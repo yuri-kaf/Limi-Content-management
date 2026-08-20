@@ -1,15 +1,9 @@
-import { Client } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { User, ChevronRight } from 'lucide-react';
-
-const STATUS_META: Record<string, { color: string; label: string }> = {
-  editing:  { color: '#d97706', label: 'Editing' },
-  review:   { color: '#2563eb', label: 'Review' },
-  'to-post':{ color: '#dc2626', label: 'To Post' },
-  posted:   { color: '#059669', label: 'Posted' },
-};
-
-const STATUS_ORDER = ['editing', 'review', 'to-post', 'posted'];
+import { Client, ContentStatus } from '../types';
+import { STAGES } from '../utils';
+import { cardInteractive, heading, bodyText, faintText } from '../ui';
+import StagePill from './StagePill';
 
 interface Props {
   client: Client;
@@ -28,7 +22,7 @@ export default function ClientCard({ client }: Props) {
   return (
     <button
       onClick={() => navigate(`/client/${client.id}`)}
-      className="group w-full text-left bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] hover:border-neutral-300 dark:hover:border-[#2c2c2c] rounded-2xl p-5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#dc2626]/30 hover:bg-neutral-50 dark:hover:bg-[#131313]"
+      className={`group ${cardInteractive} w-full text-left p-4 focus:outline-none focus:ring-2 focus:ring-brand/30`}
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -37,52 +31,45 @@ export default function ClientCard({ client }: Props) {
             <img
               src={client.imageUrl}
               alt={client.name}
-              className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-neutral-200 dark:ring-[#1e1e1e]"
+              className="w-9 h-9 rounded-full object-cover flex-shrink-0"
             />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-neutral-100 dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#252525] flex items-center justify-center flex-shrink-0">
-              <User size={18} className="text-neutral-400 dark:text-[#444]" />
+            <div className="w-9 h-9 rounded-full bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark flex items-center justify-center flex-shrink-0">
+              <User size={15} className={faintText} />
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="font-semibold text-neutral-900 dark:text-[#f0f0f0] truncate text-[15px] leading-tight">
+            <h3 className={`${heading} truncate text-[14px] leading-tight`}>
               {client.name}
             </h3>
-            <span className="text-xs text-neutral-400 dark:text-[#444] mt-0.5 block">
+            <span className={`text-xs mt-0.5 block ${faintText}`}>
               {client.content.length} item{client.content.length !== 1 ? 's' : ''}
             </span>
           </div>
         </div>
         <ChevronRight
-          size={15}
-          className="text-neutral-300 dark:text-[#2a2a2a] group-hover:text-neutral-500 dark:group-hover:text-[#555] transition-colors flex-shrink-0 mt-1.5"
+          size={14}
+          className={`${faintText} group-hover:text-ink-soft dark:group-hover:text-ink-softdark transition-colors flex-shrink-0 mt-1`}
         />
       </div>
 
       {/* About */}
       {client.about && (
-        <p className="text-sm text-neutral-500 dark:text-[#555] line-clamp-2 leading-relaxed mb-3">
+        <p className={`text-[13px] line-clamp-2 leading-relaxed mb-3 ${bodyText}`}>
           {client.about}
         </p>
       )}
 
-      {/* Status breakdown */}
+      {/* Stage breakdown. Reads from STAGES rather than a local colour map —
+          this card used to render its own set, in which To Post was brand red. */}
       {hasContent && (
-        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-neutral-100 dark:border-[#181818]">
-          {STATUS_ORDER.filter((s) => statusCounts[s]).map((status) => (
-            <div
-              key={status}
-              className="flex items-center gap-1 px-2 py-1 rounded-md"
-              style={{ backgroundColor: `${STATUS_META[status].color}12` }}
-            >
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: STATUS_META[status].color }}
-              />
-              <span className="text-xs" style={{ color: STATUS_META[status].color, opacity: 0.9 }}>
-                {statusCounts[status]} {STATUS_META[status].label}
-              </span>
-            </div>
+        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-hairline dark:border-hairline-dark">
+          {STAGES.filter((s) => statusCounts[s.id]).map((s) => (
+            <StagePill
+              key={s.id}
+              status={s.id as ContentStatus}
+              count={statusCounts[s.id]}
+            />
           ))}
         </div>
       )}
