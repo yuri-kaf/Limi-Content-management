@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Plus, Users } from 'lucide-react';
+import { Client } from '../types';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import ClientCard from '../components/ClientCard';
-import AddClientModal from '../components/AddClientModal';
+import ClientModal from '../components/ClientModal';
 import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
 import Dashboard from '../components/Dashboard';
@@ -16,12 +17,14 @@ import {
 // sidebar now, so this page renders only its own content.
 export default function ClientsPage() {
   const {
-    clients, loading, addClient,
+    clients, loading, addClient, updateClient,
     pendingMigration, migrateLegacyContent,
     pendingCaptionMigration, migrateLegacyCaptions,
   } = useClients();
   const { currentUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  // The client being edited, or null when the modal is creating a new one.
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [migrating, setMigrating] = useState(false);
 
   async function handleCaptionMigrate() {
@@ -46,6 +49,9 @@ export default function ClientsPage() {
   const isSMM = currentUser?.role === 'social-media-manager';
   const isClientRole = currentUser?.role === 'client';
   const canAddClient = isAdmin;
+  // Rules allow an admin or a manager to write a client document, so editing
+  // matches that rather than being narrower for no reason.
+  const canManageClients = isAdmin || isSMM;
   const showStats = isAdmin || isSMM;
 
   const visibleClients = isClientRole
@@ -156,15 +162,30 @@ export default function ClientsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {visibleClients.map((client) => (
-            <ClientCard key={client.id} client={client} />
+            <ClientCard
+              key={client.id}
+              client={client}
+              onEdit={canManageClients ? () => setEditingClient(client) : undefined}
+            />
           ))}
         </div>
       )}
 
+      {editingClient && canManageClients && (
+        <ClientModal
+          client={editingClient}
+          onClose={() => setEditingClient(null)}
+          onSave={async (data) => {
+            await runWrite(() => updateClient(editingClient.id, data), 'save the client');
+            setEditingClient(null);
+          }}
+        />
+      )}
+
       {showModal && (isAdmin || isSMM) && (
-        <AddClientModal
+        <ClientModal
           onClose={() => setShowModal(false)}
-          onAdd={async (data) => {
+          onSave={async (data) => {
             const ok = await runWrite(() => addClient(data), 'add the client');
             if (ok) setShowModal(false);
           }}

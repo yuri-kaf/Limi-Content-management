@@ -551,6 +551,19 @@ export function useClients() {
     []
   );
 
+  // Writes only the three editable fields, so createdAt and anything added to
+  // the document later survive an edit untouched.
+  const updateClient = useCallback(
+    async (clientId: string, data: { name: string; imageUrl?: string; about: string }) => {
+      await updateDoc(doc(db, 'clients', clientId), {
+        name: data.name,
+        imageUrl: data.imageUrl || '',
+        about: data.about,
+      });
+    },
+    []
+  );
+
   const addContent = useCallback(
     async (
       clientId: string,
@@ -752,6 +765,7 @@ export function useClients() {
     clients,
     loading,
     addClient,
+    updateClient,
     addContent,
     updateContent,
     deleteContent,

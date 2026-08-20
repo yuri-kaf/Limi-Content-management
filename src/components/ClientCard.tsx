@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { User, ChevronRight } from 'lucide-react';
+import { User, ChevronRight, Pencil } from 'lucide-react';
 import { Client, ContentStatus } from '../types';
 import { STAGES } from '../utils';
-import { cardInteractive, heading, bodyText, faintText } from '../ui';
+import { cardInteractive, heading, bodyText, faintText, btnIcon } from '../ui';
 import StagePill from './StagePill';
 
 interface Props {
   client: Client;
+  /** Absent when the viewer may not edit clients. */
+  onEdit?: () => void;
 }
 
-export default function ClientCard({ client }: Props) {
+export default function ClientCard({ client, onEdit }: Props) {
   const navigate = useNavigate();
 
   const statusCounts = client.content.reduce((acc, item) => {
@@ -47,10 +49,28 @@ export default function ClientCard({ client }: Props) {
             </span>
           </div>
         </div>
-        <ChevronRight
-          size={14}
-          className={`${faintText} group-hover:text-ink-soft dark:group-hover:text-ink-softdark transition-colors flex-shrink-0 mt-1`}
-        />
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {onEdit && (
+            // A button inside a button is invalid HTML, so this is a span with
+            // a button role — the card itself is the outer button.
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={`Edit ${client.name}`}
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEdit(); }
+              }}
+              className={`${btnIcon} w-7 h-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity`}
+            >
+              <Pencil size={13} />
+            </span>
+          )}
+          <ChevronRight
+            size={14}
+            className={`${faintText} group-hover:text-ink-soft dark:group-hover:text-ink-softdark transition-colors mt-1`}
+          />
+        </div>
       </div>
 
       {/* About */}

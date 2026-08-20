@@ -1,24 +1,36 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { Client } from '../types';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside,
   input, textarea, btnPrimary, btnGhost,
 } from '../ui';
 
-interface Props {
-  onClose: () => void;
-  onAdd: (data: { name: string; imageUrl?: string; about: string }) => void;
+export interface ClientDraft {
+  name: string;
+  imageUrl?: string;
+  about: string;
 }
 
-export default function AddClientModal({ onClose, onAdd }: Props) {
-  const [name, setName] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [about, setAbout] = useState('');
+interface Props {
+  /** Absent when creating. Present when editing an existing client. */
+  client?: Client;
+  onClose: () => void;
+  onSave: (data: ClientDraft) => void;
+}
+
+// One modal for both creating and editing. Splitting them would duplicate the
+// three fields and the validation, and they would drift.
+export default function ClientModal({ client, onClose, onSave }: Props) {
+  const editing = !!client;
+  const [name, setName] = useState(client?.name ?? '');
+  const [imageUrl, setImageUrl] = useState(client?.imageUrl ?? '');
+  const [about, setAbout] = useState(client?.about ?? '');
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd({ name: name.trim(), imageUrl: imageUrl.trim() || undefined, about: about.trim() });
+    onSave({ name: name.trim(), imageUrl: imageUrl.trim() || undefined, about: about.trim() });
     onClose();
   }
 
@@ -29,7 +41,7 @@ export default function AddClientModal({ onClose, onAdd }: Props) {
     >
       <div className={modalPanel}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className={modalTitle}>New Client</h2>
+          <h2 className={modalTitle}>{editing ? 'Edit client' : 'New client'}</h2>
           <button onClick={onClose} className={btnIcon} aria-label="Close">
             <X size={18} />
           </button>
@@ -44,13 +56,14 @@ export default function AddClientModal({ onClose, onAdd }: Props) {
               onChange={(e) => setName(e.target.value)}
               placeholder="Client name"
               required
+              autoFocus
               className={input}
             />
           </div>
 
           <div>
             <label className={label}>
-              Profile Image URL <span className={labelAside}>(optional)</span>
+              Profile image URL <span className={labelAside}>(optional)</span>
             </label>
             <input
               type="text"
@@ -77,7 +90,7 @@ export default function AddClientModal({ onClose, onAdd }: Props) {
               Cancel
             </button>
             <button type="submit" disabled={!name.trim()} className={`${btnPrimary} flex-1`}>
-              Add Client
+              {editing ? 'Save changes' : 'Add client'}
             </button>
           </div>
         </form>
