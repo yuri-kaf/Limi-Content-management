@@ -4,9 +4,9 @@ import {
   CheckCircle, XCircle, Clock, Download, History, Link2,
 } from 'lucide-react';
 import CommentThread from './CommentThread';
-import { ClientReview, ContentItem } from '../types';
+import { ClientReview, ContentItem, ContentStatus } from '../types';
 import {
-  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS, isLocalOrigin,
+  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS, isLocalOrigin, STAGES,
 } from '../utils';
 import {
   sheetOverlay, sheetPanel, heading, faintText, bodyText, badge, sectionLabel,
@@ -24,6 +24,12 @@ interface Props {
   onComment: (body: string, atSeconds?: number) => Promise<void>;
   /** Absent for client-role users, who can't create public links. */
   onShare?: () => Promise<string>;
+  /**
+   * Absent for anyone who may not move content. Every stage is reachable from
+   * every other, and this works at any screen width — the board only renders
+   * one column below the sm breakpoint, so dragging cannot move an item there.
+   */
+  onChangeStatus?: (status: ContentStatus) => void;
   item: ContentItem;
   isClientRole: boolean;
   canEdit: boolean;
@@ -38,6 +44,7 @@ export default function ContentDetailModal({
   clientId,
   onComment,
   onShare,
+  onChangeStatus,
   item,
   isClientRole,
   canEdit,
@@ -184,6 +191,49 @@ export default function ContentDetailModal({
         {/* Content */}
         <div className="p-5 flex flex-col gap-4">
           <h2 className={`${heading} text-base leading-snug`}>{item.title}</h2>
+
+          {/* Stage picker. Any stage reaches any other, and unlike the board's
+              drag-and-drop it works below the sm breakpoint, where only one
+              column is rendered and there is nothing to drag to. */}
+          {onChangeStatus && (
+            <div>
+              <span className={sectionLabel}>Stage</span>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {STAGES.map((stage) => {
+                  const isCurrent = stage.id === item.status;
+                  return (
+                    <button
+                      key={stage.id}
+                      onClick={() => { if (!isCurrent) onChangeStatus(stage.id); }}
+                      aria-current={isCurrent}
+                      disabled={isCurrent}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        isCurrent
+                          ? 'cursor-default'
+                          : 'bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-white'
+                      }`}
+                      style={
+                        isCurrent
+                          ? {
+                              backgroundColor: `${stage.color}22`,
+                              color: stage.color,
+                              border: `1px solid ${stage.color}55`,
+                            }
+                          : { border: '1px solid transparent' }
+                      }
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      {stage.label}
+                      {isCurrent && <Check size={11} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {platforms.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">

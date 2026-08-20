@@ -23,17 +23,10 @@ import ContentCard from '../components/ContentCard';
 import ContentCalendar from '../components/ContentCalendar';
 import IdeasView from '../components/IdeasView';
 import { Idea } from '../types';
-import { runWrite } from '../utils';
+import { runWrite, STAGES } from '../utils';
 import { page, tile } from '../ui';
 
-// Validated stage palette — see the note in tailwind.config.js. Every use is
-// paired with its text label, which is what permits the CVD warn band.
-const COLUMNS: { id: ContentStatus; label: string; color: string }[] = [
-  { id: 'editing', label: 'Editing', color: '#8b5cf6' },
-  { id: 'review', label: 'Review', color: '#0284c7' },
-  { id: 'to-post', label: 'To Post', color: '#d97706' },
-  { id: 'posted', label: 'Posted', color: '#059669' },
-];
+const COLUMNS = STAGES;
 
 // Clients see a three-stage view: 'editing' is internal and stays hidden, and
 // the labels are written from their point of view rather than the team's.
@@ -87,6 +80,14 @@ export default function ClientBoardPage() {
   const isSMM = currentUser?.role === 'social-media-manager';
   const isClientRole = currentUser?.role === 'client';
   const canAdd = isAdmin || isSMM;
+  // Must match the condition that renders the draggable board, which is
+  // !isClientRole. Gating the handlers on isAdmin||isSMM instead meant any
+  // account whose role was blank, legacy or misspelled got the full drag UI
+  // with every handler silently returning early — drag looked simply dead.
+  // If such an account genuinely lacks permission, the Firestore rules reject
+  // the write and runWrite surfaces it, which is a visible failure not a mute
+  // one.
+  const canMove = !isClientRole;
 
   const client = clients.find((c) => c.id === id);
 
@@ -161,7 +162,7 @@ export default function ClientBoardPage() {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    if (!canAdd) return;
+    if (!canMove) return;
     const item = client?.content.find((c) => c.id === event.active.id);
     if (item) setActiveItem(item);
   }
@@ -181,7 +182,7 @@ export default function ClientBoardPage() {
   // highlight comes from useDroppable's own isOver and needs no state write.
   function handleDragEnd(event: DragEndEvent) {
     setActiveItem(null);
-    if (!canAdd) return;
+    if (!canMove) return;
     const { active, over } = event;
     if (!over || !client) return;
     const activeId = active.id as string;
@@ -216,6 +217,10 @@ export default function ClientBoardPage() {
     : client.content;
 
   const activeMobileCol = visibleColumns.find((c) => c.id === mobileTab) ?? visibleColumns[0];
+
+  const liveSelectedItem = selectedItem
+    ? client.content.find((c) => c.id === selectedItem.id) ?? null
+    : null;
 
   return (
     <div className={page}>
@@ -635,21 +640,37 @@ export default function ClientBoardPage() {
         />
       )}
 
-      {selectedItem && (
+      {/* Read the item back out of the live list rather than trusting the
+          snapshot held in state, so the sheet reflects a stage change or a
+          review decision instead of showing what was true when it opened. */}
+      {liveSelectedItem && (
         <ContentDetailModal
           clientId={client.id}
-          onComment={(body, atSeconds) => addComment(client.id, selectedItem.id, body, atSeconds)}
-          onShare={isClientRole ? undefined : () => createShare(selectedItem)}
-          item={selectedItem}
+          onComment={(body, atSeconds) =>
+            addComment(client.id, liveSelectedItem.id, body, atSeconds)
+          }
+          onShare={isClientRole ? undefined : () => createShare(liveSelectedItem)}
+          onChangeStatus={
+            canMove
+              ? (status) =>
+                  runWrite(
+                    () => updateContentStatus(client.id, liveSelectedItem.id, status),
+                    'move the content'
+                  )
+              : undefined
+          }
+          item={liveSelectedItem}
           isClientRole={isClientRole}
-          canEdit={canEditItem(selectedItem)}
-          canDelete={canDeleteItem(selectedItem)}
+          canEdit={canEditItem(liveSelectedItem)}
+          canDelete={canDeleteItem(liveSelectedItem)}
           onClose={() => setSelectedItem(null)}
           onEdit={handleEditFromDetail}
           onDelete={handleDeleteFromDetail}
           // Approve/decline is offered only while the item sits in Review, so
           // "it's in Review" always means "it's waiting on the client".
-          onReview={isClientRole && selectedItem.status === 'review' ? handleReview : undefined}
+          onReview={
+            isClientRole && liveSelectedItem.status === 'review' ? handleReview : undefined
+          }
         />
       )}
     </div>

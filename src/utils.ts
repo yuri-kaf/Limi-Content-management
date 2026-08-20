@@ -1,4 +1,4 @@
-﻿import { ContentItem, MediaType, Platform } from './types';
+﻿import { ContentItem, ContentStatus, MediaType, Platform } from './types';
 
 export function extractDriveFileId(url: string): string | null {
   if (!url) return null;
@@ -210,3 +210,16 @@ export function publicAppOrigin(): string {
 export function isLocalOrigin(url: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|[^/]*\.local)(:|\/|$)/i.test(url);
 }
+
+// ─── Stages ──────────────────────────────────────────────────────────────────
+
+// Validated stage palette — see the note in tailwind.config.js. Every use is
+// paired with its text label, which is what permits the CVD warn band. One
+// source of truth so the board, the detail sheet and the activity trail can
+// never disagree about a stage's name or colour.
+export const STAGES: { id: ContentStatus; label: string; color: string }[] = [
+  { id: 'editing', label: 'Editing', color: '#8b5cf6' },
+  { id: 'review', label: 'Review', color: '#0284c7' },
+  { id: 'to-post', label: 'To Post', color: '#d97706' },
+  { id: 'posted', label: 'Posted', color: '#059669' },
+];
