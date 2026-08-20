@@ -116,3 +116,22 @@ export const divider = 'pt-3 border-t border-hairline dark:border-hairline-dark'
 
 export const page = 'min-h-screen min-h-dvh bg-canvas dark:bg-canvas-dark';
 export const shell = 'max-w-[1440px] mx-auto px-4 sm:px-8';
+
+// A wide, two-pane detail dialog. Bottom sheet on phones; from lg up a centred
+// panel whose header and footer stay put while the two panes scroll on their
+// own. Distinct from sheetPanel, which scrolls as a single column and so lets
+// the media and the close button slide away.
+export const sheetPanelWide =
+  'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden';
+
+// One scroll region per pane below lg, two above it. min-h-0 is what actually
+// lets a flex child scroll instead of growing past its parent.
+export const sheetBody =
+  'flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]';
+
+export const sheetPane = 'p-5 flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain';
+
+// Read-only prose capped at four lines and scrolled past that, so a long
+// caption can't push everything below it off the dialog. 4 lines at text-sm /
+// leading-relaxed is 91px, plus the 24px of vertical padding from `readout`.
+export const readoutScroll = `${readout} max-h-[7.25rem] overflow-y-auto overscroll-contain`;
