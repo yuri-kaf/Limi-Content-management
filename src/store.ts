@@ -24,7 +24,7 @@ import {
   AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, Idea, IdeaStatus,
   MediaType, Platform, Share,
 } from './types';
-import { generateId, generateShareToken } from './utils';
+import { generateId, generateShareToken, publicAppOrigin } from './utils';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
@@ -138,7 +138,7 @@ export function useShareActions(clientId: string | undefined, clientName: string
         revoked: false,
       };
       await setDoc(doc(db, 'shares', token), share);
-      return `${window.location.origin}/review/${token}`;
+      return `${publicAppOrigin()}/review/${token}`;
     },
     [clientId, clientName, currentUser]
   );

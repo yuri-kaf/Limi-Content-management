@@ -195,3 +195,18 @@ export async function runWrite(action: () => Promise<unknown>, what: string) {
     return false;
   }
 }
+
+// ─── Public links ────────────────────────────────────────────────────────────
+
+// A review link is opened by someone else, on another machine, so it must not
+// be built from window.location.origin when that is a dev server — the result
+// is a localhost URL that only resolves for whoever generated it.
+export function publicAppOrigin(): string {
+  const configured = (import.meta.env.VITE_PUBLIC_APP_URL ?? '').trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  return window.location.origin;
+}
+
+export function isLocalOrigin(url: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|[^/]*\.local)(:|\/|$)/i.test(url);
+}

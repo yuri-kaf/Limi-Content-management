@@ -6,7 +6,7 @@ import {
 import CommentThread from './CommentThread';
 import { ClientReview, ContentItem } from '../types';
 import {
-  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
+  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS, isLocalOrigin,
 } from '../utils';
 import {
   sheetOverlay, sheetPanel, heading, faintText, bodyText, badge, sectionLabel,
@@ -374,10 +374,20 @@ export default function ContentDetailModal({
               {shareUrl && (
                 <>
                   <p className={`${readout} mt-2 text-[11px] font-mono break-all`}>{shareUrl}</p>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-500/70">
-                    Anyone with this link can view and review this item without
-                    signing in. Send it only to people who should see it.
-                  </p>
+                  {/* A link built from a dev-server origin resolves only on this
+                      machine, so sending it looks like a broken feature. */}
+                  {isLocalOrigin(shareUrl) ? (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-brand dark:text-red-400">
+                      This link points at a local address, so it will not open for
+                      anyone else. Deploy the app and set VITE_PUBLIC_APP_URL to the
+                      deployed origin before sending review links.
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-500/70">
+                      Anyone with this link can view and review this item without
+                      signing in. Send it only to people who should see it.
+                    </p>
+                  )}
                 </>
               )}
             </div>
