@@ -13,7 +13,7 @@ import {
   DragStartEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { User, LayoutGrid, CalendarDays, Lightbulb, Plus } from 'lucide-react';
+import { LayoutGrid, CalendarDays, Lightbulb, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClients, useShareActions, useShareReconciler } from '../store';
 import { ClientReview, ContentItem, ContentStatus, Idea } from '../types';
@@ -24,10 +24,12 @@ import ContentCard from '../components/ContentCard';
 import ContentCalendar from '../components/ContentCalendar';
 import IdeasView from '../components/IdeasView';
 import StagePill from '../components/StagePill';
+import BoardFilters from '../components/BoardFilters';
 import { runWrite, STAGES } from '../utils';
+import { ContentFilters, NO_FILTERS, filterContent } from '../filters';
 import {
   boardScroller, boardRow, boardColumn, columnHeader, columnBody, pageToolbar,
-  pillGroup, pill, heading, faintText, btnPrimary, shell,
+  pillGroup, pill, faintText, btnPrimary, shell,
 } from '../ui';
 
 const COLUMNS = STAGES;
@@ -110,6 +112,9 @@ export default function ClientBoardPage() {
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
   const [view, setView] = useState<'kanban' | 'calendar' | 'ideas'>('kanban');
   const [convertingIdea, setConvertingIdea] = useState<Idea | null>(null);
+  const [filters, setFilters] = useState<ContentFilters>(NO_FILTERS);
+  // Captured once per render so a filtered view cannot shift mid-interaction.
+  const now = Date.now();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -157,9 +162,8 @@ export default function ClientBoardPage() {
   }
 
   function getItemsByStatus(status: ContentStatus): ContentItem[] {
-    return (client?.content ?? [])
-      .filter((item) => item.status === status)
-      .sort((a, b) => a.createdAt - b.createdAt);
+    const inStage = (client?.content ?? []).filter((item) => item.status === status);
+    return filterContent(inStage, filters, now).sort((a, b) => a.createdAt - b.createdAt);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -231,20 +235,9 @@ export default function ClientBoardPage() {
       {/* One toolbar row. The old page spent two stacked headers and a stats
           strip on things the sidebar and the column counts already say. */}
       <div className={pageToolbar}>
-        {client.imageUrl ? (
-          <img
-            src={client.imageUrl}
-            alt=""
-            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-6 h-6 rounded-full bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark flex items-center justify-center flex-shrink-0">
-            <User size={12} className={faintText} />
-          </div>
-        )}
-        <h1 className={`${heading} text-[14px] truncate`}>{client.name}</h1>
-
-        <div className={`${pillGroup} ml-auto flex-shrink-0`}>
+        {/* The client name is already in the breadcrumb above, and its avatar
+            is in the sidebar. Repeating both here just cost the board space. */}
+        <div className={`${pillGroup} flex-shrink-0`}>
           {views.map((v) => (
             <button key={v.id} onClick={() => setView(v.id)} className={pill(view === v.id)}>
               <v.icon size={12} />
@@ -252,6 +245,12 @@ export default function ClientBoardPage() {
             </button>
           ))}
         </div>
+
+        {view === 'kanban' && (
+          <div className="ml-auto flex items-center gap-1.5">
+            <BoardFilters value={filters} onChange={setFilters} />
+          </div>
+        )}
 
         {canAdd && view === 'kanban' && (
           <button

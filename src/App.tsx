@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { isConfigured } from './firebase';
+import TodayPage from './pages/TodayPage';
 import ClientsPage from './pages/ClientsPage';
+import ProfilePage from './pages/ProfilePage';
 import ClientBoardPage from './pages/ClientBoardPage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
@@ -60,7 +62,11 @@ function AuthenticatedRoutes() {
     <Routes>
       {/* AppShell sits inside the route so useParams() can read :id for the
           breadcrumb and the active sidebar item. */}
-      <Route path="/" element={<AppShell><ClientsPage /></AppShell>} />
+      {/* Home answers "what needs me"; the clients grid answers "what exists",
+          which is a different and much rarer question. */}
+      <Route path="/" element={<AppShell><TodayPage /></AppShell>} />
+      <Route path="/clients" element={<AppShell><ClientsPage /></AppShell>} />
+      <Route path="/profile" element={<AppShell><ProfilePage /></AppShell>} />
       <Route path="/client/:id" element={<AppShell><ClientBoardPage /></AppShell>} />
       <Route path="/users" element={<AppShell><UserManagementPage /></AppShell>} />
       <Route path="*" element={<Navigate to="/" replace />} />

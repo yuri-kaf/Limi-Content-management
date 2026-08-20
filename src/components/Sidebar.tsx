@@ -1,6 +1,6 @@
 import {
   LayoutGrid, Users, Sun, Moon, PanelLeftClose, PanelLeftOpen, LogOut,
-  Columns3, Building2,
+  Columns3, Building2, Home,
 } from 'lucide-react';
 import { NavModel, NavClient } from '../nav';
 import {
@@ -83,6 +83,14 @@ export default function Sidebar({
           onClick={() => onNavigate('/')}
           className={navItem(activePath === '/')}
           aria-current={activePath === '/' ? 'page' : undefined}
+        >
+          <Home size={14} className="flex-shrink-0" />
+          {!collapsed && <span className="truncate">Today</span>}
+        </button>
+        <button
+          onClick={() => onNavigate('/clients')}
+          className={navItem(activePath === '/clients')}
+          aria-current={activePath === '/clients' ? 'page' : undefined}
         >
           <LayoutGrid size={14} className="flex-shrink-0" />
           {!collapsed && <span className="truncate">Clients</span>}
