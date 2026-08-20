@@ -1,6 +1,7 @@
 import { contrastRatio, relativeLuminance } from './color';
 // @ts-expect-error -- tailwind.config.js is plain JS with no type declarations
 import twConfig from '../tailwind.config.js';
+import { STAGES } from './utils';
 
 describe('relativeLuminance', () => {
   it('is 0 for black and 1 for white', () => {
@@ -54,5 +55,19 @@ describe('palette meets WCAG AA', () => {
     const [ink, soft, faint] = lightTiers.map((c) => contrastRatio(c, light.page));
     expect(ink / soft).toBeGreaterThan(1.3);
     expect(soft / faint).toBeGreaterThan(1.3);
+  });
+});
+
+describe('stage pills meet WCAG AA', () => {
+  it('covers all four stages', () => {
+    expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted']);
+  });
+
+  it.each(STAGES)('$label pill is readable in light mode', (stage) => {
+    expect(contrastRatio(stage.text, stage.tint)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(STAGES)('$label pill is readable in dark mode', (stage) => {
+    expect(contrastRatio(stage.textDark, stage.tintDark)).toBeGreaterThanOrEqual(AA);
   });
 });

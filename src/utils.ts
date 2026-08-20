@@ -260,9 +260,33 @@ export function isLocalOrigin(url: string): boolean {
 // paired with its text label, which is what permits the CVD warn band. One
 // source of truth so the board, the detail sheet and the activity trail can
 // never disagree about a stage's name or colour.
-export const STAGES: { id: ContentStatus; label: string; color: string }[] = [
-  { id: 'editing', label: 'Editing', color: '#8b5cf6' },
-  { id: 'review', label: 'Review', color: '#0284c7' },
-  { id: 'to-post', label: 'To Post', color: '#d97706' },
-  { id: 'posted', label: 'Posted', color: '#059669' },
+export interface Stage {
+  id: ContentStatus;
+  label: string;
+  /** Solid hue. Still used for the board's accent line and the calendar dots. */
+  color: string;
+  /** Pill background / text, light theme. */
+  tint: string;
+  text: string;
+  /** Pill background / text, dark theme. */
+  tintDark: string;
+  textDark: string;
+}
+
+// The pill pairs below are asserted against WCAG AA in src/color.test.ts. Note
+// that `to-post` text is #8a6100 rather than the more obvious #996c00: that
+// measured 4.21 against its tint and failed.
+//
+// A stage is never signalled by colour alone — the label is always present, and
+// the tint only reinforces it. That is what permits the 6-8 colour-vision
+// separation band these hues sit in.
+export const STAGES: Stage[] = [
+  { id: 'editing', label: 'Editing', color: '#6940a5',
+    tint: '#f4f0fb', text: '#6940a5', tintDark: '#2b2142', textDark: '#b592f0' },
+  { id: 'review', label: 'Review', color: '#0b6e99',
+    tint: '#e7f3f8', text: '#0b6e99', tintDark: '#15303d', textDark: '#77bddd' },
+  { id: 'to-post', label: 'To Post', color: '#8a6100',
+    tint: '#faf3dd', text: '#8a6100', tintDark: '#332711', textDark: '#dfab5f' },
+  { id: 'posted', label: 'Posted', color: '#2f6e4a',
+    tint: '#eef3ed', text: '#2f6e4a', tintDark: '#1a2e23', textDark: '#71b391' },
 ];
