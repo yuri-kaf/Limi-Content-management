@@ -72,18 +72,32 @@ export interface MediaInfo {
 // shows a placeholder. An embedded viewer is a different matter: appending
 // action=embedview to an "Anyone with the link" share URL is Microsoft's
 // documented iframe path, and that is what onedriveEmbedUrl() builds.
-const NEEDS_AUTH =
-  'OneDrive shows no still thumbnail, but the detail view embeds a player.';
-
-function onedriveEmbedUrl(link: string): string {
+// SharePoint and OneDrive for Business send X-Frame-Options: SAMEORIGIN on
+// share links, so a browser refuses to render them in our frame no matter how
+// the file is shared — the header is about embedding, not permission, which is
+// why the same URL opens fine in a tab. Appending action=embedview does not
+// change that.
+//
+// The one framable endpoint is _layouts/15/embed.aspx?UniqueId=<guid>, and
+// that GUID cannot be derived from a share link without an authenticated Graph
+// call. So the only honest rule is: embed a link that is already an embed
+// endpoint, and never guess. OneDrive's own UI produces one under
+// ⋯ → Embed.
+function onedriveEmbedUrl(link: string): string | null {
+  // Already an embed endpoint, however it was obtained.
+  if (/\/_layouts\/15\/embed\.aspx/i.test(link)) return link;
+  if (/onedrive\.live\.com\/embed/i.test(link)) return link;
+  if (/[?&]action=embedview/i.test(link)) return link;
   // Personal OneDrive still hands out /redir? links, whose embed form is a
-  // straight swap rather than an extra parameter.
+  // documented straight swap.
   if (/onedrive\.live\.com\/redir\?/i.test(link)) {
     return link.replace(/\/redir\?/i, '/embed?');
   }
-  if (/[?&]action=/i.test(link)) return link;
-  return `${link}${link.includes('?') ? '&' : '?'}action=embedview`;
+  return null;
 }
+
+const ONEDRIVE_SHARE_NOTE =
+  'OneDrive and SharePoint refuse to be embedded from a share link. To play it here, use ⋯ → Embed in OneDrive and paste that link instead.';
 
 // Derived from the URL rather than stored on the item, so it is always correct
 // and legacy content needs no migration.
@@ -108,14 +122,15 @@ export function getMediaInfo(url: string): MediaInfo {
   }
 
   if (/1drv\.ms|onedrive\.live\.com|sharepoint\.com/i.test(link)) {
+    const embed = onedriveEmbedUrl(link);
     return {
       provider: 'onedrive',
       label: 'OneDrive',
       previewUrl: null,
       downloadUrl: null,
-      embedUrl: onedriveEmbedUrl(link),
+      embedUrl: embed,
       embedKind: 'iframe',
-      previewNote: NEEDS_AUTH,
+      previewNote: embed ? undefined : ONEDRIVE_SHARE_NOTE,
     };
   }
 

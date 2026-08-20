@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Film,
+  X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Play, Image as ImageIcon,
   CheckCircle, XCircle, Clock, Download, History, Link2,
 } from 'lucide-react';
 import CommentThread from './CommentThread';
@@ -222,18 +222,38 @@ export default function ContentDetailModal({
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Film size={36} className={faintText} />
-                </div>
+                // Nothing can be shown in place, so the box becomes the way
+                // out rather than a dead film icon.
+                <a
+                  href={item.driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-full flex flex-col items-center justify-center gap-2 group/open hover:bg-hairline/40 dark:hover:bg-hairline-dark/40 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-surface dark:bg-surface-dark shadow-card flex items-center justify-center">
+                    {isGraphic ? (
+                      <ImageIcon size={20} className={faintText} />
+                    ) : (
+                      <Play size={20} className="text-brand ml-0.5" />
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold ${bodyText} group-hover/open:text-brand transition-colors`}>
+                    Open in {media.label}
+                  </span>
+                </a>
               )}
             </div>
 
-            {media.embedUrl && needsLinkSharing && (
+            {media.embedUrl && needsLinkSharing ? (
               <p className={`-mt-2 text-[11px] leading-relaxed ${faintText}`}>
                 Not playing? The file has to be shared as “Anyone with the link”
                 — otherwise use Open in {media.label} below.
               </p>
-            )}
+            ) : media.previewNote ? (
+              <p className={`-mt-2 text-[11px] leading-relaxed ${faintText}`}>
+                {media.previewNote}
+              </p>
+            ) : null}
 
             {/* Stage picker. Any stage reaches any other, and unlike the board's
                 drag-and-drop it works below the sm breakpoint, where only one
