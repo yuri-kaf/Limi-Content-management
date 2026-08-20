@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   DragEndEvent,
@@ -24,23 +24,40 @@ import ContentCard from '../components/ContentCard';
 import ContentCalendar from '../components/ContentCalendar';
 import IdeasView from '../components/IdeasView';
 import StagePill from '../components/StagePill';
+import StageTabs from '../components/StageTabs';
 import BoardFilters from '../components/BoardFilters';
+import { useIsDesktop } from '../hooks/useMediaQuery';
 import { runWrite, STAGES } from '../utils';
-import { ContentFilters, NO_FILTERS, filterContent } from '../filters';
+import { ContentFilters, NO_FILTERS, activeFilterCount, filterContent } from '../filters';
 import {
-  boardScroller, boardRow, boardColumn, columnHeader, columnBody, pageToolbar,
-  pillGroup, pill, faintText, btnPrimary, shell,
+  boardScroller, boardRow, boardColumn, boardSingle, columnHeader, columnBody,
+  columnBodyPlain, countChip, pageToolbar, segmented, segItem, faintText,
+  btnPrimary, shell,
 } from '../ui';
 
-const COLUMNS = STAGES;
+// `tab` is the short form for the phone tab strip, where four labels share the
+// width. The long label is what the column header shows.
+interface StageDef {
+  id: ContentStatus;
+  label: string;
+  tab: string;
+}
+
+const TEAM_STAGES: StageDef[] = STAGES.map((s) => ({ id: s.id, label: s.label, tab: s.label }));
 
 // Clients see three stages — 'editing' is internal — and the labels are written
 // from their point of view rather than the team's.
-const CLIENT_STAGES: { id: ContentStatus; label: string }[] = [
-  { id: 'review', label: 'Needs your review' },
-  { id: 'to-post', label: 'Ready to post' },
-  { id: 'posted', label: 'Posted' },
+const CLIENT_STAGES: StageDef[] = [
+  { id: 'review', label: 'Needs your review', tab: 'Your review' },
+  { id: 'to-post', label: 'Ready to post', tab: 'Ready' },
+  { id: 'posted', label: 'Posted', tab: 'Posted' },
 ];
+
+const CLIENT_PURPOSE: Record<string, string> = {
+  review: 'Nothing is waiting on you right now.',
+  'to-post': 'Nothing approved and waiting to go out.',
+  posted: 'Nothing has been published yet.',
+};
 
 // A client's board is read-only, so it needs no droppable and no sortable —
 // same column shell, none of the drag machinery.
@@ -49,26 +66,33 @@ function ReadOnlyColumn({
   label,
   items,
   onCardClick,
+  filtered = false,
+  layout = 'column',
 }: {
   status: ContentStatus;
   label: string;
   items: ContentItem[];
   onCardClick: (item: ContentItem) => void;
+  filtered?: boolean;
+  layout?: 'column' | 'single';
 }) {
+  const single = layout === 'single';
   return (
-    <div className={boardColumn}>
-      <div className={columnHeader}>
-        <StagePill status={status} />
-        <span className={`text-[11px] font-medium ${faintText}`}>{label}</span>
-        <span className={`text-[11px] font-semibold tabular-nums ml-auto ${faintText}`}>
-          {items.length}
-        </span>
-      </div>
-      <div className={columnBody}>
+    <div className={single ? 'flex-1 min-h-0 flex flex-col' : boardColumn}>
+      {!single && (
+        <div className={columnHeader}>
+          <StagePill status={status} />
+          <span className={`text-[12px] font-medium truncate ${faintText}`}>{label}</span>
+          <span className={`${countChip} ml-auto`}>{items.length}</span>
+        </div>
+      )}
+      <div className={single ? columnBodyPlain : columnBody}>
         {items.length === 0 ? (
-          <div className="flex-1 flex items-start justify-center pt-8 px-3">
-            <p className={`text-[11px] leading-relaxed text-center ${faintText}`}>
-              Nothing here right now.
+          <div className="flex-1 flex items-start justify-center pt-8 px-4">
+            <p className={`text-[12px] leading-relaxed text-center max-w-[26ch] ${faintText}`}>
+              {filtered
+                ? 'Nothing here matches the current filter.'
+                : CLIENT_PURPOSE[status] ?? 'Nothing here right now.'}
             </p>
           </div>
         ) : (
@@ -84,6 +108,7 @@ function ReadOnlyColumn({
 export default function ClientBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const {
     clients, loading, addContent, updateContent, deleteContent,
@@ -108,13 +133,22 @@ export default function ClientBoardPage() {
   const [addingToColumn, setAddingToColumn] = useState<ContentStatus | null>(null);
   const [calendarAddDate, setCalendarAddDate] = useState<Date | null>(null);
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
   const [view, setView] = useState<'kanban' | 'calendar' | 'ideas'>('kanban');
   const [convertingIdea, setConvertingIdea] = useState<Idea | null>(null);
   const [filters, setFilters] = useState<ContentFilters>(NO_FILTERS);
+  const [activeStage, setActiveStage] = useState<ContentStatus>(
+    isClientRole ? 'review' : 'editing'
+  );
   // Captured once per render so a filtered view cannot shift mid-interaction.
   const now = Date.now();
+  const isFiltered = activeFilterCount(filters) > 0;
+
+  // Below lg the board is a tab strip over one full-width column. Chosen in JS
+  // rather than CSS because the two layouts cannot both be mounted: each
+  // registers the same droppable and sortable ids.
+  const isDesktop = useIsDesktop();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -122,6 +156,23 @@ export default function ClientBoardPage() {
     // Without this the board is unusable without a pointer.
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // ?item=<id> opens that item's sheet. This is what lets Today and the command
+  // palette link to a specific piece of content instead of dropping you on the
+  // board to hunt for it.
+  const deepLinkedId = searchParams.get('item');
+  useEffect(() => {
+    if (deepLinkedId) setSelectedId(deepLinkedId);
+  }, [deepLinkedId]);
+
+  function closeDetail() {
+    setSelectedId(null);
+    if (searchParams.has('item')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('item');
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   if (loading) {
     return (
@@ -175,7 +226,7 @@ export default function ClientBoardPage() {
   // The drop target is either a column or one of the cards inside it, since
   // collision detection reports whichever is closest.
   function resolveDropStatus(overId: string): ContentStatus | null {
-    const column = COLUMNS.find((col) => col.id === overId);
+    const column = TEAM_STAGES.find((col) => col.id === overId);
     if (column) return column.id;
     return client?.content.find((c) => c.id === overId)?.status ?? null;
   }
@@ -197,31 +248,36 @@ export default function ClientBoardPage() {
   }
 
   function handleEditFromDetail() {
-    setEditingItem(selectedItem);
-    setSelectedItem(null);
+    setEditingItem(liveSelectedItem);
+    closeDetail();
   }
 
   function handleDeleteFromDetail() {
-    if (selectedItem && client) {
-      deleteContent(client.id, selectedItem.id);
-      setSelectedItem(null);
+    if (liveSelectedItem && client) {
+      deleteContent(client.id, liveSelectedItem.id);
+      closeDetail();
     }
   }
 
   function handleReview(review: ClientReview, note?: string) {
-    if (selectedItem && client) {
-      updateClientReview(client.id, selectedItem.id, review, note);
+    if (liveSelectedItem && client) {
+      updateClientReview(client.id, liveSelectedItem.id, review, note);
     }
   }
+
+  const stages = isClientRole ? CLIENT_STAGES : TEAM_STAGES;
+  // A stage the current role cannot see — or a filter that emptied it — must not
+  // leave the phone board showing nothing with no tab selected.
+  const currentStage = stages.some((s) => s.id === activeStage) ? activeStage : stages[0].id;
 
   const clientVisibleContent = isClientRole
     ? client.content.filter((item) => CLIENT_STAGES.some((c) => c.id === item.status))
     : client.content;
 
-  // Read the item back out of the live list rather than trusting the snapshot
-  // held in state, so the sheet reflects a stage change or a review decision.
-  const liveSelectedItem = selectedItem
-    ? client.content.find((c) => c.id === selectedItem.id) ?? null
+  // Read the item out of the live list rather than trusting a snapshot held in
+  // state, so the sheet reflects a stage change or a review decision.
+  const liveSelectedItem = selectedId
+    ? client.content.find((c) => c.id === selectedId) ?? null
     : null;
 
   const views = [
@@ -230,18 +286,90 @@ export default function ClientBoardPage() {
     { id: 'ideas' as const, label: 'Ideas', icon: Lightbulb },
   ];
 
+  const tabs = stages.map((s) => ({
+    id: s.id,
+    label: s.tab,
+    count: getItemsByStatus(s.id).length,
+  }));
+
+  function boardColumns() {
+    if (isClientRole) {
+      return stages.map((s) => (
+        <ReadOnlyColumn
+          key={s.id}
+          status={s.id}
+          label={s.label}
+          items={getItemsByStatus(s.id)}
+          onCardClick={(item) => setSelectedId(item.id)}
+          filtered={isFiltered}
+        />
+      ));
+    }
+    return TEAM_STAGES.map((col) => (
+      <KanbanColumn
+        key={col.id}
+        id={col.id}
+        items={getItemsByStatus(col.id)}
+        canAdd={canAdd}
+        canEditItem={canEditItem}
+        canDeleteItem={canDeleteItem}
+        onAddContent={(status) => setAddingToColumn(status)}
+        onCardClick={(item) => setSelectedId(item.id)}
+        onEditCard={(item) => setEditingItem(item)}
+        onDeleteCard={(item) => setSelectedId(item.id)}
+        filtered={isFiltered}
+      />
+    ));
+  }
+
+  function singleColumn() {
+    if (isClientRole) {
+      return (
+        <ReadOnlyColumn
+          status={currentStage}
+          label={stages.find((s) => s.id === currentStage)?.label ?? ''}
+          items={getItemsByStatus(currentStage)}
+          onCardClick={(item) => setSelectedId(item.id)}
+          filtered={isFiltered}
+          layout="single"
+        />
+      );
+    }
+    return (
+      <KanbanColumn
+        id={currentStage}
+        items={getItemsByStatus(currentStage)}
+        canAdd={canAdd}
+        canEditItem={canEditItem}
+        canDeleteItem={canDeleteItem}
+        onAddContent={(status) => setAddingToColumn(status)}
+        onCardClick={(item) => setSelectedId(item.id)}
+        onEditCard={(item) => setEditingItem(item)}
+        onDeleteCard={(item) => setSelectedId(item.id)}
+        filtered={isFiltered}
+        layout="single"
+      />
+    );
+  }
+
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {/* One toolbar row. The old page spent two stacked headers and a stats
           strip on things the sidebar and the column counts already say. */}
       <div className={pageToolbar}>
-        {/* The client name is already in the breadcrumb above, and its avatar
-            is in the sidebar. Repeating both here just cost the board space. */}
-        <div className={`${pillGroup} flex-shrink-0`}>
+        {/* The client name is already in the breadcrumb above, with its logo. */}
+        <div className={`${segmented} flex-shrink-0`}>
           {views.map((v) => (
-            <button key={v.id} onClick={() => setView(v.id)} className={pill(view === v.id)}>
-              <v.icon size={12} />
-              <span className="hidden sm:inline">{v.label}</span>
+            <button
+              key={v.id}
+              onClick={() => setView(v.id)}
+              className={segItem(view === v.id)}
+              aria-pressed={view === v.id}
+            >
+              {/* The icon is the thing that goes on a narrow screen, not the
+                  word. An unlabelled icon triplet was unreadable on a phone. */}
+              <v.icon size={13} className="hidden sm:block" />
+              {v.label}
             </button>
           ))}
         </div>
@@ -254,11 +382,11 @@ export default function ClientBoardPage() {
 
         {canAdd && view === 'kanban' && (
           <button
-            onClick={() => setAddingToColumn('editing')}
-            className={`${btnPrimary} h-8 min-h-0 px-3 flex-shrink-0`}
+            onClick={() => setAddingToColumn(isDesktop ? 'editing' : currentStage)}
+            className={`${btnPrimary} h-9 min-h-0 px-3 text-[12px] flex-shrink-0`}
           >
-            <Plus size={13} />
-            <span className="hidden sm:inline">Add</span>
+            <Plus size={14} />
+            New
           </button>
         )}
       </div>
@@ -280,25 +408,8 @@ export default function ClientBoardPage() {
               content={clientVisibleContent}
               canAdd={canAdd}
               onDayClick={(date) => canAdd && setCalendarAddDate(date)}
-              onItemClick={(item) => setSelectedItem(item)}
+              onItemClick={(item) => setSelectedId(item.id)}
             />
-          </div>
-        </div>
-      ) : isClientRole ? (
-        // One horizontal row at every width. A 300px column on a 375px screen
-        // leaves the next one peeking, which advertises the scroll better than
-        // a row of stage tabs did — and it is one implementation, not two.
-        <div className={boardScroller}>
-          <div className={boardRow}>
-            {CLIENT_STAGES.map((c) => (
-              <ReadOnlyColumn
-                key={c.id}
-                status={c.id}
-                label={c.label}
-                items={getItemsByStatus(c.id)}
-                onCardClick={(item) => setSelectedItem(item)}
-              />
-            ))}
           </div>
         </div>
       ) : (
@@ -309,26 +420,16 @@ export default function ClientBoardPage() {
           onDragEnd={handleDragEnd}
           onDragCancel={() => setActiveItem(null)}
         >
-          <div className={boardScroller}>
-            <div className={boardRow}>
-              {COLUMNS.map((col) => (
-                <KanbanColumn
-                  key={col.id}
-                  id={col.id}
-                  label={col.label}
-                  color={col.color}
-                  items={getItemsByStatus(col.id)}
-                  canAdd={canAdd}
-                  canEditItem={canEditItem}
-                  canDeleteItem={canDeleteItem}
-                  onAddContent={(status) => setAddingToColumn(status)}
-                  onCardClick={(item) => setSelectedItem(item)}
-                  onEditCard={(item) => setEditingItem(item)}
-                  onDeleteCard={(item) => setSelectedItem(item)}
-                />
-              ))}
+          {isDesktop ? (
+            <div className={boardScroller}>
+              <div className={boardRow}>{boardColumns()}</div>
             </div>
-          </div>
+          ) : (
+            <>
+              <StageTabs tabs={tabs} active={currentStage} onChange={setActiveStage} />
+              <div className={boardSingle}>{singleColumn()}</div>
+            </>
+          )}
 
           <DragOverlay>
             {activeItem ? <ContentCard item={activeItem} isOverlay /> : null}
@@ -431,7 +532,7 @@ export default function ClientBoardPage() {
           isClientRole={isClientRole}
           canEdit={canEditItem(liveSelectedItem)}
           canDelete={canDeleteItem(liveSelectedItem)}
-          onClose={() => setSelectedItem(null)}
+          onClose={closeDetail}
           onEdit={handleEditFromDetail}
           onDelete={handleDeleteFromDetail}
           // Approve/decline is offered only while the item sits in Review, so

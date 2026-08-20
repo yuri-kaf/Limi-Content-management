@@ -1,8 +1,10 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Menu, ArrowLeft } from 'lucide-react';
+import { Menu, ArrowLeft, Search } from 'lucide-react';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import ClientAvatar from './ClientAvatar';
+import CommandPalette from './CommandPalette';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClients } from '../store';
@@ -33,12 +35,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
     () => localStorage.getItem(COLLAPSE_KEY) === '1'
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Persist as an effect, not inside the updater. A state updater must be pure
   // — StrictMode double-invokes it, and a write in there fires twice per click.
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
+
+  // Search has to be reachable without a keyboard too, which is why the header
+  // carries a visible button as well — on a phone there is no ⌘K.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const nav = buildNav(clients, currentUser);
   const width = collapsed ? SIDEBAR_RAIL : SIDEBAR_WIDTH;
@@ -78,9 +94,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
-  const activeClientName = nav.clients.find((c) => c.id === activeClientId)?.name;
+  const activeClient = nav.clients.find((c) => c.id === activeClientId);
   const crumb =
-    activeClientName ??
+    activeClient?.name ??
     (location.pathname === '/users'
       ? 'Team'
       : location.pathname === '/clients'
@@ -133,29 +149,59 @@ export default function AppShell({ children }: { children: ReactNode }) {
           {insideBoard ? (
             <button
               onClick={() => navigate('/')}
-              className={`${btnIcon} w-7 h-7 lg:hidden`}
-              aria-label="Back"
+              className={`${btnIcon} w-9 h-9 -ml-1.5 lg:hidden`}
+              aria-label="Back to Today"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={17} />
             </button>
           ) : (
             <button
               onClick={() => setDrawerOpen(true)}
-              className={`${btnIcon} w-7 h-7 lg:hidden`}
+              className={`${btnIcon} w-9 h-9 -ml-1.5 lg:hidden`}
               aria-label="Open navigation"
             >
-              <Menu size={16} />
+              <Menu size={17} />
             </button>
           )}
+
+          {/* The client's own mark beside the back button. A board is the one
+              place where which client you are looking at is the whole context,
+              and a truncated name alone is the slowest way to convey it. */}
+          {activeClient && (
+            <ClientAvatar name={activeClient.name} imageUrl={activeClient.imageUrl} size={22} />
+          )}
           <span className={breadcrumbText}>{crumb}</span>
+
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className={`${btnIcon} w-9 h-9 ml-auto flex-shrink-0`}
+            aria-label="Search"
+            title="Search (Ctrl K)"
+          >
+            <Search size={16} />
+          </button>
         </header>
 
         {/* No scrolling here — each page owns its own scroll region, so a board
             can give its columns independent height. */}
         <main className="flex-1 min-w-0 min-h-0 flex flex-col">{children}</main>
 
-        <BottomNav activePath={location.pathname} onNavigate={go} />
+        {/* Hidden inside a board. A board is a drilled-into screen — it has a
+            back arrow and a back swipe — and on a phone it needs the 56px far
+            more than it needs a second way home. With the stage tabs added, the
+            board still carries less chrome than it did with the bar. */}
+        {!insideBoard && <BottomNav activePath={location.pathname} onNavigate={go} />}
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        clients={clients}
+        user={currentUser}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={go}
+        onToggleTheme={toggleTheme}
+        onSignOut={logout}
+      />
     </div>
   );
 }

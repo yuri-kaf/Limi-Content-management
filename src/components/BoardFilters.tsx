@@ -64,7 +64,7 @@ export default function BoardFilters({ value, onChange }: Props) {
     <div ref={wrap} className="relative flex items-center gap-1.5 flex-shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`${btnGhost} h-8 min-h-0 px-2.5 text-[13px]`}
+        className={`${btnGhost} h-9 min-h-0 px-2.5 text-[12px]`}
         aria-expanded={open}
         aria-label="Filters"
       >
@@ -87,7 +87,7 @@ export default function BoardFilters({ value, onChange }: Props) {
 
       {open && (
         <div
-          className={`${card} absolute top-9 right-0 z-40 w-56 p-2 shadow-lift`}
+          className={`${card} absolute top-10 right-0 z-40 w-56 p-2 shadow-lift`}
           role="dialog"
           aria-label="Filters"
         >

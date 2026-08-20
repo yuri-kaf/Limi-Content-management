@@ -3,6 +3,8 @@ import { Client, ContentItem } from './types';
 export interface TodayEntry {
   clientId: string;
   clientName: string;
+  /** So a row can be identified by the client's own mark, not only its name. */
+  clientImageUrl?: string;
   item: ContentItem;
 }
 
@@ -21,7 +23,12 @@ const DAY = 86_400_000;
 
 function entries(clients: Client[]): TodayEntry[] {
   return clients.flatMap((c) =>
-    (c.content ?? []).map((item) => ({ clientId: c.id, clientName: c.name, item }))
+    (c.content ?? []).map((item) => ({
+      clientId: c.id,
+      clientName: c.name,
+      clientImageUrl: c.imageUrl,
+      item,
+    }))
   );
 }
 
@@ -67,4 +74,51 @@ export function todayTotal(groups: TodayGroups): number {
     groups.goingOutSoon.length +
     groups.readyToSchedule.length
   );
+}
+
+// ─── Reading a slot ──────────────────────────────────────────────────────────
+
+/**
+ * A date in the terms the queue is actually read in. "Aug 19" in red says
+ * something is wrong but not what or by how much; "1 day late" says both, and
+ * "tomorrow" is instantly clearer than a date you have to compare against
+ * today's yourself.
+ *
+ * Differences are counted in whole local days, so 11pm tonight to 1am tomorrow
+ * is "tomorrow" rather than "in 0 days".
+ */
+export interface SlotLabel {
+  text: string;
+  late: boolean;
+}
+
+function startOfDay(at: number): number {
+  const d = new Date(at);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function plural(n: number, unit: string): string {
+  return `${n} ${unit}${n === 1 ? '' : 's'}`;
+}
+
+export function slotLabel(scheduledAt: number | undefined, now: number): SlotLabel | null {
+  if (!scheduledAt || scheduledAt <= 0) return null;
+
+  const days = Math.round((startOfDay(scheduledAt) - startOfDay(now)) / DAY);
+
+  if (days === 0) return { text: 'today', late: false };
+  if (days === 1) return { text: 'tomorrow', late: false };
+  if (days === -1) return { text: 'yesterday', late: true };
+
+  if (days > 0) {
+    if (days < 7) return { text: `in ${plural(days, 'day')}`, late: false };
+    if (days < 31) return { text: `in ${plural(Math.round(days / 7), 'week')}`, late: false };
+    return { text: `in ${plural(Math.round(days / 30), 'month')}`, late: false };
+  }
+
+  const late = -days;
+  if (late < 7) return { text: `${plural(late, 'day')} late`, late: true };
+  if (late < 31) return { text: `${plural(Math.round(late / 7), 'week')} late`, late: true };
+  return { text: `${plural(Math.round(late / 30), 'month')} late`, late: true };
 }

@@ -29,12 +29,13 @@ interface Props {
 const CLICK_SLOP = 4;
 
 const iconBtn =
-  'p-1 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';
+  'w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';
 
 export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOverlay }: Props) {
   const [imgError, setImgError] = useState(false);
   const media = getMediaInfo(item.driveLink);
   const thumbnailUrl = media.previewUrl;
+  const hasPreview = !!thumbnailUrl && !imgError;
   const isGraphic = mediaTypeOf(item) === 'graphic';
   const caption = captionOf(item);
   const platforms = item.platforms ?? [];
@@ -109,43 +110,49 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
     <div
       ref={setNodeRef}
       style={style}
-      className={`group ${cardInteractive} overflow-hidden`}
+      // flex-shrink-0 is not cosmetic: the column body is a capped-height flex
+      // column, and flexbox shrinks its children to fit before it will scroll —
+      // which clipped every card's second title line.
+      className={`group ${cardInteractive} overflow-hidden flex-shrink-0`}
       onClick={handleClick}
       {...dragProps}
     >
       <div className="flex items-start gap-2.5 p-2.5">
-        {/* Thumbnail */}
-        <div
-          className="relative flex-shrink-0 rounded-tile overflow-hidden bg-tint dark:bg-tint-dark"
-          style={{ width: 68, aspectRatio: '16/9' }}
-        >
-          {thumbnailUrl && !imgError ? (
+        {/* An image earns the 16:9 frame; the absence of one does not. Reserving
+            68x38 for a preview that never loads — which is every item whose
+            Drive file is not public — spent a quarter of the card's width on an
+            empty grey box and squeezed the title into the rest. Without a
+            preview this collapses to a type marker the size of a favicon. */}
+        {hasPreview ? (
+          <div
+            className="relative flex-shrink-0 rounded-tile overflow-hidden bg-tint dark:bg-tint-dark"
+            style={{ width: 64, aspectRatio: '16/9' }}
+          >
             <img
-              src={thumbnailUrl}
-              alt={item.title}
+              src={thumbnailUrl!}
+              alt=""
               className="w-full h-full object-cover"
               draggable={false}
               onError={() => setImgError(true)}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              {isGraphic ? (
-                <ImageIcon size={13} className={faintText} />
-              ) : (
-                <Film size={13} className={faintText} />
-              )}
-            </div>
-          )}
-          {/* The grip is a hint, not the hit area — hence pointer-events-none. */}
-          {!isOverlay && (
-            <div
-              className="absolute inset-0 hidden sm:flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-              aria-hidden="true"
-            >
-              <GripVertical size={13} className="text-white/80" />
-            </div>
-          )}
-        </div>
+            {/* The grip is a hint, not the hit area — hence pointer-events-none. */}
+            {!isOverlay && (
+              <div
+                className="absolute inset-0 hidden lg:flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                aria-hidden="true"
+              >
+                <GripVertical size={13} className="text-white/80" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <span
+            className={`flex-shrink-0 w-7 h-7 rounded-tile bg-tint dark:bg-tint-dark inline-flex items-center justify-center ${faintText}`}
+            title={isGraphic ? 'Graphic' : 'Video'}
+          >
+            {isGraphic ? <ImageIcon size={14} /> : <Film size={14} />}
+          </span>
+        )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -153,8 +160,12 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
             <p className="text-[13px] font-medium text-ink dark:text-ink-dark leading-snug flex-1 min-w-0 line-clamp-2">
               {item.title}
             </p>
-            {/* Always visible on touch, hover-only on a pointer. */}
-            <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
+            {/* Pointer-only, revealed on hover. These were permanently visible on
+                touch: four 20px targets crowding the title on a 280px card,
+                every one of them under the 44px minimum. On a phone the card
+                itself is the target and the detail sheet carries the same four
+                actions at a size a thumb can hit. */}
+            <div className="hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0">
               <a
                 href={item.driveLink}
                 target="_blank"
@@ -165,7 +176,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Open in ${media.label}`}
               >
-                <ExternalLink size={12} />
+                <ExternalLink size={13} />
               </a>
               {isGraphic && media.downloadUrl && (
                 <a
@@ -178,7 +189,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
                   onClick={(e) => e.stopPropagation()}
                   aria-label="Download image"
                 >
-                  <Download size={12} />
+                  <Download size={13} />
                 </a>
               )}
               {onEdit && (
@@ -188,7 +199,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
                   className={iconBtn}
                   aria-label="Edit"
                 >
-                  <Pencil size={12} />
+                  <Pencil size={13} />
                 </button>
               )}
               {onDelete && (
@@ -198,7 +209,7 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
                   className={`${iconBtn} hover:!text-brand hover:!bg-brand-soft dark:hover:!bg-brand-softdark`}
                   aria-label="Delete"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={13} />
                 </button>
               )}
             </div>

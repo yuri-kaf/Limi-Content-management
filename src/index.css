@@ -38,3 +38,14 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
 /* Native date/time/select pickers: use matching color-scheme */
 input[type="date"], input[type="time"], select { color-scheme: light; }
 html.dark input[type="date"], html.dark input[type="time"], html.dark select { color-scheme: dark; }
+
+/* Someone who has asked their OS to reduce motion means it. Nothing in this app
+   conveys meaning through animation, so there is nothing to preserve. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

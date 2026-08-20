@@ -1,4 +1,4 @@
-import { buildToday, todayTotal } from './today';
+import { buildToday, slotLabel, todayTotal } from './today';
 import { Client, ContentItem } from './types';
 
 const NOW = new Date('2026-08-20T12:00:00Z').getTime();
@@ -69,5 +69,39 @@ describe('buildToday', () => {
   it('tolerates a client with no content array', () => {
     const g = buildToday([{ id: 'a', name: 'A', about: '', createdAt: 1 } as Client], NOW);
     expect(todayTotal(g)).toBe(0);
+  });
+});
+
+describe('slotLabel', () => {
+  const noon = new Date(2026, 7, 20, 12, 0, 0).getTime();
+  const day = (n: number) => new Date(2026, 7, 20 + n, 12, 0, 0).getTime();
+
+  it('has nothing to say about an unscheduled item', () => {
+    expect(slotLabel(undefined, noon)).toBeNull();
+    expect(slotLabel(0, noon)).toBeNull();
+  });
+
+  it('names today, tomorrow and yesterday', () => {
+    expect(slotLabel(day(0), noon)).toEqual({ text: 'today', late: false });
+    expect(slotLabel(day(1), noon)).toEqual({ text: 'tomorrow', late: false });
+    expect(slotLabel(day(-1), noon)).toEqual({ text: 'yesterday', late: true });
+  });
+
+  it('counts whole days across a midnight boundary, not elapsed hours', () => {
+    const lateTonight = new Date(2026, 7, 20, 23, 0, 0).getTime();
+    const earlyTomorrow = new Date(2026, 7, 21, 1, 0, 0).getTime();
+    expect(slotLabel(earlyTomorrow, lateTonight)).toEqual({ text: 'tomorrow', late: false });
+  });
+
+  it('steps up from days to weeks to months', () => {
+    expect(slotLabel(day(3), noon)!.text).toBe('in 3 days');
+    expect(slotLabel(day(14), noon)!.text).toBe('in 2 weeks');
+    expect(slotLabel(day(60), noon)!.text).toBe('in 2 months');
+  });
+
+  it('marks anything in the past as late and says by how much', () => {
+    expect(slotLabel(day(-3), noon)).toEqual({ text: '3 days late', late: true });
+    expect(slotLabel(day(-14), noon)).toEqual({ text: '2 weeks late', late: true });
+    expect(slotLabel(day(-60), noon)).toEqual({ text: '2 months late', late: true });
   });
 });

@@ -2,47 +2,11 @@ import {
   LayoutGrid, Users, Sun, Moon, PanelLeftClose, PanelLeftOpen, LogOut,
   Columns3, Building2, Home,
 } from 'lucide-react';
-import { NavModel, NavClient } from '../nav';
+import { NavModel } from '../nav';
+import ClientAvatar from './ClientAvatar';
 import {
   sidebar, navItem, navGroupLabel, navBadge, btnIcon, heading, faintText,
 } from '../ui';
-
-// A client's own picture is far faster to recognise than its initial, and it is
-// the thing that makes a workspace feel like *your* workspace. The lettered
-// square stays as the fallback, and also covers an image that fails to load.
-function ClientAvatar({ client }: { client: NavClient }) {
-  const base =
-    'w-[18px] h-[18px] rounded flex-shrink-0 inline-flex items-center justify-center overflow-hidden';
-  if (client.imageUrl) {
-    return (
-      <span className={base} aria-hidden="true">
-        <img
-          src={client.imageUrl}
-          alt=""
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            // Fall back to the initial rather than leaving a broken frame.
-            e.currentTarget.style.display = 'none';
-            e.currentTarget.parentElement?.classList.add(
-              'bg-hover', 'dark:bg-hover-dark', 'text-[9px]', 'font-semibold'
-            );
-            if (e.currentTarget.parentElement) {
-              e.currentTarget.parentElement.textContent = client.name.charAt(0).toUpperCase();
-            }
-          }}
-        />
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`${base} bg-hover dark:bg-hover-dark text-[9px] font-semibold text-ink-soft dark:text-ink-softdark`}
-      aria-hidden="true"
-    >
-      {client.name.charAt(0).toUpperCase()}
-    </span>
-  );
-}
 
 interface Props {
   nav: NavModel;
@@ -118,7 +82,7 @@ export default function Sidebar({
               aria-label={label}
               title={label}
             >
-              <ClientAvatar client={c} />
+              <ClientAvatar name={c.name} imageUrl={c.imageUrl} size={18} />
               {!collapsed && <span className="truncate">{c.name}</span>}
               {!collapsed && c.attention > 0 && <span className={navBadge}>{c.attention}</span>}
             </button>

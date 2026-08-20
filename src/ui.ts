@@ -32,8 +32,11 @@ export const btnPrimary =
 export const btnGhost =
   'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile border border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark text-sm font-medium hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
+// rounded-tile, not rounded-full: a circular icon button was the last
+// consumer-app radius left in a 4px system, and a header holding one of each
+// reads as two designs.
 export const btnIcon =
-  'inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  'inline-flex items-center justify-center w-9 h-9 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
 // Segmented pill navigation, as in the reference dashboards.
 export const pillGroup =
@@ -137,6 +140,45 @@ export const sheetPane = 'p-5 flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto 
 export const readoutScroll = `${readout} max-h-[7.25rem] overflow-y-auto overscroll-contain`;
 
 // ---------------------------------------------------------------------------
+// Segmented control
+// ---------------------------------------------------------------------------
+
+// Replaces the rounded-full pill group for view switching. A `rounded-full`
+// control with a filled black active state is a consumer-app gesture; in this
+// register a view switcher is an inset strip whose active segment is *raised*
+// out of it. Same 4px geometry as everything else, so the toolbar stops
+// carrying two competing radii.
+export const segmented =
+  'inline-flex items-center gap-0.5 p-0.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
+
+export function segItem(active: boolean) {
+  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[3px] text-[12px] font-medium whitespace-nowrap transition-colors ${
+    active
+      ? 'bg-canvas dark:bg-hover-dark text-ink dark:text-ink-dark shadow-[0_1px_2px_rgba(15,15,15,0.07)]'
+      : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
+  }`;
+}
+
+// A count beside a label. Distinct from `navBadge`, which hangs at the end of a
+// nav row: this one sits inline and must not read as part of the label next to
+// it — which is exactly what a bare grey number did on the column headers.
+export const countChip =
+  'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-tile text-[11px] font-semibold tabular-nums bg-tint dark:bg-tint-dark text-ink-soft dark:text-ink-softdark';
+
+// ---------------------------------------------------------------------------
+// Queue rows (Today)
+// ---------------------------------------------------------------------------
+
+// A list of rows inside one hairline box, separated by rules rather than by
+// nothing. Thirteen equal-weight rows in an undivided box is a wall, not a list.
+export const rowList = `${card} divide-y divide-hairline dark:divide-hairline-dark overflow-hidden`;
+
+// 52px: two lines of text at the 44px touch minimum plus breathing room. The
+// title owns the width; the client and the reason sit under it.
+export const queueRow =
+  'w-full flex items-center gap-3 px-3 py-2 min-h-[52px] text-left transition-colors hover:bg-hover dark:hover:bg-hover-dark focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark';
+
+// ---------------------------------------------------------------------------
 // Shell
 // ---------------------------------------------------------------------------
 
@@ -212,6 +254,45 @@ export const pageToolbar =
   'flex items-center gap-3 px-4 h-12 flex-shrink-0 border-b border-hairline dark:border-hairline-dark';
 
 // A quiet inline "add" that lives in a column header rather than shouting from
-// the page.
+// the page. 28px, not 24: a 24px target fails the touch minimum by a mile and
+// this one is reachable on a phone.
 export const columnAdd =
-  'w-6 h-6 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';
+  'w-7 h-7 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30';
+
+// The drop target while a card is over a column. A class rather than the inline
+// rgba() it replaces: a raw colour in a component is the drift the token file
+// exists to prevent, and an inline style cannot express a dark-mode variant.
+export const columnBodyOver =
+  'bg-hover dark:bg-hover-dark border-dashed border-ink-faint/40 dark:border-ink-faintdark/40';
+
+// ---------------------------------------------------------------------------
+// Board — phone layout
+// ---------------------------------------------------------------------------
+
+// Below lg the board is one full-width column with the stages as tabs, not a
+// horizontally scrolled row. Hand-scrolling sideways to reach Posted hides how
+// many stages exist and how much sits in each; tabs show all four counts at
+// once and cost one tap instead of three swipes.
+export const stageTabRow =
+  'flex items-stretch gap-1 px-2 flex-shrink-0 border-b border-hairline dark:border-hairline-dark';
+
+// 44px tall, equal thirds/quarters of the width, active marked by a 2px rule in
+// the stage's own colour — so the colour vocabulary already used by the pills
+// carries the selection rather than a second, unrelated highlight.
+export function stageTab(active: boolean) {
+  return `flex-1 min-w-0 flex flex-col items-center justify-center h-11 gap-0.5 border-b-2 -mb-px transition-colors focus:outline-none ${
+    active
+      ? 'text-ink dark:text-ink-dark'
+      : 'border-transparent text-ink-faint dark:text-ink-faintdark hover:text-ink-soft dark:hover:text-ink-softdark'
+  }`;
+}
+
+// On a phone there is only one column, so nothing needs distinguishing from
+// anything: the tinted, bordered box that separates four columns on the desktop
+// board is pure frame here, and it costs 22px of card width per side.
+export const columnBodyPlain =
+  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 pb-2';
+
+// One column, full width, its own scroll region. The desktop board keeps the
+// fixed 280px columns; this is the same column body at a different width.
+export const boardSingle = 'flex-1 min-h-0 flex flex-col px-3 pb-3 pt-2';
