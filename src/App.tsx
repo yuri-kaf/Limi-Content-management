@@ -7,7 +7,7 @@ import ClientBoardPage from './pages/ClientBoardPage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
-import BottomNav from './components/BottomNav';
+import AppShell from './components/AppShell';
 
 function FirebaseSetupGuide() {
   return (
@@ -57,15 +57,14 @@ function AuthenticatedRoutes() {
   if (status === 'loading') return <AuthSplash />;
   if (status !== 'signed-in') return <Navigate to="/login" replace />;
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<ClientsPage />} />
-        <Route path="/client/:id" element={<ClientBoardPage />} />
-        <Route path="/users" element={<UserManagementPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <BottomNav />
-    </>
+    <Routes>
+      {/* AppShell sits inside the route so useParams() can read :id for the
+          breadcrumb and the active sidebar item. */}
+      <Route path="/" element={<AppShell><ClientsPage /></AppShell>} />
+      <Route path="/client/:id" element={<AppShell><ClientBoardPage /></AppShell>} />
+      <Route path="/users" element={<AppShell><UserManagementPage /></AppShell>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
