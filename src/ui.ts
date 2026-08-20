@@ -3,17 +3,17 @@
 // which is how the old UI drifted.
 
 export const card =
-  'bg-surface dark:bg-surface-dark rounded-card shadow-card dark:shadow-none dark:ring-1 dark:ring-hairline-dark';
+  'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
 
-// Cards that are clickable get a small lift. Kept at 1.02 / 180ms — enough to
-// register, short of distracting.
-export const cardInteractive = `${card} transition-all duration-200 hover:shadow-lift hover:-translate-y-0.5 cursor-pointer motion-reduce:transition-none motion-reduce:hover:translate-y-0`;
+// Clickable cards get a hairline that firms up and a tint, not a lift. In this
+// register nothing floats unless it is genuinely floating.
+export const cardInteractive = `${card} transition-colors duration-150 hover:bg-tint dark:hover:bg-tint-dark hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
 
 export const tile =
-  'bg-surface dark:bg-surface-dark rounded-tile shadow-card dark:shadow-none dark:ring-1 dark:ring-hairline-dark';
+  'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
 
 export const inset =
-  'bg-raised dark:bg-raised-dark rounded-tile border border-hairline dark:border-hairline-dark';
+  'bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark rounded-tile';
 
 export const heading = 'text-ink dark:text-ink-dark font-semibold tracking-tight';
 export const bodyText = 'text-ink-soft dark:text-ink-softdark';
@@ -135,3 +135,47 @@ export const sheetPane = 'p-5 flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto 
 // caption can't push everything below it off the dialog. 4 lines at text-sm /
 // leading-relaxed is 91px, plus the 24px of vertical padding from `readout`.
 export const readoutScroll = `${readout} max-h-[7.25rem] overflow-y-auto overscroll-contain`;
+
+// ---------------------------------------------------------------------------
+// Shell
+// ---------------------------------------------------------------------------
+
+export const sidebar =
+  'flex flex-col h-full bg-tint dark:bg-tint-dark border-r border-hairline dark:border-hairline-dark';
+
+// 248px open, 48px collapsed to a rail. The rail is not optional: four kanban
+// columns need the width back on a 1280px laptop.
+export const SIDEBAR_WIDTH = 248;
+export const SIDEBAR_RAIL = 48;
+
+export function navItem(active: boolean) {
+  return `w-full flex items-center gap-2 h-7 px-2 rounded-tile text-[13px] font-medium text-left transition-colors ${
+    active
+      ? 'bg-hover dark:bg-hover-dark text-ink dark:text-ink-dark'
+      : 'text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark'
+  }`;
+}
+
+export const navSubItem =
+  'w-full flex items-center gap-2 h-7 pl-8 pr-2 rounded-tile text-[13px] text-left transition-colors text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark';
+
+export const navGroupLabel =
+  'px-2 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint dark:text-ink-faintdark';
+
+// The count of items awaiting a client's review. Quiet by default — it is
+// information, not an alarm.
+export const navBadge =
+  'ml-auto min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-semibold tabular-nums bg-hover dark:bg-hover-dark text-ink-soft dark:text-ink-softdark';
+
+export const breadcrumbBar =
+  'flex items-center gap-2 h-11 px-4 border-b border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark';
+
+export const breadcrumbText = 'text-[13px] font-medium text-ink dark:text-ink-dark truncate';
+
+export const drawerScrim = 'fixed inset-0 z-40 bg-ink/30 dark:bg-black/60 lg:hidden';
+
+// Empty states earn their space by saying what belongs here.
+export const emptyState =
+  'flex flex-col items-center justify-center gap-2 py-14 px-6 text-center';
+export const emptyTitle = 'text-[13px] font-semibold text-ink dark:text-ink-dark';
+export const emptyBody = 'text-xs leading-relaxed text-ink-faint dark:text-ink-faintdark max-w-xs';
