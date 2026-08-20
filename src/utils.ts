@@ -52,10 +52,17 @@ export interface MediaInfo {
   previewUrl: string | null;
   downloadUrl: string | null;
   /**
-   * A URL that can be put in an <iframe> to play or view the item in place.
-   * Distinct from previewUrl, which is a still image for the card thumbnail.
+   * A URL that plays or displays the item in place. Distinct from previewUrl,
+   * which is only ever a still image for the card thumbnail.
    */
   embedUrl?: string | null;
+  /**
+   * How to mount embedUrl. 'iframe' hands off to the provider's own player,
+   * which is the only option when they will not serve the file bytes directly.
+   * 'video' is a native <video>, which gives real controls and a readable
+   * playback position; an iframe gives neither, because it is cross-origin.
+   */
+  embedKind?: 'iframe' | 'video';
   /** Why there's no preview, when there isn't one. */
   previewNote?: string;
 }
@@ -91,6 +98,11 @@ export function getMediaInfo(url: string): MediaInfo {
       label: 'Google Drive',
       previewUrl: id ? getDriveThumbnailUrl(id) : null,
       downloadUrl: id ? getDriveDownloadUrl(id) : null,
+      // /preview is the framable viewer. The /view URL people actually copy is
+      // a full page that refuses to be embedded, which is why Drive items used
+      // to be stuck at a still thumbnail.
+      embedUrl: id ? `https://drive.google.com/file/d/${id}/preview` : null,
+      embedKind: 'iframe',
       previewNote: id ? undefined : 'Could not read a file ID from this Drive link.',
     };
   }
@@ -102,6 +114,7 @@ export function getMediaInfo(url: string): MediaInfo {
       previewUrl: null,
       downloadUrl: null,
       embedUrl: onedriveEmbedUrl(link),
+      embedKind: 'iframe',
       previewNote: NEEDS_AUTH,
     };
   }
@@ -115,6 +128,11 @@ export function getMediaInfo(url: string): MediaInfo {
       label: 'Dropbox',
       previewUrl: `${base}${sep}raw=1`,
       downloadUrl: `${base}${sep}dl=1`,
+      // Dropbox serves the file itself at raw=1, so this is the one provider
+      // that can use a real <video> element. Their own preview page refuses
+      // framing, so an iframe would not have worked anyway.
+      embedUrl: `${base}${sep}raw=1`,
+      embedKind: 'video',
     };
   }
 
@@ -127,16 +145,26 @@ export function getMediaInfo(url: string): MediaInfo {
       label: 'YouTube',
       previewUrl: `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`,
       downloadUrl: null,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${yt[1]}`,
+      embedKind: 'iframe',
     };
   }
 
   if (/vimeo\.com/i.test(link)) {
+    const id = link.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
     return {
       provider: 'vimeo',
       label: 'Vimeo',
       previewUrl: null,
       downloadUrl: null,
-      previewNote: 'Vimeo thumbnails need an extra API call, so none is shown.',
+      // A still would cost an API call per card, but the player itself embeds
+      // with no call at all — so the detail view can play it even though the
+      // card cannot show a thumbnail.
+      embedUrl: id ? `https://player.vimeo.com/video/${id[1]}` : null,
+      embedKind: 'iframe',
+      previewNote: id
+        ? 'Vimeo thumbnails need an extra API call, so the card shows none.'
+        : 'Could not read a video ID from this Vimeo link.',
     };
   }
 

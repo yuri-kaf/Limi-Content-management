@@ -71,6 +71,12 @@ export default function ContentDetailModal({
   const platforms = item.platforms ?? [];
   const versions = item.versions ?? [];
   const stage = STAGES.find((s) => s.id === item.status);
+  // A cross-origin frame reports a successful load even when what it rendered
+  // is a permission wall, so failure can't be detected here. Signpost the way
+  // out instead — but only for the providers where sharing is the likely cause;
+  // it is noise on a public YouTube or Vimeo URL.
+  const needsLinkSharing =
+    media.provider === 'drive' || media.provider === 'onedrive' || media.provider === 'dropbox';
 
   function handleCopy(which: CopyTarget, text: string) {
     if (!text) return;
@@ -182,16 +188,30 @@ export default function ContentDetailModal({
           <div className={sheetPane}>
             {/* Media — an embedded viewer when the provider offers one,
                 otherwise the still thumbnail, otherwise a placeholder. */}
+            {/* flex-shrink-0 is load-bearing: this is a flex item in a pane of
+                constrained height, and without it flex shrinking wins over
+                aspect-ratio and squashes the player out of 16:9. */}
             <div
-              className="relative rounded-tile overflow-hidden bg-raised dark:bg-raised-dark"
+              className="relative flex-shrink-0 rounded-tile overflow-hidden bg-raised dark:bg-raised-dark"
               style={{ aspectRatio: '16/9' }}
             >
-              {media.embedUrl ? (
+              {media.embedUrl && media.embedKind === 'video' && !isGraphic ? (
+                // The one provider that serves the bytes, so it gets real
+                // controls instead of someone else's player.
+                <video
+                  src={media.embedUrl}
+                  poster={thumbnailUrl ?? undefined}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full bg-black"
+                />
+              ) : media.embedUrl && media.embedKind === 'iframe' ? (
                 <iframe
                   src={media.embedUrl}
                   title={item.title}
                   className="w-full h-full border-0"
-                  allow="autoplay; fullscreen; picture-in-picture"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                   allowFullScreen
                 />
               ) : thumbnailUrl && !imgError ? (
@@ -208,13 +228,10 @@ export default function ContentDetailModal({
               )}
             </div>
 
-            {/* A cross-origin frame reports a successful load even when what it
-                rendered is a sign-in wall, so failure can't be detected here —
-                the way out is signposted instead. */}
-            {media.embedUrl && (
+            {media.embedUrl && needsLinkSharing && (
               <p className={`-mt-2 text-[11px] leading-relaxed ${faintText}`}>
-                Not loading? The file needs to be shared as “Anyone with the link” —
-                otherwise use Open in {media.label} below.
+                Not playing? The file has to be shared as “Anyone with the link”
+                — otherwise use Open in {media.label} below.
               </p>
             )}
 
