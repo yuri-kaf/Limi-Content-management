@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -29,11 +29,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const nav = buildNav(clients, currentUser);
   const width = collapsed ? SIDEBAR_RAIL : SIDEBAR_WIDTH;
 
+  // Persist as an effect, not inside the updater. A state updater must be pure
+  // — StrictMode double-invokes it, and a write in there fires twice per click.
+  useEffect(() => {
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+  }, [collapsed]);
+
   function toggleCollapsed() {
-    setCollapsed((c) => {
-      localStorage.setItem(COLLAPSE_KEY, c ? '0' : '1');
-      return !c;
-    });
+    setCollapsed((c) => !c);
   }
 
   // Navigating from the drawer must also close it, or a phone user lands on the

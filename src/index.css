@@ -12,8 +12,9 @@ html {
 }
 
 body {
-  background-color: #f9f9f9;
-  color: #111111;
+  /* Tokens, not literals: these used to hardcode #f9f9f9 / #080808, and the
+     dark value was a canvas colour the palette no longer has. */
+  @apply bg-canvas text-ink dark:bg-canvas-dark dark:text-ink-dark;
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
@@ -25,19 +26,14 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-html.dark body {
-  background-color: #080808;
-  color: #f0f0f0;
-}
-
 /* Scrollbar — dark */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
+::-webkit-scrollbar-thumb { background: #d8d7d2; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b3b2ac; }
 
-html.dark ::-webkit-scrollbar-thumb { background: #222; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #333; }
+html.dark ::-webkit-scrollbar-thumb { background: #3a3a3a; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
 
 /* Native date/time/select pickers: use matching color-scheme */
 input[type="date"], input[type="time"], select { color-scheme: light; }
