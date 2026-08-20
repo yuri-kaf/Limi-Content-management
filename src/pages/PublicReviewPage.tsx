@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { CheckCircle, XCircle, ExternalLink, Download, Film, Image as ImageIcon } from 'lucide-react';
 import { useShare } from '../store';
 import { getMediaInfo, runWrite } from '../utils';
+import Logo from '../components/Logo';
 
 export default function PublicReviewPage() {
   const { token } = useParams<{ token: string }>();
@@ -55,9 +56,7 @@ export default function PublicReviewPage() {
   return shell(
     <>
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-8 h-8 bg-[#dc2626] rounded-lg flex items-center justify-center shadow-md shadow-red-900/40">
-          <span className="text-white font-bold text-sm leading-none">L</span>
-        </div>
+        <Logo variant="full" size={40} />
         <div>
           <span className="text-neutral-900 dark:text-white font-bold text-[15px]">Limi</span>
           <p className="text-[11px] text-neutral-400 dark:text-[#555]">{share.clientName}</p>

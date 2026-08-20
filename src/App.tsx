@@ -10,15 +10,14 @@ import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
 import AppShell from './components/AppShell';
+import Logo from './components/Logo';
 
 function FirebaseSetupGuide() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-[#080808] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl p-6">
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 bg-[#dc2626] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">L</span>
-          </div>
+          <Logo variant="mark" size={32} />
           <span className="text-neutral-900 dark:text-white font-bold text-base">Limi · Setup Required</span>
         </div>
         <p className="text-neutral-500 dark:text-[#888] text-sm mb-5 leading-relaxed">

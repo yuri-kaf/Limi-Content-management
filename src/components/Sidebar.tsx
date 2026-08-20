@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { NavModel } from '../nav';
 import ClientAvatar from './ClientAvatar';
+import Logo from './Logo';
 import {
   sidebar, navItem, navGroupLabel, navBadge, btnIcon, heading, faintText,
 } from '../ui';
@@ -29,9 +30,7 @@ export default function Sidebar({
     <nav className={sidebar} aria-label="Main">
       {/* Brand + collapse */}
       <div className="flex items-center gap-2 h-11 px-3 flex-shrink-0">
-        <div className="w-5 h-5 bg-brand rounded flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-[10px] leading-none">L</span>
-        </div>
+        <Logo variant="mark" size={20} />
         {!collapsed && <span className={`${heading} text-[13px]`}>Limi</span>}
         <button
           onClick={onToggleCollapsed}

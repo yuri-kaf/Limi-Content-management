@@ -7,6 +7,7 @@ import { useUsers } from '../store';
 import { useClients } from '../store';
 import { AppUser, UserRole } from '../types';
 import { runWrite } from '../utils';
+import Logo from '../components/Logo';
 import {
   page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint,
   input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon,
@@ -277,9 +278,7 @@ export default function UserManagementPage() {
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-brand rounded-xl flex items-center justify-center shadow-pill">
-              <span className="text-white font-bold text-xs leading-none">L</span>
-            </div>
+            <Logo variant="mark" size={28} />
             <span className={`${heading} text-[15px]`}>Limi</span>
           </div>
           <div className="flex items-center gap-2">

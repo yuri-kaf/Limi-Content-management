@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import {
@@ -37,11 +38,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2.5 mb-3">
-            <div className="w-10 h-10 bg-brand rounded-tile flex items-center justify-center shadow-pill">
-              <span className="text-white font-bold text-lg leading-none">L</span>
-            </div>
-            <span className={`${heading} text-2xl`}>Limi</span>
+          <div className="inline-flex items-center justify-center mb-3">
+            <Logo variant="full" size={92} />
           </div>
           <p className={`text-sm ${faintText}`}>Content operations platform</p>
         </div>
