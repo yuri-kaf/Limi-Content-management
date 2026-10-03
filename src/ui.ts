@@ -296,3 +296,39 @@ export const columnBodyPlain =
 // One column, full width, its own scroll region. The desktop board keeps the
 // fixed 280px columns; this is the same column body at a different width.
 export const boardSingle = 'flex-1 min-h-0 flex flex-col px-3 pb-3 pt-2';
+
+// ---------------------------------------------------------------------------
+// Client workspace
+// ---------------------------------------------------------------------------
+
+// The tab bar under the breadcrumb. Tabs are underlined rather than boxed: a
+// second segmented control there would read as a toolbar, not as places.
+export const workspaceTabRow =
+  'flex items-center gap-2 px-4 h-11 flex-shrink-0 border-b border-hairline dark:border-hairline-dark';
+
+// Scrolls sideways on a phone instead of wrapping. The scrollbar is hidden
+// because a cut-off last tab already says there is more. Only the list
+// scrolls, so the menu beside it can still drop down out of the bar.
+export const workspaceTabList =
+  'flex items-stretch gap-1 h-full min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]';
+
+export function workspaceTab(active: boolean) {
+  return `inline-flex items-center h-full px-2 border-b-2 text-[13px] font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark ${
+    active
+      ? 'border-ink dark:border-ink-dark text-ink dark:text-ink-dark'
+      : 'border-transparent text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark'
+  }`;
+}
+
+// Business scope chips: quiet until chosen, like a nav row.
+export function scopeChip(active: boolean) {
+  return `inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile text-[12px] font-medium whitespace-nowrap border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
+    active
+      ? 'bg-hover dark:bg-hover-dark border-hairline dark:border-hairline-dark text-ink dark:text-ink-dark'
+      : 'border-transparent text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark'
+  }`;
+}
+
+// A compact native select for toolbars, sized to sit beside the 36px buttons.
+export const toolbarSelect =
+  'h-9 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark focus:outline-none focus:ring-2 focus:ring-brand/30';
