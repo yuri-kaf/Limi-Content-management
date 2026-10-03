@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { X, Film, Image as ImageIcon } from 'lucide-react';
 import { Business, Campaign, ContentItem, ContentStatus, MediaType, Platform } from '../types';
+import { businessIdOf } from '../campaigns';
+import CampaignOptions from './CampaignOptions';
 import {
   extractDriveFileId, getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
 } from '../utils';
@@ -22,9 +24,12 @@ export interface ContentFormData {
   scheduledAt?: number;
   /** Absent only while the client has no business at all. */
   businessId?: string;
-  /** null when the item is in no campaign. */
-  campaignId: string | null;
-  deliverableId: string | null;
+  /**
+   * null takes the item out of its campaign (or its deliverable). Absent when
+   * an edit never touched the pickers: the filing is left as stored.
+   */
+  campaignId?: string | null;
+  deliverableId?: string | null;
 }
 
 interface Props {
@@ -61,22 +66,34 @@ export default function AddContentModal({
   const [hashtags, setHashtags] = useState(existingItem?.hashtags ?? '');
   const [platforms, setPlatforms] = useState<Platform[]>(existingItem?.platforms ?? []);
   const [notes, setNotes] = useState(existingItem ? teamNotesOf(existingItem) : '');
-  // A campaign that has since been deleted is treated as none.
-  const initialCampaign = campaigns.find(
-    (c) => c.id === (existingItem?.campaignId ?? defaultCampaignId)
+  // The pickers start from what the item has stored, not from what can be
+  // found in `campaigns`: on a slow connection that list may still be on its
+  // way, and reading "not found" as "no campaign" would unlink the item the
+  // moment a title edit was saved.
+  const [campaignId, setCampaignId] = useState(
+    existingItem?.campaignId ?? defaultCampaignId ?? ''
   );
-  const initialDeliverable = initialCampaign?.deliverables.find(
-    (d) => d.id === (existingItem?.deliverableId ?? defaultDeliverableId)
+  const [deliverableId, setDeliverableId] = useState(
+    existingItem?.deliverableId ?? defaultDeliverableId ?? ''
   );
-  const [campaignId, setCampaignId] = useState(initialCampaign?.id ?? '');
-  const [deliverableId, setDeliverableId] = useState(initialDeliverable?.id ?? '');
   // A campaign's business wins: content in a campaign carries its business.
   const [businessId, setBusinessId] = useState(
-    initialCampaign?.businessId ?? existingItem?.businessId ?? defaultBusinessId ?? businesses[0]?.id ?? ''
+    () =>
+      campaigns.find((c) => c.id === campaignId)?.businessId ??
+      (existingItem ? businessIdOf(existingItem, businesses) : defaultBusinessId) ??
+      businesses[0]?.id ??
+      ''
   );
-  const [mediaType, setMediaType] = useState<MediaType>(
-    existingItem ? mediaTypeOf(existingItem) : initialDeliverable?.mediaType ?? 'video'
-  );
+  // Set once any of the three pickers is changed. Until then an edit leaves
+  // the item's filing exactly as stored.
+  const [filingTouched, setFilingTouched] = useState(false);
+  const [mediaType, setMediaType] = useState<MediaType>(() => {
+    if (existingItem) return mediaTypeOf(existingItem);
+    const deliverable = campaigns
+      .find((c) => c.id === campaignId)
+      ?.deliverables.find((d) => d.id === deliverableId);
+    return deliverable?.mediaType ?? 'video';
+  });
   const [imgError, setImgError] = useState(false);
   const isGraphic = mediaType === 'graphic';
 
@@ -105,8 +122,11 @@ export default function AddContentModal({
   }
 
   const selectedCampaign = campaigns.find((c) => c.id === campaignId);
+  // A field alone in the row takes all of it rather than half.
+  const fieldSpan = businesses.length >= 2 && campaigns.length > 0 ? '' : 'sm:col-span-2';
 
   function chooseBusiness(id: string) {
+    setFilingTouched(true);
     setBusinessId(id);
     // A campaign belongs to one business; keeping it would file the item
     // under two.
@@ -117,6 +137,7 @@ export default function AddContentModal({
   }
 
   function chooseCampaign(id: string) {
+    setFilingTouched(true);
     setCampaignId(id);
     setDeliverableId('');
     const campaign = campaigns.find((c) => c.id === id);
@@ -124,9 +145,12 @@ export default function AddContentModal({
   }
 
   function chooseDeliverable(id: string) {
+    setFilingTouched(true);
     setDeliverableId(id);
+    // A deliverable's media type pre-fills new content only. An existing item
+    // is what it is: filing a video under a graphics slot must not relabel it.
     const deliverable = selectedCampaign?.deliverables.find((d) => d.id === id);
-    if (deliverable?.mediaType) {
+    if (!isEdit && deliverable?.mediaType) {
       setMediaType(deliverable.mediaType);
       setImgError(false);
     }
@@ -142,6 +166,12 @@ export default function AddContentModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !driveLink.trim()) return;
+    // An edit that never touched the pickers sends no filing at all, which
+    // updateContent reads as "leave as stored". Anything chosen is checked
+    // against what exists now, so a campaign or deliverable deleted while the
+    // form was open is saved as none rather than as a dangling id.
+    const keepFiling = isEdit && !filingTouched;
+    const deliverable = selectedCampaign?.deliverables.find((d) => d.id === deliverableId);
     onSubmit({
       title: title.trim(),
       driveLink: driveLink.trim(),
@@ -154,8 +184,9 @@ export default function AddContentModal({
       status: existingItem?.status ?? defaultStatus,
       scheduledAt: getScheduledAt(),
       ...(businessId ? { businessId } : {}),
-      campaignId: campaignId || null,
-      deliverableId: (campaignId && deliverableId) || null,
+      ...(keepFiling
+        ? {}
+        : { campaignId: selectedCampaign?.id ?? null, deliverableId: deliverable?.id ?? null }),
     });
     onClose();
   }
@@ -197,7 +228,7 @@ export default function AddContentModal({
           {(businesses.length >= 2 || campaigns.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {businesses.length >= 2 && (
-                <div>
+                <div className={fieldSpan}>
                   <label className={label} htmlFor="content-business">Business</label>
                   <select
                     id="content-business"
@@ -212,7 +243,7 @@ export default function AddContentModal({
                 </div>
               )}
               {campaigns.length > 0 && (
-                <div>
+                <div className={fieldSpan}>
                   <label className={label} htmlFor="content-campaign">
                     Campaign <span className={labelAside}>(optional)</span>
                   </label>
@@ -223,25 +254,10 @@ export default function AddContentModal({
                     className={input}
                   >
                     <option value="">No campaign</option>
-                    {/* Every campaign is offered — choosing one files the item
+                    {/* Every campaign is offered: choosing one files the item
                         under that campaign's business, so the business picker
-                        never has to come first. With several businesses they
-                        are grouped, so two campaigns of the same name can be
-                        told apart. */}
-                    {businesses.length >= 2
-                      ? businesses.map((b) => {
-                          const own = campaigns.filter((c) => c.businessId === b.id);
-                          return own.length === 0 ? null : (
-                            <optgroup key={b.id} label={b.name}>
-                              {own.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </optgroup>
-                          );
-                        })
-                      : campaigns.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
+                        never has to come first. */}
+                    <CampaignOptions campaigns={campaigns} businesses={businesses} />
                   </select>
                 </div>
               )}

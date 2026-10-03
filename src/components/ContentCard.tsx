@@ -230,10 +230,11 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
           {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
               {/* First, because it says which push this belongs to before the
-                  signals say how it is going. Capped so a long campaign name
-                  cannot push the review badge to a second line. */}
+                  signals say how it is going. Capped at 96px: in a 280px column
+                  beside a thumbnail, anything wider pushes an "Approved" badge
+                  onto a second line. The full name is on hover. */}
               {campaign && (
-                <ColorLabel color={campaign.color} className="max-w-[120px]">
+                <ColorLabel color={campaign.color} className="max-w-[96px]" title={campaign.name}>
                   {campaign.name}
                 </ColorLabel>
               )}
