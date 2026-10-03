@@ -13,13 +13,16 @@ export const NO_CAMPAIGN = '__none__';
  * The business an item or idea belongs to. Anything written before businesses
  * existed has no businessId and belongs to the client's first business — the
  * one the migration creates — so nothing goes missing between deploying this
- * and running the migration.
+ * and running the migration. An id naming a business that is gone (possible if
+ * a delete raced an edit) falls back the same way, rather than leaving the item
+ * outside every business, where no business view would ever show it.
  */
 export function businessIdOf(
   item: { businessId?: string },
   businesses: Pick<Business, 'id'>[]
 ): string | undefined {
-  return item.businessId ?? businesses[0]?.id;
+  const id = item.businessId;
+  return id && businesses.some((b) => b.id === id) ? id : businesses[0]?.id;
 }
 
 /** A campaignId naming a campaign that no longer exists counts as none. */
@@ -61,6 +64,13 @@ export interface DeliverableProgress {
   /** Items linked to this deliverable, oldest first. */
   items: ContentItem[];
   posted: number;
+  /**
+   * The target, or more if more were made. Every view of a deliverable's
+   * progress reads this rather than the target, so a row and the campaign it
+   * belongs to can never disagree: four reels made against three planned is
+   * "3 of 4 posted" in both, not "3/3" in one and 75% in the other.
+   */
+  planned: number;
 }
 
 // Progress is counted, never stored, so it cannot drift from the board.
@@ -70,7 +80,12 @@ export function deliverableProgress(campaign: Campaign, content: ContentItem[]):
     const items = inCampaign
       .filter((i) => i.deliverableId === deliverable.id)
       .sort((a, b) => a.createdAt - b.createdAt);
-    return { deliverable, items, posted: items.filter((i) => i.status === 'posted').length };
+    return {
+      deliverable,
+      items,
+      posted: items.filter((i) => i.status === 'posted').length,
+      planned: Math.max(deliverable.target, items.length),
+    };
   });
 }
 
@@ -95,8 +110,7 @@ export interface CampaignProgress {
 export function campaignProgress(campaign: Campaign, content: ContentItem[]): CampaignProgress {
   const slots = deliverableProgress(campaign, content);
   const extra = unslottedContent(campaign, content);
-  const planned =
-    slots.reduce((sum, s) => sum + Math.max(s.deliverable.target, s.items.length), 0) + extra.length;
+  const planned = slots.reduce((sum, s) => sum + s.planned, 0) + extra.length;
   const posted =
     slots.reduce((sum, s) => sum + s.posted, 0) + extra.filter((i) => i.status === 'posted').length;
   return { posted, planned, ratio: planned === 0 ? 0 : posted / planned };
@@ -200,6 +214,11 @@ export function businessDeleteBlocker(
   return null;
 }
 
+// The id of the business every client starts with. Fixed rather than random,
+// so that creating it is idempotent: two tabs or two admins running the
+// migration at once write the same document instead of two "first" businesses.
+export const DEFAULT_BUSINESS_ID = 'main';
+
 /** The business every client starts with, named, coloured and pictured after the client. */
 export function defaultBusinessFor(
   client: { name: string; imageUrl?: string; about?: string; color?: FolderColor },
@@ -237,6 +256,8 @@ export function planBusinessMigration(
 
 // ─── Dates ───────────────────────────────────────────────────────────────────
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
  * 'YYYY-MM-DD' as "Oct 3". Built from the parts rather than new Date(value),
  * which reads an ISO day as UTC midnight — the day before, west of Greenwich.
@@ -246,10 +267,14 @@ function dayLabel(value: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Anything that is not an ISO day counts as no date, so a hand-edited value
+// renders as nothing rather than "From Invalid Date".
 export function formatDateRange(start?: string, end?: string): string {
-  if (start && end) return `${dayLabel(start)} – ${dayLabel(end)}`;
-  if (start) return `From ${dayLabel(start)}`;
-  if (end) return `Until ${dayLabel(end)}`;
+  const from = start && ISO_DAY.test(start) ? start : undefined;
+  const to = end && ISO_DAY.test(end) ? end : undefined;
+  if (from && to) return from === to ? dayLabel(from) : `${dayLabel(from)} – ${dayLabel(to)}`;
+  if (from) return `From ${dayLabel(from)}`;
+  if (to) return `Until ${dayLabel(to)}`;
   return '';
 }
 

@@ -1,5 +1,7 @@
 import { contrastRatio } from './color';
-import { DEFAULT_FOLDER_COLOR, FOLDER_COLORS, folderColor, folderColorVars } from './folderColors';
+import {
+  DEFAULT_FOLDER_COLOR, FOLDER_COLORS, folderColor, folderColorVars, folderTint,
+} from './folderColors';
 
 const AA = 4.5;
 
@@ -23,6 +25,14 @@ describe('folder colours', () => {
     expect(folderColor(undefined).id).toBe('blue');
     expect(folderColor('chartreuse').id).toBe('blue');
     expect(folderColor('pink').id).toBe('pink');
+  });
+
+  it('sets every custom property the tint classes read', () => {
+    // Renaming one side without the other would silently un-colour every label.
+    const read = [...folderTint.matchAll(/var\((--fc-[a-z-]+)\)/g)].map((m) => m[1]);
+    const set = Object.keys(folderColorVars('green'));
+    expect(read.length).toBeGreaterThan(0);
+    for (const name of read) expect(set).toContain(name);
   });
 
   it('exposes both theme pairs as custom properties', () => {

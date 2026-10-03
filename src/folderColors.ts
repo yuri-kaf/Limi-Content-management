@@ -43,9 +43,12 @@ export const FOLDER_COLORS: FolderColorDef[] = [
 
 export const DEFAULT_FOLDER_COLOR: FolderColor = 'blue';
 
-/** A stored value may predate colours or be hand-edited, so anything unknown is blue. */
+/** A stored value may predate colours or be hand-edited, so anything unknown is the default. */
 export function folderColor(value: string | undefined): FolderColorDef {
-  return FOLDER_COLORS.find((c) => c.id === value) ?? FOLDER_COLORS[0];
+  return (
+    FOLDER_COLORS.find((c) => c.id === value) ??
+    FOLDER_COLORS.find((c) => c.id === DEFAULT_FOLDER_COLOR)!
+  );
 }
 
 // An inline style cannot express a dark-mode variant, and reading the theme

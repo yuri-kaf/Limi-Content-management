@@ -39,6 +39,10 @@ describe('businessIdOf', () => {
   it('is undefined while the client has no business yet', () => {
     expect(businessIdOf(item(), [])).toBeUndefined();
   });
+
+  it('falls back to the first business when its own is gone', () => {
+    expect(businessIdOf(item({ businessId: 'deleted' }), [B1, B2])).toBe('b1');
+  });
 });
 
 describe('campaignIdOf', () => {
@@ -102,7 +106,19 @@ describe('deliverable and campaign progress', () => {
     const [r, c] = deliverableProgress(summer, content);
     expect(r.items.map((i) => i.id)).toEqual(['r2', 'r1']);
     expect(r.posted).toBe(1);
+    expect(r.planned).toBe(3);
     expect(c.items).toHaveLength(0);
+    expect(c.planned).toBe(2);
+  });
+
+  it('agrees with the campaign when a deliverable runs over its target', () => {
+    const reelsOnly = campaign('c1', { deliverables: [{ id: 'd', label: 'Reels', target: 3 }] });
+    const made = [1, 2, 3, 4].map((n) =>
+      item({ id: `r${n}`, campaignId: 'c1', deliverableId: 'd', status: n < 4 ? 'posted' : 'review' })
+    );
+    const [slot] = deliverableProgress(reelsOnly, made);
+    expect(slot).toMatchObject({ posted: 3, planned: 4 });
+    expect(campaignProgress(reelsOnly, made)).toMatchObject({ posted: 3, planned: 4 });
   });
 
   it('treats items with no deliverable, or a removed one, as unslotted', () => {
@@ -185,8 +201,9 @@ describe('businessDeleteBlocker', () => {
       .toMatch(/2 campaigns/);
   });
 
-  it('allows deleting an empty business', () => {
-    expect(businessDeleteBlocker('b2', [B1, B2], [item({ businessId: 'b1' })], [])).toBeNull();
+  it('allows deleting an empty later business, whatever the first one holds', () => {
+    const content = [item({ businessId: 'b1' }), item({ id: 'unfiled' })];
+    expect(businessDeleteBlocker('b2', [B1, B2], content, [])).toBeNull();
   });
 });
 
@@ -238,17 +255,27 @@ describe('calendar days', () => {
     expect(formatDateRange()).toBe('');
   });
 
+  it('names a one-day campaign once', () => {
+    expect(formatDateRange('2026-10-03', '2026-10-03')).toBe('Oct 3');
+  });
+
+  it('treats a malformed day as no date', () => {
+    expect(formatDateRange('03/10/2026')).toBe('');
+    expect(formatDateRange('2026-10-03', 'soon')).toBe('From Oct 3');
+  });
+
   it('reads a day as a local date, so it never shows as the day before', () => {
     // new Date('2026-10-01') is UTC midnight, which is still Sep 30 in Los
     // Angeles. The suite normally runs east of Greenwich, where that bug cannot
     // show, so this pins a western zone. Node re-reads TZ when it is assigned.
-    const zone = process.env.TZ;
+    // Restored by assignment, never by deleting the variable: on Windows a
+    // deleted TZ leaves the process in the zone that was last assigned.
+    const zone = process.env.TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     process.env.TZ = 'America/Los_Angeles';
     try {
       expect(formatDateRange('2026-10-01')).toBe('From Oct 1');
     } finally {
-      if (zone === undefined) delete process.env.TZ;
-      else process.env.TZ = zone;
+      process.env.TZ = zone;
     }
   });
 

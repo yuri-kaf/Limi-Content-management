@@ -25,8 +25,12 @@ export const DEFAULT_TAB: WorkspaceTab = 'content';
 // client-facing version belongs to the client portal, designed separately.
 const CLIENT_TABS: WorkspaceTab[] = ['content', 'calendar', 'ideas'];
 
+// The team tabs are granted, not defaulted: a role that has not loaded yet, or
+// one this code does not know, gets the narrower client set — the same
+// show-less-until-sure rule the sidebar follows.
 export function tabsFor(role: UserRole | undefined): TabDef[] {
-  return role === 'client' ? ALL_TABS.filter((t) => CLIENT_TABS.includes(t.id)) : ALL_TABS;
+  const team = role === 'admin' || role === 'social-media-manager';
+  return team ? ALL_TABS : ALL_TABS.filter((t) => CLIENT_TABS.includes(t.id));
 }
 
 /** An unknown tab, or one this role cannot see, falls back to the default. */

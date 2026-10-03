@@ -10,6 +10,10 @@ describe('tabsFor', () => {
   it('gives a client the three views they already had', () => {
     expect(tabsFor('client').map((t) => t.id)).toEqual(['content', 'calendar', 'ideas']);
   });
+
+  it('gives a role that has not loaded only the client views', () => {
+    expect(tabsFor(undefined).map((t) => t.id)).toEqual(['content', 'calendar', 'ideas']);
+  });
 });
 
 describe('parseTab', () => {
