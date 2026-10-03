@@ -20,6 +20,7 @@ export default function ClientsPage() {
     clients, loading, addClient, updateClient,
     pendingMigration, migrateLegacyContent,
     pendingCaptionMigration, migrateLegacyCaptions,
+    pendingBusinessMigration, migrateBusinesses,
   } = useClients();
   const { currentUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -42,6 +43,17 @@ export default function ClientsPage() {
       const moved = await migrateLegacyContent();
       alert(`Moved ${moved} content item${moved === 1 ? '' : 's'} into the new structure.`);
     }, 'migrate the content');
+    setMigrating(false);
+  }
+
+  async function handleBusinessMigrate() {
+    setMigrating(true);
+    await runWrite(async () => {
+      const stamped = await migrateBusinesses();
+      alert(
+        `Every client now has a business. ${stamped} content item${stamped === 1 ? ' was' : 's were'} filed under ${stamped === 1 ? 'its' : 'their'} client's.`
+      );
+    }, 'set up businesses');
     setMigrating(false);
   }
 
@@ -101,6 +113,27 @@ export default function ClientsPage() {
           </p>
           <button onClick={handleMigrate} disabled={migrating} className={bannerBtn}>
             {migrating ? 'Migrating…' : 'Migrate content now'}
+          </button>
+        </div>
+      )}
+
+      {/* After the content migration, never alongside it: items still in the
+          old array are not in the subcollection yet, so they could not be
+          filed under a business. */}
+      {isAdmin && pendingMigration.length === 0 && pendingBusinessMigration.length > 0 && (
+        <div className={banner}>
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            Set up businesses
+          </h2>
+          <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+            A client can now run more than one business, each with its own content and
+            campaigns. {pendingBusinessMigration.length} client
+            {pendingBusinessMigration.length === 1 ? ' needs' : 's need'} a first business, named
+            after the client, with existing content filed under it. Nothing on the boards
+            changes, and it is safe to run twice.
+          </p>
+          <button onClick={handleBusinessMigrate} disabled={migrating} className={bannerBtn}>
+            {migrating ? 'Setting up…' : 'Set up businesses'}
           </button>
         </div>
       )}

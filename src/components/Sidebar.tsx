@@ -81,7 +81,7 @@ export default function Sidebar({
               aria-label={label}
               title={label}
             >
-              <ClientAvatar name={c.name} imageUrl={c.imageUrl} size={18} />
+              <ClientAvatar name={c.name} imageUrl={c.imageUrl} color={c.color} size={18} />
               {!collapsed && <span className="truncate">{c.name}</span>}
               {!collapsed && c.attention > 0 && <span className={navBadge}>{c.attention}</span>}
             </button>

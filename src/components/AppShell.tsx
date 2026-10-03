@@ -168,7 +168,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               place where which client you are looking at is the whole context,
               and a truncated name alone is the slowest way to convey it. */}
           {activeClient && (
-            <ClientAvatar name={activeClient.name} imageUrl={activeClient.imageUrl} size={22} />
+            <ClientAvatar name={activeClient.name} imageUrl={activeClient.imageUrl} color={activeClient.color} size={22} />
           )}
           <span className={breadcrumbText}>{crumb}</span>
 

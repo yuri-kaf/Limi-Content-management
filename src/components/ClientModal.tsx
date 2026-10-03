@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { Client } from '../types';
+import { Client, FolderColor } from '../types';
+import { DEFAULT_FOLDER_COLOR } from '../folderColors';
+import ColorSwatchPicker from './ColorSwatchPicker';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside,
   input, textarea, btnPrimary, btnGhost,
@@ -10,6 +12,7 @@ export interface ClientDraft {
   name: string;
   imageUrl?: string;
   about: string;
+  color: FolderColor;
 }
 
 interface Props {
@@ -26,11 +29,12 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
   const [name, setName] = useState(client?.name ?? '');
   const [imageUrl, setImageUrl] = useState(client?.imageUrl ?? '');
   const [about, setAbout] = useState(client?.about ?? '');
+  const [color, setColor] = useState<FolderColor>(client?.color ?? DEFAULT_FOLDER_COLOR);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave({ name: name.trim(), imageUrl: imageUrl.trim() || undefined, about: about.trim() });
+    onSave({ name: name.trim(), imageUrl: imageUrl.trim() || undefined, about: about.trim(), color });
     onClose();
   }
 
@@ -59,6 +63,13 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
               autoFocus
               className={input}
             />
+          </div>
+
+          {/* Like picking a folder colour in OneDrive: the colour marks this
+              client everywhere it appears. */}
+          <div>
+            <label className={label}>Folder colour</label>
+            <ColorSwatchPicker value={color} onChange={setColor} label="Folder colour" />
           </div>
 
           <div>

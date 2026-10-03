@@ -58,6 +58,11 @@ describe('buildNav', () => {
     expect(nav.clients.find((c) => c.id === 'bolt')!.attention).toBe(0);
   });
 
+  it('carries each client folder colour into the tree', () => {
+    const coloured = { ...client('acme'), color: 'pink' as const };
+    expect(buildNav([coloured], user('admin')).clients[0].color).toBe('pink');
+  });
+
   it('is empty while the user is still resolving', () => {
     expect(buildNav(clients, null)).toEqual({ clients: [], showTeam: false });
   });
