@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Film, Image as ImageIcon } from 'lucide-react';
-import { ContentItem, ContentStatus, MediaType, Platform } from '../types';
+import { Business, Campaign, ContentItem, ContentStatus, MediaType, Platform } from '../types';
 import {
   extractDriveFileId, getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
 } from '../utils';
@@ -9,7 +9,7 @@ import {
   input, textarea, chip, btnPrimary, btnGhost, faintText,
 } from '../ui';
 
-interface SubmitData {
+export interface ContentFormData {
   title: string;
   driveLink: string;
   driveFileId: string;
@@ -20,6 +20,11 @@ interface SubmitData {
   notes?: string;
   status: ContentStatus;
   scheduledAt?: number;
+  /** Absent only while the client has no business at all. */
+  businessId?: string;
+  /** null when the item is in no campaign. */
+  campaignId: string | null;
+  deliverableId: string | null;
 }
 
 interface Props {
@@ -29,13 +34,22 @@ interface Props {
   defaultCaption?: string;
   defaultLink?: string;
   existingItem?: ContentItem;
+  /** The client's businesses, oldest first. The picker shows only with two or more. */
+  businesses?: Business[];
+  /** The client's campaigns. The picker shows only when there are some. */
+  campaigns?: Campaign[];
+  defaultBusinessId?: string;
+  defaultCampaignId?: string;
+  defaultDeliverableId?: string;
   onClose: () => void;
-  onSubmit: (data: SubmitData) => void;
+  onSubmit: (data: ContentFormData) => void;
 }
 
 export default function AddContentModal({
   defaultStatus, defaultScheduledAt, defaultTitle, defaultCaption, defaultLink,
-  existingItem, onClose, onSubmit,
+  existingItem, businesses = [], campaigns = [],
+  defaultBusinessId, defaultCampaignId, defaultDeliverableId,
+  onClose, onSubmit,
 }: Props) {
   const isEdit = !!existingItem;
 
@@ -47,8 +61,21 @@ export default function AddContentModal({
   const [hashtags, setHashtags] = useState(existingItem?.hashtags ?? '');
   const [platforms, setPlatforms] = useState<Platform[]>(existingItem?.platforms ?? []);
   const [notes, setNotes] = useState(existingItem ? teamNotesOf(existingItem) : '');
+  // A campaign that has since been deleted is treated as none.
+  const initialCampaign = campaigns.find(
+    (c) => c.id === (existingItem?.campaignId ?? defaultCampaignId)
+  );
+  const initialDeliverable = initialCampaign?.deliverables.find(
+    (d) => d.id === (existingItem?.deliverableId ?? defaultDeliverableId)
+  );
+  const [campaignId, setCampaignId] = useState(initialCampaign?.id ?? '');
+  const [deliverableId, setDeliverableId] = useState(initialDeliverable?.id ?? '');
+  // A campaign's business wins: content in a campaign carries its business.
+  const [businessId, setBusinessId] = useState(
+    initialCampaign?.businessId ?? existingItem?.businessId ?? defaultBusinessId ?? businesses[0]?.id ?? ''
+  );
   const [mediaType, setMediaType] = useState<MediaType>(
-    existingItem ? mediaTypeOf(existingItem) : 'video'
+    existingItem ? mediaTypeOf(existingItem) : initialDeliverable?.mediaType ?? 'video'
   );
   const [imgError, setImgError] = useState(false);
   const isGraphic = mediaType === 'graphic';
@@ -77,6 +104,34 @@ export default function AddContentModal({
     setImgError(false);
   }
 
+  const selectedCampaign = campaigns.find((c) => c.id === campaignId);
+
+  function chooseBusiness(id: string) {
+    setBusinessId(id);
+    // A campaign belongs to one business; keeping it would file the item
+    // under two.
+    if (selectedCampaign && selectedCampaign.businessId !== id) {
+      setCampaignId('');
+      setDeliverableId('');
+    }
+  }
+
+  function chooseCampaign(id: string) {
+    setCampaignId(id);
+    setDeliverableId('');
+    const campaign = campaigns.find((c) => c.id === id);
+    if (campaign) setBusinessId(campaign.businessId);
+  }
+
+  function chooseDeliverable(id: string) {
+    setDeliverableId(id);
+    const deliverable = selectedCampaign?.deliverables.find((d) => d.id === id);
+    if (deliverable?.mediaType) {
+      setMediaType(deliverable.mediaType);
+      setImgError(false);
+    }
+  }
+
   function getScheduledAt(): number | undefined {
     if (!schedDate) return undefined;
     const timeStr = schedTime || '00:00';
@@ -98,6 +153,9 @@ export default function AddContentModal({
       notes: notes.trim() || undefined,
       status: existingItem?.status ?? defaultStatus,
       scheduledAt: getScheduledAt(),
+      ...(businessId ? { businessId } : {}),
+      campaignId: campaignId || null,
+      deliverableId: (campaignId && deliverableId) || null,
     });
     onClose();
   }
@@ -136,9 +194,82 @@ export default function AddContentModal({
             </div>
           </div>
 
+          {(businesses.length >= 2 || campaigns.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {businesses.length >= 2 && (
+                <div>
+                  <label className={label} htmlFor="content-business">Business</label>
+                  <select
+                    id="content-business"
+                    value={businessId}
+                    onChange={(e) => chooseBusiness(e.target.value)}
+                    className={input}
+                  >
+                    {businesses.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {campaigns.length > 0 && (
+                <div>
+                  <label className={label} htmlFor="content-campaign">
+                    Campaign <span className={labelAside}>(optional)</span>
+                  </label>
+                  <select
+                    id="content-campaign"
+                    value={campaignId}
+                    onChange={(e) => chooseCampaign(e.target.value)}
+                    className={input}
+                  >
+                    <option value="">No campaign</option>
+                    {/* Every campaign is offered — choosing one files the item
+                        under that campaign's business, so the business picker
+                        never has to come first. With several businesses they
+                        are grouped, so two campaigns of the same name can be
+                        told apart. */}
+                    {businesses.length >= 2
+                      ? businesses.map((b) => {
+                          const own = campaigns.filter((c) => c.businessId === b.id);
+                          return own.length === 0 ? null : (
+                            <optgroup key={b.id} label={b.name}>
+                              {own.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </optgroup>
+                          );
+                        })
+                      : campaigns.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                  </select>
+                </div>
+              )}
+              {selectedCampaign && selectedCampaign.deliverables.length > 0 && (
+                <div className="sm:col-span-2">
+                  <label className={label} htmlFor="content-deliverable">
+                    Fills <span className={labelAside}>(optional)</span>
+                  </label>
+                  <select
+                    id="content-deliverable"
+                    value={deliverableId}
+                    onChange={(e) => chooseDeliverable(e.target.value)}
+                    className={input}
+                  >
+                    <option value="">Not a planned deliverable</option>
+                    {selectedCampaign.deliverables.map((d) => (
+                      <option key={d.id} value={d.id}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
-            <label className={label}>Content Title</label>
+            <label className={label} htmlFor="content-title">Content Title</label>
             <input
+              id="content-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -149,8 +280,9 @@ export default function AddContentModal({
           </div>
 
           <div>
-            <label className={label}>Drive Link</label>
+            <label className={label} htmlFor="content-link">Drive Link</label>
             <input
+              id="content-link"
               type="text"
               value={driveLink}
               onChange={(e) => handleDriveLinkChange(e.target.value)}
