@@ -53,6 +53,15 @@ const CLIENT_PURPOSE: Record<string, string> = {
   posted: 'Nothing has been published yet.',
 };
 
+// Read out as the description of every card that can be moved. dnd-kit's own
+// text never mentions opening a card, which is what Enter does here.
+const SCREEN_READER_INSTRUCTIONS = {
+  draggable:
+    'Press Enter to open this item. To move it to another stage, press Space to pick it up, ' +
+    'the left and right arrow keys to carry it to a stage, and Space again to drop it there. ' +
+    'Escape puts it back.',
+};
+
 // A client's board is read-only, so it needs no droppable and no sortable —
 // same column shell, none of the drag machinery.
 function ReadOnlyColumn({
@@ -165,7 +174,8 @@ export default function ContentBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
-    // Without this the board is unusable without a pointer.
+    // Without this the board is unusable without a pointer. Space lifts a
+    // card; Enter opens it, and the card keeps that key from the sensor.
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -281,6 +291,7 @@ export default function ContentBoard({
 
       <DndContext
         sensors={sensors}
+        accessibility={{ screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}

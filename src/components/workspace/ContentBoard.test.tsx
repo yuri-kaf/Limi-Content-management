@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { DndContextProps } from '@dnd-kit/core';
 import { ThemeProvider } from '../../contexts/ThemeContext';
@@ -73,6 +73,23 @@ function renderBoard(over: Partial<BoardProps> = {}) {
   const rerender = (next: Partial<BoardProps>) =>
     view.rerender(<ThemeProvider><ContentBoard {...props} {...next} /></ThemeProvider>);
   return { ...props, rerender };
+}
+
+// The card itself, rather than one of the controls inside it. Its name is
+// everything it shows, so the title is matched anywhere in it.
+function card(title: string) {
+  return screen.getByRole('button', { name: new RegExp(title) });
+}
+
+function focus(element: HTMLElement) {
+  act(() => element.focus());
+}
+
+// A card dnd-kit is carrying is marked pressed, and its live region says so.
+// A key that should not lift a card leaves both alone.
+function expectNothingLifted() {
+  expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
 }
 
 describe('ContentBoard', () => {
@@ -177,6 +194,83 @@ describe('ContentBoard — moving cards', () => {
     const props = renderBoard({ isClientRole: true, content: [item({ id: 'a', status: 'review' })] });
     drop('a', 'posted');
     expect(props.onMove).not.toHaveBeenCalled();
+  });
+});
+
+describe('ContentBoard — keyboard', () => {
+  // dnd-kit never detaches a sensor when its board unmounts, so a drag a test
+  // left open would go on listening to the document and take the next test's
+  // Enter as a drop.
+  afterEach(async () => {
+    if (document.querySelector('[aria-pressed="true"]')) await userEvent.keyboard('{Escape}');
+  });
+
+  it('opens a card on Enter, rather than lifting it', async () => {
+    const props = renderBoard();
+    focus(card('Launch reel'));
+    await userEvent.keyboard('{Enter}');
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expectNothingLifted();
+  });
+
+  it('lifts a card on Space, and puts it back on Escape', async () => {
+    renderBoard();
+    const reel = card('Launch reel');
+    focus(reel);
+    await userEvent.keyboard(' ');
+    expect(reel).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.keyboard('{Escape}');
+    expect(reel).not.toHaveAttribute('aria-pressed');
+  });
+
+  it('drops a lifted card on Enter, without also opening it', async () => {
+    const props = renderBoard();
+    const reel = card('Launch reel');
+    focus(reel);
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{Enter}');
+    expect(reel).not.toHaveAttribute('aria-pressed');
+    expect(props.onOpen).not.toHaveBeenCalled();
+  });
+
+  it("edits on Enter or Space on a card's Edit button, without lifting the card", async () => {
+    const props = renderBoard();
+    const edit = within(card('Launch reel')).getByRole('button', { name: 'Edit' });
+    focus(edit);
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(props.onEdit).toHaveBeenCalledTimes(2);
+    expect(props.onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expect(props.onOpen).not.toHaveBeenCalled();
+    expectNothingLifted();
+  });
+
+  it("opens the sheet on Enter on a card's Delete button, where the delete is confirmed", async () => {
+    const props = renderBoard();
+    focus(within(card('Launch reel')).getByRole('button', { name: 'Delete' }));
+    await userEvent.keyboard('{Enter}');
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expectNothingLifted();
+  });
+
+  it("follows a card's link on Enter, without lifting or opening the card", async () => {
+    const props = renderBoard({
+      content: [item({ id: 'a', title: 'Launch reel', driveLink: 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345/view' })],
+    });
+    const link = within(card('Launch reel')).getByRole('link', { name: 'Open in Google Drive' });
+    // jsdom cannot navigate, so the click is recorded and stopped there.
+    const followed = vi.fn((e: Event) => e.preventDefault());
+    link.addEventListener('click', followed);
+    focus(link);
+    await userEvent.keyboard('{Enter}');
+    expect(followed).toHaveBeenCalled();
+    expect(props.onOpen).not.toHaveBeenCalled();
+    expectNothingLifted();
+  });
+
+  it('tells a screen reader that Enter opens a card and Space lifts it', () => {
+    renderBoard();
+    expect(card('Launch reel')).toHaveAccessibleDescription(/Enter to open .* Space to pick it up/);
   });
 });
 

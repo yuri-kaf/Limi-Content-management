@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Campaign, ContentItem } from '../types';
@@ -44,10 +44,27 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
   const platforms = item.platforms ?? [];
   const pressedAt = useRef<{ x: number; y: number } | null>(null);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging,
+  } = useSortable({
     id: item.id,
     disabled: isOverlay,
   });
+
+  // The card is both what moves and what a key lifts. Naming it the activator
+  // is what leaves keys pressed on the links and buttons inside it to them:
+  // without one, dnd-kit lifted the card on a key pressed anywhere within it
+  // and swallowed the key, so Enter on Edit started a drag and never edited.
+  const setCardRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setNodeRef(node);
+      setActivatorNodeRef(node);
+    },
+    [setNodeRef, setActivatorNodeRef]
+  );
+
+  // dnd-kit types its listeners as bare Functions.
+  const sensorListeners = listeners as Record<string, ((ev: unknown) => void) | undefined> | undefined;
 
   // The whole card is the drag surface. It used to be a hover-revealed 80x45
   // button over the thumbnail, so most attempts to drag a card grabbed dead
@@ -59,7 +76,20 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
         ...listeners,
         onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
           pressedAt.current = { x: e.clientX, y: e.clientY };
-          (listeners as Record<string, ((ev: unknown) => void) | undefined>)?.onPointerDown?.(e);
+          sensorListeners?.onPointerDown?.(e);
+        },
+        // Enter opens the card and Space lifts it. dnd-kit lifts on either by
+        // default, which left a keyboard user no way to open a card at all,
+        // though cards are opened far more often than moved. So Enter does
+        // what it does on any button and is kept from the sensor, and Space,
+        // the key the board's screen reader instructions name, lifts. While
+        // the card is being carried, Enter is the sensor's, to drop it with.
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === 'Enter' && e.target === e.currentTarget && !isDragging) {
+            onCardClick?.();
+            return;
+          }
+          sensorListeners?.onKeyDown?.(e);
         },
       };
 
@@ -111,7 +141,7 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setCardRef}
       style={style}
       // flex-shrink-0 is not cosmetic: the column body is a capped-height flex
       // column, and flexbox shrinks its children to fit before it will scroll —
