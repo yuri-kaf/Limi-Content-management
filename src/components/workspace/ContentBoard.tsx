@@ -183,8 +183,10 @@ export default function ContentBoard({
     return content.find((c) => c.id === overId)?.status ?? null;
   }
 
-  // The move belongs on drop. Committing on drag-over reordered the board under
-  // the cursor, which fired another drag-over and committed again.
+  // Committing on drag-over used to look like a live move, but each commit
+  // reordered the board under the cursor, which fired another drag-over and
+  // committed again. The move belongs on drop; the hover highlight comes from
+  // useDroppable's own isOver and needs no state write.
   function handleDragEnd(event: DragEndEvent) {
     setActiveItem(null);
     if (!canMove) return;
