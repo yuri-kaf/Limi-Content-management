@@ -94,6 +94,8 @@ Added after the Tasks 8–10 review (applied in `3a46a5c`; the Task 9 and 10 cod
 19. **Batch size and the rules' access-call budget:** Firestore allows 20 document-access calls per batched write and only says repeated calls *may* be cached. Every write here evaluates `isAdmin()` (an `exists` and a `get` of the caller's profile). Batches are kept at up to 400 writes; the supervised migration in Task 25 is the test — a rejected batch writes nothing — and if it fails with `permission-denied`, lower `BATCH_LIMIT` and chunk the other multi-write batches.
 20. **Tailwind same-property overrides do not work by class order** (found in the Tasks 11–14 review): `${input} w-[96px]` keeps `input`'s `w-full`, because Tailwind orders utilities itself. New code overrides with `!` where it must (the deliverables row) or uses the base size. Existing `h-9 min-h-0` button overrides throughout the app already render at the base size and the current look depends on it, so they are left for the visual refresh (sub-project 2).
 21. **The business and campaign forms await `onSave`** and stay open when it resolves `false`, so the page's save handlers return `runWrite(...)`'s result (Task 24).
+22. **The content form never reads a campaign it cannot find as "no campaign"** (found in the Tasks 15–16 review): its pickers start from the stored ids, an edit that never touches them sends no filing (`updateContent` leaves it as stored), and choices are checked against the list at save time. Task 24 also mounts the form only once campaigns have loaded.
+23. **One `CampaignOptions` component** renders every campaign picker's options — sorted live-first, grouped by business with 2+ businesses, campaigns of a missing business kept — in the content form and the board filter. The board files new content under the campaign it is filtered to (`onAdd(status, campaignId)`), and Task 24 gives the board the business-scoped campaigns.
 
 ---
 
@@ -3223,7 +3225,7 @@ export default function AddContentModal({
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run src/components/AddContentModal.test.tsx`
-Expected: PASS (4 tests).
+Expected: PASS (4 tests). (The committed file has more: tests added after review cover the grouped picker and the edit paths.)
 Run: `npx tsc --noEmit` → no output. (`ClientBoardPage` still compiles: every new prop is optional, and the extra fields in `ContentFormData` are accepted by `addContent`.)
 
 - [ ] **Step 5: Commit**
@@ -3359,6 +3361,7 @@ function renderBoard(over: Partial<React.ComponentProps<typeof ContentBoard>> = 
       item({ id: 'b', title: 'Menu post' }),
     ],
     campaigns: [SUMMER],
+    businesses: [],
     isClientRole: false,
     canAdd: true,
     canEditItem: () => true,
@@ -3412,7 +3415,14 @@ describe('ContentBoard', () => {
   it('starts a new item in Editing from the toolbar', async () => {
     const props = renderBoard();
     await userEvent.click(screen.getByRole('button', { name: 'New' }));
-    expect(props.onAdd).toHaveBeenCalledWith('editing');
+    expect(props.onAdd).toHaveBeenCalledWith('editing', undefined);
+  });
+
+  it('files new content under the campaign the board is filtered to', async () => {
+    const props = renderBoard();
+    await userEvent.selectOptions(screen.getByLabelText('Campaign'), 'c1');
+    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    expect(props.onAdd).toHaveBeenCalledWith('editing', 'c1');
   });
 });
 ```
@@ -3442,8 +3452,9 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
-import { Campaign, ContentItem, ContentStatus } from '../../types';
+import { Business, Campaign, ContentItem, ContentStatus } from '../../types';
 import KanbanColumn from '../KanbanColumn';
+import CampaignOptions from '../CampaignOptions';
 import ContentCard from '../ContentCard';
 import StagePill from '../StagePill';
 import StageTabs from '../StageTabs';
@@ -3537,8 +3548,10 @@ function ReadOnlyColumn({
 interface Props {
   /** Already scoped to the business or campaign being viewed. */
   content: ContentItem[];
-  /** Every campaign of the client, for card labels and the filter. */
+  /** The campaigns this content can belong to, for card labels and the filter. */
   campaigns: Campaign[];
+  /** Groups the filter's campaigns by business when there are several. */
+  businesses: Business[];
   isClientRole: boolean;
   canAdd: boolean;
   canEditItem: (item: ContentItem) => boolean;
@@ -3546,13 +3559,14 @@ interface Props {
   /** Offer the campaign filter. Off inside a campaign, where it has one answer. */
   campaignFilter?: boolean;
   onOpen: (item: ContentItem) => void;
-  onAdd: (status: ContentStatus) => void;
+  /** The campaign is set when the board is filtered to one, so new content lands in it. */
+  onAdd: (status: ContentStatus, campaignId?: string) => void;
   onEdit: (item: ContentItem) => void;
   onMove: (item: ContentItem, status: ContentStatus) => void;
 }
 
 export default function ContentBoard({
-  content, campaigns, isClientRole, canAdd, canEditItem, canDeleteItem,
+  content, campaigns, businesses, isClientRole, canAdd, canEditItem, canDeleteItem,
   campaignFilter = false, onOpen, onAdd, onEdit, onMove,
 }: Props) {
   const [filters, setFilters] = useState<ContentFilters>(NO_FILTERS);
@@ -3569,6 +3583,9 @@ export default function ContentBoard({
   const now = Date.now();
   const showCampaignFilter = campaignFilter && campaigns.length > 0;
   const isFiltered = activeFilterCount(filters) > 0 || campaignId !== '';
+  // Content added while the board is filtered to one campaign is filed under
+  // it; otherwise the new card would vanish from the view it was added in.
+  const filedCampaign = campaignId && campaignId !== NO_CAMPAIGN ? campaignId : undefined;
 
   // Below lg the board is a tab strip over one full-width column. Chosen in JS
   // rather than CSS because the two layouts cannot both be mounted: each
@@ -3647,7 +3664,7 @@ export default function ContentBoard({
         canAdd={canAdd}
         canEditItem={canEditItem}
         canDeleteItem={canDeleteItem}
-        onAddContent={onAdd}
+        onAddContent={(status) => onAdd(status, filedCampaign)}
         onCardClick={onOpen}
         onEditCard={onEdit}
         // Deleting happens in the detail sheet, where it can be confirmed.
@@ -3674,16 +3691,14 @@ export default function ContentBoard({
             >
               <option value="">All campaigns</option>
               <option value={NO_CAMPAIGN}>No campaign</option>
-              {campaigns.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              <CampaignOptions campaigns={campaigns} businesses={businesses} />
             </select>
           )}
           <BoardFilters value={filters} onChange={setFilters} />
         </div>
         {canAdd && (
           <button
-            onClick={() => onAdd(isDesktop ? 'editing' : currentStage)}
+            onClick={() => onAdd(isDesktop ? 'editing' : currentStage, filedCampaign)}
             className={`${btnPrimary} h-9 min-h-0 px-3 text-[12px] flex-shrink-0`}
           >
             <Plus size={14} />
@@ -3724,7 +3739,7 @@ export default function ContentBoard({
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/components/workspace/ContentBoard.test.tsx`
-Expected: PASS (5 tests).
+Expected: PASS (6 tests).
 Run: `npx tsc --noEmit` → no output.
 
 - [ ] **Step 5: Commit**
@@ -5135,6 +5150,7 @@ export default function CampaignPage({
         <ContentBoard
           content={own}
           campaigns={campaigns}
+          businesses={businesses}
           isClientRole={false}
           canAdd={canManage}
           canEditItem={canEditItem}
@@ -5732,14 +5748,19 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
         return (
           <ContentBoard
             content={content}
-            campaigns={campaigns}
+            // Scoped like the content, so a board showing one business offers
+            // only that business's campaigns to filter by.
+            campaigns={scopedCampaigns}
+            businesses={businesses}
             isClientRole={isClientRole}
             canAdd={canManage}
             canEditItem={canChangeItem}
             canDeleteItem={canChangeItem}
             campaignFilter
             onOpen={(item) => setSelectedId(item.id)}
-            onAdd={(status) => startAdd({ status })}
+            onAdd={(status, campaignId) =>
+              startAdd({ status, ...(campaignId ? { campaignId } : {}) })
+            }
             onEdit={setEditingItem}
             onMove={moveItem}
           />
@@ -5767,7 +5788,10 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
 
       {renderBody()}
 
-      {adding && (
+      {/* The content form waits for the campaigns: it needs them to show and
+          check an item's filing (it never reads a missing campaign as "none",
+          but it cannot offer the pickers without the list). */}
+      {adding && !campaignsLoading && (
         <AddContentModal
           defaultStatus={adding.status}
           defaultScheduledAt={adding.scheduledAt}
@@ -5784,7 +5808,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
         />
       )}
 
-      {editingItem && (
+      {editingItem && !campaignsLoading && (
         <AddContentModal
           defaultStatus={editingItem.status}
           existingItem={editingItem}
