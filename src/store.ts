@@ -23,8 +23,8 @@ import {
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
-  AppUser, Business, BusinessDraft, Client, ClientReview, Comment, ContentItem, ContentStatus,
-  FolderColor, Idea, IdeaStatus, MediaType, Platform, Share,
+  AppUser, Business, BusinessDraft, Campaign, CampaignDraft, CampaignStatus, Client, ClientReview,
+  Comment, ContentItem, ContentStatus, FolderColor, Idea, IdeaStatus, MediaType, Platform, Share,
 } from './types';
 import { generateId, generateShareToken, publicAppOrigin } from './utils';
 import { DEFAULT_BUSINESS_ID, defaultBusinessFor, planBusinessMigration } from './campaigns';
@@ -43,6 +43,10 @@ function contentDoc(clientId: string, contentId: string) {
 
 function businessesCol(clientId: string) {
   return collection(db, 'clients', clientId, 'businesses');
+}
+
+function campaignsCol(clientId: string) {
+  return collection(db, 'clients', clientId, 'campaigns');
 }
 
 // Firestore rejects a field whose value is undefined — the whole write fails —
@@ -305,6 +309,113 @@ export function useIdeas(clientId: string | undefined) {
 // never called the hook's version, so converted ideas kept the button forever.
 export async function markIdeaConverted(clientId: string, ideaId: string, contentId: string) {
   await updateDoc(doc(ideasCol(clientId), ideaId), { convertedContentId: contentId });
+}
+
+// ─── Campaigns ───────────────────────────────────────────────────────────────
+
+// Deliverables are written whole, and their optional mediaType must be dropped
+// when unset: Firestore rejects undefined even nested inside an array.
+function cleanDraft(draft: CampaignDraft) {
+  return defined({
+    businessId: draft.businessId,
+    name: draft.name,
+    brief: draft.brief,
+    status: draft.status,
+    startDate: draft.startDate,
+    endDate: draft.endDate,
+    color: draft.color,
+    deliverables: draft.deliverables.map((d) => defined({ ...d })),
+  });
+}
+
+function campaignContent(clientId: string, campaignId: string) {
+  return query(collection(db, 'clients', clientId, 'content'), where('campaignId', '==', campaignId));
+}
+
+export function useCampaigns(clientId: string | undefined) {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!clientId) {
+      setCampaigns([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = onSnapshot(
+      query(campaignsCol(clientId), orderBy('createdAt', 'asc')),
+      (snap) => {
+        setCampaigns(snap.docs.map((d) => ({ ...(d.data() as Omit<Campaign, 'id'>), id: d.id })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[limi] campaigns subscription failed', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, [clientId]);
+
+  const addCampaign = useCallback(
+    async (draft: CampaignDraft) => {
+      if (!clientId) return '';
+      const ref = doc(campaignsCol(clientId));
+      await setDoc(ref, { ...cleanDraft(draft), createdAt: Date.now() });
+      return ref.id;
+    },
+    [clientId]
+  );
+
+  // Content in a campaign carries that campaign's business. Moving a campaign
+  // to another business moves its content in the same batch, so the two can
+  // never disagree.
+  const updateCampaign = useCallback(
+    async (campaignId: string, draft: CampaignDraft) => {
+      if (!clientId) return;
+      const previous = campaigns.find((c) => c.id === campaignId);
+      const batch = writeBatch(db);
+      batch.update(doc(campaignsCol(clientId), campaignId), {
+        ...cleanDraft(draft),
+        // A cleared date has to be removed, not merely left out of the update.
+        ...(draft.startDate === undefined ? { startDate: deleteField() } : {}),
+        ...(draft.endDate === undefined ? { endDate: deleteField() } : {}),
+      });
+      if (previous && previous.businessId !== draft.businessId) {
+        const linked = await getDocs(campaignContent(clientId, campaignId));
+        linked.docs.forEach((d) => batch.update(d.ref, { businessId: draft.businessId }));
+      }
+      await batch.commit();
+    },
+    [clientId, campaigns]
+  );
+
+  const setCampaignStatus = useCallback(
+    async (campaignId: string, status: CampaignStatus) => {
+      if (!clientId) return;
+      await updateDoc(doc(campaignsCol(clientId), campaignId), { status });
+    },
+    [clientId]
+  );
+
+  // Deleting a campaign never deletes its content: the items stay on the board,
+  // just no longer grouped. One batch, so no item is left pointing at a campaign
+  // that is gone — and if one ever is, campaignIdOf() ignores it.
+  const deleteCampaign = useCallback(
+    async (campaignId: string) => {
+      if (!clientId) return;
+      const linked = await getDocs(campaignContent(clientId, campaignId));
+      const batch = writeBatch(db);
+      linked.docs.forEach((d) =>
+        batch.update(d.ref, { campaignId: deleteField(), deliverableId: deleteField() })
+      );
+      batch.delete(doc(campaignsCol(clientId), campaignId));
+      await batch.commit();
+    },
+    [clientId]
+  );
+
+  return { campaigns, loading, addCampaign, updateCampaign, setCampaignStatus, deleteCampaign };
 }
 
 const STATUS_LABELS: Record<ContentStatus, string> = {
