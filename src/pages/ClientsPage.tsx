@@ -51,7 +51,7 @@ export default function ClientsPage() {
     await runWrite(async () => {
       const stamped = await migrateBusinesses();
       alert(
-        `Every client now has a business. ${stamped} content item${stamped === 1 ? ' was' : 's were'} filed under ${stamped === 1 ? 'its' : 'their'} client's.`
+        `Every client now has a business. ${stamped} existing content item${stamped === 1 ? ' was' : 's were'} filed under ${stamped === 1 ? 'its' : 'their'} client's first business.`
       );
     }, 'set up businesses');
     setMigrating(false);

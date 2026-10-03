@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Client, FolderColor } from '../types';
-import { DEFAULT_FOLDER_COLOR } from '../folderColors';
+import { folderColor } from '../folderColors';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside,
@@ -29,7 +29,8 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
   const [name, setName] = useState(client?.name ?? '');
   const [imageUrl, setImageUrl] = useState(client?.imageUrl ?? '');
   const [about, setAbout] = useState(client?.about ?? '');
-  const [color, setColor] = useState<FolderColor>(client?.color ?? DEFAULT_FOLDER_COLOR);
+  // folderColor() mends a stored value that is not one of the ten.
+  const [color, setColor] = useState<FolderColor>(folderColor(client?.color).id);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,7 +69,7 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
           {/* Like picking a folder colour in OneDrive: the colour marks this
               client everywhere it appears. */}
           <div>
-            <label className={label}>Folder colour</label>
+            <span className={label}>Folder colour</span>
             <ColorSwatchPicker value={color} onChange={setColor} label="Folder colour" />
           </div>
 

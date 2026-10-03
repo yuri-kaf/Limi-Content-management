@@ -1,4 +1,4 @@
-import { AppUser, Client } from './types';
+import { AppUser, Client, FolderColor } from './types';
 
 export type PaletteKind = 'page' | 'client' | 'content' | 'command';
 
@@ -17,6 +17,8 @@ export interface PaletteItem {
   keywords?: string;
   clientId?: string;
   imageUrl?: string;
+  /** The client's folder colour, so its avatar matches the sidebar's. */
+  color?: FolderColor;
 }
 
 // Subsequence match, the same rule every command palette uses: the query's
@@ -87,6 +89,7 @@ export function buildIndex(clients: Client[], user: AppUser | null): PaletteItem
       path: `/client/${client.id}`,
       clientId: client.id,
       imageUrl: client.imageUrl,
+      color: client.color,
     });
     for (const item of client.content ?? []) {
       items.push({

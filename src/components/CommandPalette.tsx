@@ -19,7 +19,7 @@ interface Props {
 
 function Leading({ item }: { item: PaletteItem }) {
   if (item.kind === 'client') {
-    return <ClientAvatar name={item.label} imageUrl={item.imageUrl} size={20} />;
+    return <ClientAvatar name={item.label} imageUrl={item.imageUrl} color={item.color} size={20} />;
   }
   const icon =
     item.kind === 'page' ? <Home size={14} />

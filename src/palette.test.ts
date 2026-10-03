@@ -72,6 +72,11 @@ describe('buildIndex', () => {
     expect(index.filter((i) => i.kind === 'content').map((i) => i.label)).toEqual(['Vok lako bela']);
   });
 
+  it('carries a client folder colour, so its avatar matches the sidebar', () => {
+    const index = buildIndex([{ ...client('a', 'Acme'), color: 'teal' }], user('admin'));
+    expect(index.find((i) => i.id === 'client-a')?.color).toBe('teal');
+  });
+
   it('deep-links content so a hit opens the item, not just the board', () => {
     const index = buildIndex(clients, user('admin'));
     const hit = index.find((i) => i.label === 'Graphic 6: Refinance')!;

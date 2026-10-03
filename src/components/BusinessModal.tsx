@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { Business, BusinessDraft, FolderColor } from '../types';
-import { DEFAULT_FOLDER_COLOR } from '../folderColors';
+import { folderColor } from '../folderColors';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
@@ -14,7 +14,8 @@ interface Props {
   /** Why this business cannot be deleted, or null when it can. See businessDeleteBlocker(). */
   deleteBlocker?: string | null;
   onClose: () => void;
-  onSave: (draft: BusinessDraft) => void;
+  /** Resolves false when the save failed, which keeps the form open with what was typed. */
+  onSave: (draft: BusinessDraft) => Promise<boolean> | void;
   /** Absent when deleting is not offered at all. */
   onDelete?: () => void;
 }
@@ -26,20 +27,24 @@ export default function BusinessModal({
 }: Props) {
   const editing = !!business;
   const [name, setName] = useState(business?.name ?? '');
-  const [color, setColor] = useState<FolderColor>(business?.color ?? DEFAULT_FOLDER_COLOR);
+  // folderColor() mends a stored value that is not one of the ten.
+  const [color, setColor] = useState<FolderColor>(folderColor(business?.color).id);
   const [logoUrl, setLogoUrl] = useState(business?.logoUrl ?? '');
   const [about, setAbout] = useState(business?.about ?? '');
+  const [saving, setSaving] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
-    onSave({
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    const result = await onSave({
       name: name.trim(),
       color,
       logoUrl: logoUrl.trim() || undefined,
       about: about.trim(),
     });
-    onClose();
+    setSaving(false);
+    if (result !== false) onClose();
   }
 
   function handleDelete() {
@@ -77,7 +82,7 @@ export default function BusinessModal({
           </div>
 
           <div>
-            <label className={label}>Colour</label>
+            <span className={label}>Colour</span>
             <ColorSwatchPicker value={color} onChange={setColor} label="Business colour" />
           </div>
 
@@ -111,16 +116,22 @@ export default function BusinessModal({
 
           {editing && onDelete && (
             <div>
+              {/* aria-disabled rather than disabled: a disabled button drops out
+                  of the Tab order, and with it the only way to reach the reason
+                  written under it. handleDelete refuses while it is blocked. */}
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={!!deleteBlocker}
-                className={`${btnGhostDanger} w-full disabled:opacity-40 disabled:cursor-not-allowed`}
+                aria-disabled={!!deleteBlocker}
+                aria-describedby={deleteBlocker ? 'business-delete-blocker' : undefined}
+                className={`${deleteBlocker ? `${btnGhost} opacity-40 cursor-not-allowed` : btnGhostDanger} w-full`}
               >
                 <Trash2 size={14} />
                 Delete business
               </button>
-              {deleteBlocker && <p className={hint}>{deleteBlocker}</p>}
+              {deleteBlocker && (
+                <p id="business-delete-blocker" className={hint}>{deleteBlocker}</p>
+              )}
             </div>
           )}
 
@@ -128,8 +139,8 @@ export default function BusinessModal({
             <button type="button" onClick={onClose} className={`${btnGhost} flex-1`}>
               Cancel
             </button>
-            <button type="submit" disabled={!name.trim()} className={`${btnPrimary} flex-1`}>
-              {editing ? 'Save changes' : 'Add business'}
+            <button type="submit" disabled={!name.trim() || saving} className={`${btnPrimary} flex-1`}>
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add business'}
             </button>
           </div>
         </form>

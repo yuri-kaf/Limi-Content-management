@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import {
   Business, Campaign, CampaignDraft, CampaignStatus, Deliverable, FolderColor, MediaType,
 } from '../types';
 import { CAMPAIGN_STATUSES, endsBeforeStart } from '../campaigns';
+import { folderColor } from '../folderColors';
 import { generateId } from '../utils';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
@@ -18,7 +19,11 @@ interface Props {
   /** Pre-selected business when creating — the workspace's current scope, if any. */
   defaultBusinessId?: string;
   onClose: () => void;
-  onSave: (draft: CampaignDraft) => void;
+  /**
+   * Resolves false when the save failed, which keeps the form open with what
+   * was typed: a brief and a list of deliverables are too much to retype.
+   */
+  onSave: (draft: CampaignDraft) => Promise<boolean> | void;
   onDelete?: () => void;
 }
 
@@ -40,36 +45,78 @@ function toRows(deliverables: Deliverable[]): Row[] {
   }));
 }
 
+// The shared input recipe is full width with roomy padding. These fixed
+// columns override both with `!`: Tailwind orders same-property utilities by
+// its own rules, not by their order in the class list, so a plain w-[96px]
+// placed after `input` would lose to its w-full.
+const typeSelect = `${input} !w-[96px] !px-2 flex-shrink-0`;
+const countInput = `${input} !w-[64px] !px-2 text-center flex-shrink-0`;
+
+const errorText = 'text-[11px] text-brand dark:text-red-400';
+
 export default function CampaignModal({
   campaign, businesses, defaultBusinessId, onClose, onSave, onDelete,
 }: Props) {
   const editing = !!campaign;
   const [name, setName] = useState(campaign?.name ?? '');
-  const [businessId, setBusinessId] = useState(
-    campaign?.businessId ?? defaultBusinessId ?? businesses[0]?.id ?? ''
+  const [chosenBusiness, setChosenBusiness] = useState(
+    campaign?.businessId ?? defaultBusinessId ?? ''
   );
   const [status, setStatus] = useState<CampaignStatus>(campaign?.status ?? 'planning');
   // Stored days are already the 'YYYY-MM-DD' a date input reads and writes.
   const [start, setStart] = useState(campaign?.startDate ?? '');
   const [end, setEnd] = useState(campaign?.endDate ?? '');
-  const [color, setColor] = useState<FolderColor>(campaign?.color ?? 'green');
+  // Green rather than the folder default (blue), so a campaign reads apart
+  // from its client's folder. folderColor() also mends a stored value that is
+  // not one of the ten.
+  const [color, setColor] = useState<FolderColor>(folderColor(campaign?.color ?? 'green').id);
   const [brief, setBrief] = useState(campaign?.brief ?? '');
   // Existing ids are kept: content points at a deliverable by id, so an edit
-  // must not quietly unlink everything filed under it.
+  // must not quietly unlink everything filed under it. Removing a row does
+  // unlink its content — the items stay in the campaign, just unslotted.
   const [rows, setRows] = useState<Row[]>(campaign ? toRows(campaign.deliverables) : []);
+  const [saving, setSaving] = useState(false);
+  const [focusRow, setFocusRow] = useState<string | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
 
+  // Worked out on every render rather than fixed when the form opened, so a
+  // business deleted meanwhile — or none chosen yet — falls back to the first.
+  const businessId = businesses.some((b) => b.id === chosenBusiness)
+    ? chosenBusiness
+    : businesses[0]?.id ?? '';
   const datesBackwards = endsBeforeStart(start, end);
   const rowsInvalid = rows.some((r) => !r.label.trim() || !(Number(r.target) >= 1));
-  const canSave = !!name.trim() && !!businessId && !datesBackwards && !rowsInvalid;
+  const canSave = !!name.trim() && !!businessId && !datesBackwards && !rowsInvalid && !saving;
+
+  // A new row's name box takes focus, so typing can start straight away.
+  useEffect(() => {
+    if (!focusRow) return;
+    document.getElementById(`deliverable-${focusRow}`)?.focus();
+    setFocusRow(null);
+  }, [focusRow]);
 
   function updateRow(id: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function addRow() {
+    const id = generateId();
+    setRows((prev) => [...prev, { id, label: '', mediaType: '', target: '1' }]);
+    setFocusRow(id);
+  }
+
+  // The removed row's button goes with it, so focus moves to Add rather than
+  // falling back to the page behind the dialog.
+  function removeRow(id: string) {
+    setRows((prev) => prev.filter((r) => r.id !== id));
+    addButton.current?.focus();
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave) return;
-    onSave({
+    setSaving(true);
+    const result = await onSave({
       businessId,
       name: name.trim(),
       brief: brief.trim(),
@@ -85,7 +132,8 @@ export default function CampaignModal({
         target: Math.floor(Number(r.target)),
       })),
     });
-    onClose();
+    setSaving(false);
+    if (result !== false) onClose();
   }
 
   function handleDelete() {
@@ -131,7 +179,7 @@ export default function CampaignModal({
               <select
                 id="campaign-business"
                 value={businessId}
-                onChange={(e) => setBusinessId(e.target.value)}
+                onChange={(e) => setChosenBusiness(e.target.value)}
                 className={input}
               >
                 {businesses.map((b) => (
@@ -148,8 +196,8 @@ export default function CampaignModal({
           )}
 
           <div>
-            <label className={label}>Status</label>
-            <div className="grid grid-cols-3 gap-2">
+            <span id="campaign-status-label" className={label}>Status</span>
+            <div role="group" aria-labelledby="campaign-status-label" className="grid grid-cols-3 gap-2">
               {CAMPAIGN_STATUSES.map((s) => (
                 <button
                   key={s.id}
@@ -181,19 +229,22 @@ export default function CampaignModal({
                 id="campaign-end"
                 type="date"
                 value={end}
+                min={start || undefined}
                 onChange={(e) => setEnd(e.target.value)}
+                aria-invalid={datesBackwards}
+                aria-describedby={datesBackwards ? 'campaign-dates-error' : undefined}
                 className={input}
               />
             </div>
           </div>
           {datesBackwards && (
-            <p className="-mt-2 text-[11px] text-brand dark:text-red-400">
+            <p id="campaign-dates-error" role="alert" className={`-mt-2 ${errorText}`}>
               The end date is before the start date.
             </p>
           )}
 
           <div>
-            <label className={label}>Colour</label>
+            <span className={label}>Colour</span>
             <ColorSwatchPicker value={color} onChange={setColor} label="Campaign colour" />
           </div>
 
@@ -212,24 +263,29 @@ export default function CampaignModal({
           </div>
 
           <div>
-            <label className={label}>
+            <span id="campaign-deliverables-label" className={label}>
               Deliverables <span className={labelAside}>(what the campaign needs)</span>
-            </label>
-            <div className="flex flex-col gap-2">
+            </span>
+            <div role="group" aria-labelledby="campaign-deliverables-label" className="flex flex-col gap-2">
               {rows.map((r, index) => (
-                <div key={r.id} className="flex items-center gap-2">
+                // Below sm the name takes a line of its own and the rest sit
+                // under it; from sm up the row is one line. basis-full forces
+                // the wrap without fighting the input's own w-full.
+                <div key={r.id} className="flex flex-wrap items-center gap-2">
                   <input
+                    id={`deliverable-${r.id}`}
                     aria-label={`Deliverable ${index + 1} name`}
+                    aria-invalid={!r.label.trim()}
                     value={r.label}
                     onChange={(e) => updateRow(r.id, { label: e.target.value })}
                     placeholder="Reels"
-                    className={`${input} flex-1 min-w-0`}
+                    className={`${input} basis-full sm:basis-0 sm:flex-1 min-w-0`}
                   />
                   <select
                     aria-label={`Deliverable ${index + 1} type`}
                     value={r.mediaType}
                     onChange={(e) => updateRow(r.id, { mediaType: e.target.value as MediaType | '' })}
-                    className={`${input} w-[96px] px-2`}
+                    className={typeSelect}
                   >
                     <option value="">Any</option>
                     <option value="video">Video</option>
@@ -237,37 +293,41 @@ export default function CampaignModal({
                   </select>
                   <input
                     aria-label={`Deliverable ${index + 1} count`}
+                    aria-invalid={!(Number(r.target) >= 1)}
                     type="number"
                     min={1}
+                    step={1}
                     value={r.target}
                     onChange={(e) => updateRow(r.id, { target: e.target.value })}
-                    className={`${input} w-[64px] px-2 text-center`}
+                    className={countInput}
                   />
                   <button
                     type="button"
-                    onClick={() => setRows((prev) => prev.filter((x) => x.id !== r.id))}
-                    className={`${btnIcon} flex-shrink-0`}
+                    onClick={() => removeRow(r.id)}
+                    className={`${btnIcon} flex-shrink-0 ml-auto sm:ml-0`}
                     aria-label={`Remove deliverable ${index + 1}`}
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() =>
-                  setRows((prev) => [...prev, { id: generateId(), label: '', mediaType: '', target: '1' }])
-                }
-                className={`${btnGhost} h-9 min-h-0 text-[12px]`}
-              >
+              <button ref={addButton} type="button" onClick={addRow} className={btnGhost}>
                 <Plus size={14} />
                 Add deliverable
               </button>
             </div>
-            <p className={hint}>
-              For example 3 Reels and 2 carousel graphics. Progress fills in as content is linked
-              and posted.
-            </p>
+            {/* Says why Create is disabled, rather than leaving a dimmed button
+                to explain itself. */}
+            {rowsInvalid ? (
+              <p role="alert" className={`mt-1.5 ${errorText}`}>
+                Each deliverable needs a name and a count of at least 1.
+              </p>
+            ) : (
+              <p className={hint}>
+                For example 3 Reels and 2 carousel graphics. Progress fills in as content is linked
+                and posted.
+              </p>
+            )}
           </div>
 
           {editing && onDelete && (
@@ -282,7 +342,7 @@ export default function CampaignModal({
               Cancel
             </button>
             <button type="submit" disabled={!canSave} className={`${btnPrimary} flex-1`}>
-              {editing ? 'Save changes' : 'Create campaign'}
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Create campaign'}
             </button>
           </div>
         </form>
