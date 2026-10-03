@@ -224,8 +224,9 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
             </p>
           )}
 
-          {/* Signals, ordered by how much each should change your plans: the
-              client's decision, then the schedule, then where it is going. */}
+          {/* The campaign, then signals ordered by how much each should change
+              your plans: the client's decision, then the schedule, then where
+              it is going. */}
           {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
               {/* First, because it says which push this belongs to before the

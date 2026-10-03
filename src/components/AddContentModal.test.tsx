@@ -44,6 +44,19 @@ describe('AddContentModal — filing', () => {
     expect(screen.getByLabelText(/Campaign/)).toHaveValue('');
   });
 
+  it('groups campaigns by business when there are several, so same-named ones can be told apart', () => {
+    const bakerySummer: Campaign = { ...SUMMER, id: 'c0', businessId: 'b1' };
+    renderModal({ businesses: [BAKERY, CAFE], campaigns: [bakerySummer, SUMMER] });
+    const groups = screen.getByLabelText(/Campaign/).querySelectorAll('optgroup');
+    expect(Array.from(groups, (g) => g.label)).toEqual(['Bakery', 'Cafe']);
+  });
+
+  it('lists campaigns flat for a single business', () => {
+    renderModal({ businesses: [CAFE], campaigns: [SUMMER] });
+    expect(screen.getByLabelText(/Campaign/).querySelectorAll('optgroup')).toHaveLength(0);
+    expect(screen.getByRole('option', { name: 'Summer' })).toBeInTheDocument();
+  });
+
   it('reports no campaign as null, so an edit can take an item out of one', async () => {
     const onSubmit = renderModal({ businesses: [BAKERY], campaigns: [] });
     await userEvent.type(screen.getByLabelText('Content Title'), 'Plain post');
