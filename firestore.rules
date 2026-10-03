@@ -94,6 +94,20 @@ service cloud.firestore {
           allow delete: if isAdmin();
         }
       }
+
+      // Businesses and campaigns organise content; only the team shapes them.
+      // An assigned client reads them so their own boards group the same way.
+      // Clients still cannot move content between them: the content update
+      // rule above only lets a client change the two review fields.
+      match /businesses/{businessId} {
+        allow read: if isAdmin() || isManager() || isAssigned(clientId);
+        allow create, update, delete: if isAdmin() || isManager();
+      }
+
+      match /campaigns/{campaignId} {
+        allow read: if isAdmin() || isManager() || isAssigned(clientId);
+        allow create, update, delete: if isAdmin() || isManager();
+      }
     }
 
     // Public review links. The document ID is an unguessable token and holding
