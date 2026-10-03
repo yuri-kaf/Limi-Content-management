@@ -63,7 +63,9 @@ const SCREEN_READER_INSTRUCTIONS = {
 };
 
 // A client's board is read-only, so it needs no droppable and no sortable —
-// same column shell, none of the drag machinery.
+// same column shell, none of the drag machinery. That includes the cards: a
+// card that registers as sortable is one the keyboard sensor will lift, and a
+// client pressing Space lifted theirs into a drag with nowhere to land.
 function ReadOnlyColumn({
   status,
   label,
@@ -107,6 +109,7 @@ function ReadOnlyColumn({
               item={item}
               campaign={campaignOf(item)}
               onCardClick={() => onCardClick(item)}
+              draggable={false}
             />
           ))
         )}

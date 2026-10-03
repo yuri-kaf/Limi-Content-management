@@ -92,6 +92,14 @@ function expectNothingLifted() {
   expect(screen.getByRole('status')).toBeEmptyDOMElement();
 }
 
+// dnd-kit never detaches a sensor when its board unmounts, so a drag a test
+// left open would go on listening to the document and take the next test's
+// Enter as a drop. As a describe's afterEach it runs before Testing Library
+// unmounts the board.
+async function putDownAnyLiftedCard() {
+  if (document.querySelector('[aria-pressed="true"]')) await userEvent.keyboard('{Escape}');
+}
+
 describe('ContentBoard', () => {
   it('narrows the board to one campaign', async () => {
     renderBoard();
@@ -198,12 +206,7 @@ describe('ContentBoard — moving cards', () => {
 });
 
 describe('ContentBoard — keyboard', () => {
-  // dnd-kit never detaches a sensor when its board unmounts, so a drag a test
-  // left open would go on listening to the document and take the next test's
-  // Enter as a drop.
-  afterEach(async () => {
-    if (document.querySelector('[aria-pressed="true"]')) await userEvent.keyboard('{Escape}');
-  });
+  afterEach(putDownAnyLiftedCard);
 
   it('opens a card on Enter, rather than lifting it', async () => {
     const props = renderBoard();
@@ -271,6 +274,40 @@ describe('ContentBoard — keyboard', () => {
   it('tells a screen reader that Enter opens a card and Space lifts it', () => {
     renderBoard();
     expect(card('Launch reel')).toHaveAccessibleDescription(/Enter to open .* Space to pick it up/);
+  });
+});
+
+describe('ContentBoard — a client board', () => {
+  afterEach(putDownAnyLiftedCard);
+
+  function renderClientBoard() {
+    return renderBoard({
+      isClientRole: true,
+      campaignFilter: false,
+      content: [item({ id: 'r', title: 'For you', status: 'review' })],
+    });
+  }
+
+  it('opens a card on Enter, where approving and declining happen', async () => {
+    const props = renderClientBoard();
+    focus(card('For you'));
+    await userEvent.keyboard('{Enter}');
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'r' }));
+    expectNothingLifted();
+  });
+
+  it('opens a card on Space too, rather than lifting it into a drag nothing can finish', async () => {
+    const props = renderClientBoard();
+    focus(card('For you'));
+    await userEvent.keyboard(' ');
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'r' }));
+    expectNothingLifted();
+  });
+
+  it('gives its cards none of the drag machinery', () => {
+    renderClientBoard();
+    expect(card('For you')).not.toHaveAttribute('aria-roledescription');
+    expect(card('For you')).not.toHaveAttribute('aria-describedby');
   });
 });
 

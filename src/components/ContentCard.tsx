@@ -18,6 +18,12 @@ interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
   /**
+   * False where a card cannot move: on a client's read-only board. Such a card
+   * never registers with dnd-kit, so no key or press can lift it, and Enter or
+   * Space opens it as they would any button.
+   */
+  draggable?: boolean;
+  /**
    * True for the copy rendered inside <DragOverlay>. That copy shares the
    * dragged item's id, so leaving it enabled would register a drop target that
    * follows the cursor and wins every collision test against the real columns.
@@ -34,20 +40,24 @@ const CLICK_SLOP = 4;
 const iconBtn =
   'w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';
 
-export default function ContentCard({ item, campaign, onCardClick, onEdit, onDelete, isOverlay }: Props) {
-  const [imgError, setImgError] = useState(false);
-  const media = getMediaInfo(item.driveLink);
-  const thumbnailUrl = media.previewUrl;
-  const hasPreview = !!thumbnailUrl && !imgError;
-  const isGraphic = mediaTypeOf(item) === 'graphic';
-  const caption = captionOf(item);
-  const platforms = item.platforms ?? [];
+// flex-shrink-0 is not cosmetic: the column body is a capped-height flex
+// column, and flexbox shrinks its children to fit before it will scroll —
+// which clipped every card's second title line.
+const cardBox = `group ${cardInteractive} overflow-hidden flex-shrink-0`;
+
+interface ShellProps {
+  onOpen?: () => void;
+  children: React.ReactNode;
+}
+
+// The box around a card that can be dragged, and everything about the drag.
+function SortableShell({ id, isOverlay, onOpen, children }: ShellProps & { id: string; isOverlay?: boolean }) {
   const pressedAt = useRef<{ x: number; y: number } | null>(null);
 
   const {
     attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging,
   } = useSortable({
-    id: item.id,
+    id,
     disabled: isOverlay,
   });
 
@@ -86,7 +96,7 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
         // the card is being carried, Enter is the sensor's, to drop it with.
         onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === 'Enter' && e.target === e.currentTarget && !isDragging) {
-            onCardClick?.();
+            onOpen?.();
             return;
           }
           sensorListeners?.onKeyDown?.(e);
@@ -112,8 +122,46 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
     const start = pressedAt.current;
     pressedAt.current = null;
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > CLICK_SLOP) return;
-    onCardClick?.();
+    onOpen?.();
   }
+
+  return (
+    <div ref={setCardRef} style={style} className={cardBox} onClick={handleClick} {...dragProps}>
+      {children}
+    </div>
+  );
+}
+
+// The box around a card that cannot move: a button in all but tag, since a
+// <button> may not hold the links inside the card.
+function StaticShell({ onOpen, children }: ShellProps) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    // A key pressed on one of the card's own links belongs to that link.
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      // Space would otherwise scroll the column.
+      e.preventDefault();
+      onOpen?.();
+    }
+  }
+
+  return (
+    <div role="button" tabIndex={0} className={cardBox} onClick={onOpen} onKeyDown={handleKeyDown}>
+      {children}
+    </div>
+  );
+}
+
+export default function ContentCard({
+  item, campaign, onCardClick, onEdit, onDelete, draggable = true, isOverlay,
+}: Props) {
+  const [imgError, setImgError] = useState(false);
+  const media = getMediaInfo(item.driveLink);
+  const thumbnailUrl = media.previewUrl;
+  const hasPreview = !!thumbnailUrl && !imgError;
+  const isGraphic = mediaTypeOf(item) === 'graphic';
+  const caption = captionOf(item);
+  const platforms = item.platforms ?? [];
 
   // Pressing a control must never begin a drag, and its click must not bubble
   // up and open the sheet.
@@ -139,165 +187,165 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
         ? { text: 'Approved', className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400' }
         : null;
 
-  return (
-    <div
-      ref={setCardRef}
-      style={style}
-      // flex-shrink-0 is not cosmetic: the column body is a capped-height flex
-      // column, and flexbox shrinks its children to fit before it will scroll —
-      // which clipped every card's second title line.
-      className={`group ${cardInteractive} overflow-hidden flex-shrink-0`}
-      onClick={handleClick}
-      {...dragProps}
-    >
-      <div className="flex items-start gap-2.5 p-2.5">
-        {/* An image earns the 16:9 frame; the absence of one does not. Reserving
-            68x38 for a preview that never loads — which is every item whose
-            Drive file is not public — spent a quarter of the card's width on an
-            empty grey box and squeezed the title into the rest. Without a
-            preview this collapses to a type marker the size of a favicon. */}
-        {hasPreview ? (
-          <div
-            className="relative flex-shrink-0 rounded-tile overflow-hidden bg-tint dark:bg-tint-dark"
-            style={{ width: 64, aspectRatio: '16/9' }}
-          >
-            <img
-              src={thumbnailUrl!}
-              alt=""
-              className="w-full h-full object-cover"
-              draggable={false}
-              onError={() => setImgError(true)}
-            />
-            {/* The grip is a hint, not the hit area — hence pointer-events-none. */}
-            {!isOverlay && (
-              <div
-                className="absolute inset-0 hidden lg:flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                aria-hidden="true"
-              >
-                <GripVertical size={13} className="text-white/80" />
-              </div>
-            )}
-          </div>
-        ) : (
-          <span
-            className={`flex-shrink-0 w-7 h-7 rounded-tile bg-tint dark:bg-tint-dark inline-flex items-center justify-center ${faintText}`}
-            title={isGraphic ? 'Graphic' : 'Video'}
-          >
-            {isGraphic ? <ImageIcon size={14} /> : <Film size={14} />}
-          </span>
-        )}
+  const face = (
+    <div className="flex items-start gap-2.5 p-2.5">
+      {/* An image earns the 16:9 frame; the absence of one does not. Reserving
+          68x38 for a preview that never loads — which is every item whose
+          Drive file is not public — spent a quarter of the card's width on an
+          empty grey box and squeezed the title into the rest. Without a
+          preview this collapses to a type marker the size of a favicon. */}
+      {hasPreview ? (
+        <div
+          className="relative flex-shrink-0 rounded-tile overflow-hidden bg-tint dark:bg-tint-dark"
+          style={{ width: 64, aspectRatio: '16/9' }}
+        >
+          <img
+            src={thumbnailUrl!}
+            alt=""
+            className="w-full h-full object-cover"
+            draggable={false}
+            onError={() => setImgError(true)}
+          />
+          {/* The grip is a hint, not the hit area — hence pointer-events-none. */}
+          {draggable && !isOverlay && (
+            <div
+              className="absolute inset-0 hidden lg:flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+              aria-hidden="true"
+            >
+              <GripVertical size={13} className="text-white/80" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <span
+          className={`flex-shrink-0 w-7 h-7 rounded-tile bg-tint dark:bg-tint-dark inline-flex items-center justify-center ${faintText}`}
+          title={isGraphic ? 'Graphic' : 'Video'}
+        >
+          {isGraphic ? <ImageIcon size={14} /> : <Film size={14} />}
+        </span>
+      )}
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-1">
-            <p className="text-[13px] font-medium text-ink dark:text-ink-dark leading-snug flex-1 min-w-0 line-clamp-2">
-              {item.title}
-            </p>
-            {/* Pointer-only, revealed on hover. These were permanently visible on
-                touch: four 20px targets crowding the title on a 280px card,
-                every one of them under the 44px minimum. On a phone the card
-                itself is the target and the detail sheet carries the same four
-                actions at a size a thumb can hit. */}
-            <div className="hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0">
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-1">
+          <p className="text-[13px] font-medium text-ink dark:text-ink-dark leading-snug flex-1 min-w-0 line-clamp-2">
+            {item.title}
+          </p>
+          {/* Pointer-only, revealed on hover. These were permanently visible on
+              touch: four 20px targets crowding the title on a 280px card,
+              every one of them under the 44px minimum. On a phone the card
+              itself is the target and the detail sheet carries the same four
+              actions at a size a thumb can hit. */}
+          <div className="hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0">
+            <a
+              href={item.driveLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              draggable={false}
+              className={iconBtn}
+              onPointerDown={stopDrag}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Open in ${media.label}`}
+            >
+              <ExternalLink size={13} />
+            </a>
+            {isGraphic && media.downloadUrl && (
               <a
-                href={item.driveLink}
+                href={media.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 draggable={false}
                 className={iconBtn}
                 onPointerDown={stopDrag}
                 onClick={(e) => e.stopPropagation()}
-                aria-label={`Open in ${media.label}`}
+                aria-label="Download image"
               >
-                <ExternalLink size={13} />
+                <Download size={13} />
               </a>
-              {isGraphic && media.downloadUrl && (
-                <a
-                  href={media.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  draggable={false}
-                  className={iconBtn}
-                  onPointerDown={stopDrag}
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Download image"
-                >
-                  <Download size={13} />
-                </a>
-              )}
-              {onEdit && (
-                <button
-                  onPointerDown={stopDrag}
-                  onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                  className={iconBtn}
-                  aria-label="Edit"
-                >
-                  <Pencil size={13} />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onPointerDown={stopDrag}
-                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                  className={`${iconBtn} hover:!text-brand hover:!bg-brand-soft dark:hover:!bg-brand-softdark`}
-                  aria-label="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-              )}
-            </div>
+            )}
+            {onEdit && (
+              <button
+                onPointerDown={stopDrag}
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className={iconBtn}
+                aria-label="Edit"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onPointerDown={stopDrag}
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className={`${iconBtn} hover:!text-brand hover:!bg-brand-soft dark:hover:!bg-brand-softdark`}
+                aria-label="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
-
-          {caption && (
-            <p className={`text-[11px] mt-0.5 line-clamp-1 leading-relaxed ${faintText}`}>
-              {caption}
-            </p>
-          )}
-
-          {/* The campaign, then signals ordered by how much each should change
-              your plans: the client's decision, then the schedule, then where
-              it is going. */}
-          {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
-            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-              {/* First, because it says which push this belongs to before the
-                  signals say how it is going. Capped at 96px: in a 280px column
-                  beside a thumbnail, anything wider pushes an "Approved" badge
-                  onto a second line. The full name is on hover. */}
-              {campaign && (
-                <ColorLabel color={campaign.color} className="max-w-[96px]" title={campaign.name}>
-                  {campaign.name}
-                </ColorLabel>
-              )}
-              {reviewBadge && (
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${reviewBadge.className}`}>
-                  {reviewBadge.text}
-                </span>
-              )}
-              {scheduledLabel && (
-                <span
-                  className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                    overdue
-                      ? 'bg-brand-soft dark:bg-brand-softdark text-brand dark:text-red-400'
-                      : faintText
-                  }`}
-                  title={overdue ? 'This slot has passed and it has not been posted' : undefined}
-                >
-                  {overdue ? <AlertCircle size={10} /> : <Calendar size={10} />}
-                  {scheduledLabel}
-                </span>
-              )}
-              {platforms.map((p) => (
-                <span
-                  key={p}
-                  className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-tint dark:bg-tint-dark text-ink-faint dark:text-ink-faintdark"
-                >
-                  {PLATFORM_LABELS[p]}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
+
+        {caption && (
+          <p className={`text-[11px] mt-0.5 line-clamp-1 leading-relaxed ${faintText}`}>
+            {caption}
+          </p>
+        )}
+
+        {/* The campaign, then signals ordered by how much each should change
+            your plans: the client's decision, then the schedule, then where
+            it is going. */}
+        {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
+          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+            {/* First, because it says which push this belongs to before the
+                signals say how it is going. Capped at 96px: in a 280px column
+                beside a thumbnail, anything wider pushes an "Approved" badge
+                onto a second line. The full name is on hover. */}
+            {campaign && (
+              <ColorLabel color={campaign.color} className="max-w-[96px]" title={campaign.name}>
+                {campaign.name}
+              </ColorLabel>
+            )}
+            {reviewBadge && (
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${reviewBadge.className}`}>
+                {reviewBadge.text}
+              </span>
+            )}
+            {scheduledLabel && (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                  overdue
+                    ? 'bg-brand-soft dark:bg-brand-softdark text-brand dark:text-red-400'
+                    : faintText
+                }`}
+                title={overdue ? 'This slot has passed and it has not been posted' : undefined}
+              >
+                {overdue ? <AlertCircle size={10} /> : <Calendar size={10} />}
+                {scheduledLabel}
+              </span>
+            )}
+            {platforms.map((p) => (
+              <span
+                key={p}
+                className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-tint dark:bg-tint-dark text-ink-faint dark:text-ink-faintdark"
+              >
+                {PLATFORM_LABELS[p]}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  );
+
+  // Registering a card with useSortable is what lets the keyboard sensor lift
+  // it, and a hook cannot be skipped conditionally, so a card that must stay
+  // put gets a shell that never calls it.
+  return draggable ? (
+    <SortableShell id={item.id} isOverlay={isOverlay} onOpen={onCardClick}>
+      {face}
+    </SortableShell>
+  ) : (
+    <StaticShell onOpen={onCardClick}>{face}</StaticShell>
   );
 }
