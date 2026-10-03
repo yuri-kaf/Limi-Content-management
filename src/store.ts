@@ -8,12 +8,15 @@ import {
   deleteDoc,
   deleteField,
   getDocs,
+  getDocsFromServer,
   writeBatch,
   arrayUnion,
   query,
   where,
   orderBy,
+  limit,
   WriteBatch,
+  CollectionReference,
 } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
@@ -367,13 +370,14 @@ export function useCampaigns(clientId: string | undefined) {
     [clientId]
   );
 
-  // Content in a campaign carries that campaign's business. Moving a campaign
-  // to another business moves its content in the same batch, so the two can
-  // never disagree.
+  // Content in a campaign carries that campaign's business. Every save re-files
+  // any linked item whose business differs, in the same batch. Checked against
+  // the content itself rather than this hook's copy of the campaign, which can
+  // lag behind another admin's edit and would then skip the re-file for good.
   const updateCampaign = useCallback(
     async (campaignId: string, draft: CampaignDraft) => {
       if (!clientId) return;
-      const previous = campaigns.find((c) => c.id === campaignId);
+      const linked = await getDocs(campaignContent(clientId, campaignId));
       const batch = writeBatch(db);
       batch.update(doc(campaignsCol(clientId), campaignId), {
         ...cleanDraft(draft),
@@ -381,13 +385,12 @@ export function useCampaigns(clientId: string | undefined) {
         ...(draft.startDate === undefined ? { startDate: deleteField() } : {}),
         ...(draft.endDate === undefined ? { endDate: deleteField() } : {}),
       });
-      if (previous && previous.businessId !== draft.businessId) {
-        const linked = await getDocs(campaignContent(clientId, campaignId));
-        linked.docs.forEach((d) => batch.update(d.ref, { businessId: draft.businessId }));
-      }
+      linked.docs
+        .filter((d) => d.data().businessId !== draft.businessId)
+        .forEach((d) => batch.update(d.ref, { businessId: draft.businessId }));
       await batch.commit();
     },
-    [clientId, campaigns]
+    [clientId]
   );
 
   const setCampaignStatus = useCallback(
@@ -652,6 +655,8 @@ export function useClients() {
     const ids = clientIdsKey ? clientIdsKey.split(',') : [];
     if (ids.length === 0) {
       setContentByClient({});
+      // The lists are gone, so nothing in them counts as loaded any more.
+      setLoaded({});
       return;
     }
 
@@ -664,7 +669,10 @@ export function useClients() {
             id: d.id,
           }));
           setContentByClient((prev) => ({ ...prev, [id]: items }));
-          markLoaded(`content:${id}`);
+          // Only the server's answer counts as loaded. Offline, the first
+          // snapshot comes from the local cache — possibly empty — and planning
+          // a migration against that would treat every client as unmigrated.
+          if (!snap.metadata.fromCache) markLoaded(`content:${id}`);
         },
         (err) => console.error(`[limi] content subscription for ${id} failed`, err)
       )
@@ -680,6 +688,7 @@ export function useClients() {
     const ids = clientIdsKey ? clientIdsKey.split(',') : [];
     if (ids.length === 0) {
       setBusinessesByClient({});
+      setLoaded({});
       return;
     }
 
@@ -689,7 +698,7 @@ export function useClients() {
         (snap) => {
           const list = snap.docs.map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }));
           setBusinessesByClient((prev) => ({ ...prev, [id]: list }));
-          markLoaded(`businesses:${id}`);
+          if (!snap.metadata.fromCache) markLoaded(`businesses:${id}`);
         },
         (err) => console.error(`[limi] businesses subscription for ${id} failed`, err)
       )
@@ -717,19 +726,24 @@ export function useClients() {
     if (uid && clients.length > 0) writeClientsCache(uid, clients);
   }, [uid, clients]);
 
-  // Clients still holding array items that aren't in the subcollection yet.
+  // Clients still holding array items that aren't in the subcollection yet —
+  // judged only once a client's live content has arrived. Before that every
+  // legacy item looks unmigrated, and copying it across would overwrite the
+  // live document with its old version.
   const pendingMigration = useMemo(
     () =>
       baseClients.filter((c) => {
+        if (!loaded[`content:${c.id}`]) return false;
         const existing = new Set((contentByClient[c.id] ?? []).map((i) => i.id));
         return c.legacyContent.some((i) => !existing.has(i.id));
       }),
-    [baseClients, contentByClient]
+    [baseClients, contentByClient, loaded]
   );
 
-  // Only clients whose content and businesses have both arrived live. Planning
-  // against the cache could create a second default business, or stamp an
-  // item that has since been deleted — and one bad update fails its batch.
+  // Only clients whose content and businesses have both arrived from the
+  // server. Planning against anything older could mistake a client for one
+  // with no business yet, or stamp an item that has since been deleted — and
+  // one bad update fails its whole batch.
   const pendingBusinessMigration = useMemo(
     () =>
       planBusinessMigration(
@@ -803,11 +817,26 @@ export function useClients() {
   );
 
   // The UI only offers this for a business with no content and no campaigns
-  // that is not the first one — see businessDeleteBlocker(). Ideas do not
-  // block it: any filed under this business are moved to the first business
-  // (dropping their businessId does exactly that) in the same batch as the
-  // delete, so none is left pointing at a business that is gone.
+  // that is not the first one — see businessDeleteBlocker(). It decides from
+  // data that may be a moment old, so the same rules are checked again here
+  // against the server. Ideas do not block it: any filed under this business
+  // are moved to the first business (dropping their businessId does exactly
+  // that) in the same batch as the delete, so none is left pointing at a
+  // business that is gone.
   const deleteBusiness = useCallback(async (clientId: string, businessId: string) => {
+    if (businessId === DEFAULT_BUSINESS_ID) {
+      throw new Error('the first business cannot be deleted.');
+    }
+    const filedUnder = (col: CollectionReference) =>
+      getDocs(query(col, where('businessId', '==', businessId), limit(1)));
+    const [content, campaigns] = await Promise.all([
+      filedUnder(collection(db, 'clients', clientId, 'content')),
+      filedUnder(campaignsCol(clientId)),
+    ]);
+    if (!content.empty || !campaigns.empty) {
+      throw new Error('it still has content or campaigns filed under it.');
+    }
+
     const ideas = await getDocs(query(ideasCol(clientId), where('businessId', '==', businessId)));
     const batch = writeBatch(db);
     ideas.docs.forEach((d) => batch.update(d.ref, { businessId: deleteField() }));
@@ -911,8 +940,13 @@ export function useClients() {
         ...(data.campaignId === undefined
           ? {}
           : { campaignId: data.campaignId ?? deleteField() }),
+        // A deliverable belongs to its campaign, so naming a campaign without
+        // naming a deliverable clears the old one rather than keeping a slot
+        // in some other campaign.
         ...(data.deliverableId === undefined
-          ? {}
+          ? data.campaignId === undefined
+            ? {}
+            : { deliverableId: deleteField() }
           : { deliverableId: data.deliverableId ?? deleteField() }),
         ...(linkChanged
           ? {
@@ -1044,9 +1078,20 @@ export function useClients() {
       const writes: ((batch: WriteBatch) => void)[] = [];
       let businessId = client.businesses[0]?.id;
       if (step.createDefault || !businessId) {
-        const ref = doc(businessesCol(client.id), DEFAULT_BUSINESS_ID);
-        businessId = ref.id;
-        writes.push((b) => b.set(ref, defaultBusinessFor(client, Date.now())));
+        // Creating the first business overwrites whatever sits at its fixed
+        // id, so ask the server — never the listeners, which may be behind —
+        // whether the client already has one. This also refuses to run
+        // offline, where there is no server to ask.
+        const existing = await getDocsFromServer(
+          query(businessesCol(client.id), orderBy('createdAt', 'asc'))
+        );
+        if (!existing.empty) {
+          businessId = existing.docs[0].id;
+        } else {
+          const ref = doc(businessesCol(client.id), DEFAULT_BUSINESS_ID);
+          businessId = ref.id;
+          writes.push((b) => b.set(ref, defaultBusinessFor(client, Date.now())));
+        }
       }
       // A const, so the closures below see a string rather than string | undefined.
       const target = businessId;
