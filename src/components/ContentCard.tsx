@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ContentItem } from '../types';
+import { Campaign, ContentItem } from '../types';
 import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
 import { cardInteractive, faintText } from '../ui';
+import ColorLabel from './ColorLabel';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar, AlertCircle,
   Image as ImageIcon, Download,
@@ -11,6 +12,8 @@ import {
 
 interface Props {
   item: ContentItem;
+  /** The campaign it belongs to, shown as a coloured label. */
+  campaign?: Pick<Campaign, 'name' | 'color'>;
   onCardClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -31,7 +34,7 @@ const CLICK_SLOP = 4;
 const iconBtn =
   'w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors';
 
-export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOverlay }: Props) {
+export default function ContentCard({ item, campaign, onCardClick, onEdit, onDelete, isOverlay }: Props) {
   const [imgError, setImgError] = useState(false);
   const media = getMediaInfo(item.driveLink);
   const thumbnailUrl = media.previewUrl;
@@ -223,8 +226,16 @@ export default function ContentCard({ item, onCardClick, onEdit, onDelete, isOve
 
           {/* Signals, ordered by how much each should change your plans: the
               client's decision, then the schedule, then where it is going. */}
-          {(reviewBadge || scheduledLabel || platforms.length > 0) && (
+          {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+              {/* First, because it says which push this belongs to before the
+                  signals say how it is going. Capped so a long campaign name
+                  cannot push the review badge to a second line. */}
+              {campaign && (
+                <ColorLabel color={campaign.color} className="max-w-[120px]">
+                  {campaign.name}
+                </ColorLabel>
+              )}
               {reviewBadge && (
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${reviewBadge.className}`}>
                   {reviewBadge.text}

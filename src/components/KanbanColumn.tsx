@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
-import { ContentItem, ContentStatus } from '../types';
+import { Campaign, ContentItem, ContentStatus } from '../types';
 import {
   boardColumn, columnHeader, columnBody, columnBodyOver, columnBodyPlain, columnAdd,
   countChip, faintText,
@@ -28,6 +28,8 @@ interface Props {
   onCardClick: (item: ContentItem) => void;
   onEditCard: (item: ContentItem) => void;
   onDeleteCard: (item: ContentItem) => void;
+  /** Looks up the campaign a card belongs to, for its label. */
+  campaignOf?: (item: ContentItem) => Campaign | undefined;
   /** True when a filter is narrowing the board, which changes what "empty" means. */
   filtered?: boolean;
   /**
@@ -49,6 +51,7 @@ export default function KanbanColumn({
   onCardClick,
   onEditCard,
   onDeleteCard,
+  campaignOf,
   filtered = false,
   layout = 'column',
 }: Props) {
@@ -93,6 +96,7 @@ export default function KanbanColumn({
               <ContentCard
                 key={item.id}
                 item={item}
+                campaign={campaignOf?.(item)}
                 onCardClick={() => onCardClick(item)}
                 onEdit={canEditItem(item) ? () => onEditCard(item) : undefined}
                 onDelete={canDeleteItem(item) ? () => onDeleteCard(item) : undefined}
