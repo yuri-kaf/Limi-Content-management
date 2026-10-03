@@ -20,8 +20,6 @@ interface Props {
   /** The client's content; the page picks out the campaign's own. */
   content: ContentItem[];
   businesses: Business[];
-  /** Every campaign of the client, for the board's card labels. */
-  campaigns: Campaign[];
   canManage: boolean;
   canEditItem: (item: ContentItem) => boolean;
   canDeleteItem: (item: ContentItem) => boolean;

@@ -29,7 +29,6 @@ function renderPage(over: Partial<React.ComponentProps<typeof CampaignPage>> = {
     campaign: SUMMER,
     content: CONTENT,
     businesses: [BAKERY],
-    campaigns: [SUMMER],
     canManage: true,
     canEditItem: () => true,
     canDeleteItem: () => true,
