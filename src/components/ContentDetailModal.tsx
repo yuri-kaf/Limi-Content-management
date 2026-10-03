@@ -28,7 +28,7 @@ interface Props {
   /**
    * Absent for anyone who may not move content. Every stage is reachable from
    * every other, and this works at any screen width — the board only renders
-   * one column below the sm breakpoint, so dragging cannot move an item there.
+   * one column below the lg breakpoint, and its cards do not drag there.
    */
   onChangeStatus?: (status: ContentStatus) => void;
   item: ContentItem;
@@ -256,7 +256,7 @@ export default function ContentDetailModal({
             ) : null}
 
             {/* Stage picker. Any stage reaches any other, and unlike the board's
-                drag-and-drop it works below the sm breakpoint, where only one
+                drag-and-drop it works below the lg breakpoint, where only one
                 column is rendered and there is nothing to drag to. */}
             {onChangeStatus && (
               <div>

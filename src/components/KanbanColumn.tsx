@@ -32,6 +32,8 @@ interface Props {
   campaignOf?: (item: ContentItem) => Campaign | undefined;
   /** True when a filter is narrowing the board, which changes what "empty" means. */
   filtered?: boolean;
+  /** False makes its cards static, for a layout with nowhere to drop one. */
+  draggable?: boolean;
   /**
    * 'column' is one of four fixed-width columns on the desktop board. 'single'
    * is the whole width on a phone, where the stage tabs above already carry the
@@ -53,6 +55,7 @@ export default function KanbanColumn({
   onDeleteCard,
   campaignOf,
   filtered = false,
+  draggable = true,
   layout = 'column',
 }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -100,6 +103,7 @@ export default function KanbanColumn({
                 onCardClick={() => onCardClick(item)}
                 onEdit={canEditItem(item) ? () => onEditCard(item) : undefined}
                 onDelete={canDeleteItem(item) ? () => onDeleteCard(item) : undefined}
+                draggable={draggable}
               />
             ))
           )}

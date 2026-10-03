@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { DndContextProps } from '@dnd-kit/core';
 import { ThemeProvider } from '../../contexts/ThemeContext';
@@ -356,6 +356,27 @@ describe('ContentBoard — a client board', () => {
 
 describe('ContentBoard — phone', () => {
   beforeEach(() => stubMatchMedia(false));
+  afterEach(putDownAnyLiftedCard);
+
+  // Only one column is mounted below lg, so a lifted card could only ever be
+  // dropped back where it started.
+  it('lifts nothing on a long press', async () => {
+    renderBoard();
+    fireEvent.touchStart(card('Launch reel'), { touches: [{ clientX: 10, clientY: 10 }] });
+    // Past the touch sensor's 200ms hold.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 250)));
+    expectNothingLifted();
+  });
+
+  it('opens a card on Space as well as Enter, since Space has nothing to lift', async () => {
+    const props = renderBoard();
+    focus(card('Launch reel'));
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{Enter}');
+    expect(props.onOpen).toHaveBeenCalledTimes(2);
+    expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+    expectNothingLifted();
+  });
 
   it('shows every stage as a tab and adds into the one selected', async () => {
     const props = renderBoard();

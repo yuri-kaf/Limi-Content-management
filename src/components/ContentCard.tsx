@@ -18,9 +18,10 @@ interface Props {
   onEdit?: () => void;
   onDelete?: () => void;
   /**
-   * False where a card cannot move: on a client's read-only board. Such a card
-   * never registers with dnd-kit, so no key or press can lift it, and Enter or
-   * Space opens it as they would any button.
+   * False where a card cannot move: on a client's read-only board, and on the
+   * phone board, which mounts one column and so has nowhere to drop it. Such a
+   * card never registers with dnd-kit, so no key or press can lift it, and
+   * Enter or Space opens it as they would any button.
    */
   draggable?: boolean;
   /**

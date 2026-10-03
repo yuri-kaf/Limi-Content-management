@@ -308,6 +308,10 @@ export default function ContentBoard({
         onDeleteCard={onOpen}
         campaignOf={campaignOf}
         filtered={isFiltered}
+        // The phone layout mounts this one column alone, so a card lifted in
+        // it could only be dropped back where it started. Its cards stay put
+        // instead, and the detail sheet's stage picker moves them.
+        draggable={layout === 'column'}
         layout={layout}
       />
     );
