@@ -3106,8 +3106,6 @@ export default function AddContentModal({
 
 ```tsx
   const selectedCampaign = campaigns.find((c) => c.id === campaignId);
-  // With one business (or none yet) every campaign is a candidate.
-  const businessCampaigns = campaigns.filter((c) => !businessId || c.businessId === businessId);
 
   function chooseBusiness(id: string) {
     setBusinessId(id);
@@ -3176,9 +3174,25 @@ export default function AddContentModal({
                     className={input}
                   >
                     <option value="">No campaign</option>
-                    {businessCampaigns.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                    {/* Every campaign is offered — choosing one files the item
+                        under that campaign's business, so the business picker
+                        never has to come first. With several businesses they
+                        are grouped, so two campaigns of the same name can be
+                        told apart. */}
+                    {businesses.length >= 2
+                      ? businesses.map((b) => {
+                          const own = campaigns.filter((c) => c.businessId === b.id);
+                          return own.length === 0 ? null : (
+                            <optgroup key={b.id} label={b.name}>
+                              {own.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </optgroup>
+                          );
+                        })
+                      : campaigns.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
                   </select>
                 </div>
               )}
