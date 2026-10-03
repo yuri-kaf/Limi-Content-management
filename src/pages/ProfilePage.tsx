@@ -2,7 +2,7 @@ import { Sun, Moon, LogOut, Mail, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
-  shell, heading, faintText, bodyText, card, btnGhost, btnGhostDanger, sectionLabel,
+  shellPad, heading, faintText, bodyText, card, btnGhost, btnGhostDanger, sectionLabel,
 } from '../ui';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -21,7 +21,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shell} py-6 max-w-[600px]`}>
+      <div className={`${shellPad} max-w-[600px] py-6`}>
         <h1 className={`${heading} text-lg mb-6`}>Profile</h1>
 
         <div className={`${card} divide-y divide-hairline dark:divide-hairline-dark mb-6`}>

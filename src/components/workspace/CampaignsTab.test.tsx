@@ -52,6 +52,12 @@ describe('CampaignsTab', () => {
     expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
   });
 
+  it('starts a new campaign from the header', async () => {
+    const props = renderTab();
+    await userEvent.click(screen.getByRole('button', { name: 'New campaign' }));
+    expect(props.onNew).toHaveBeenCalled();
+  });
+
   it('offers New campaign only to the team', () => {
     renderTab({ canManage: false });
     expect(screen.queryByRole('button', { name: 'New campaign' })).not.toBeInTheDocument();

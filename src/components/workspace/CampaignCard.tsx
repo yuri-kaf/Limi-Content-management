@@ -53,7 +53,9 @@ export default function CampaignCard({ campaign, content, businessName, onOpen }
         )}
 
         <span className="flex flex-col gap-1">
-          <ProgressBar value={progress.ratio} color={campaign.color} label={summary} />
+          {/* Decorative: the button's name already carries the numbers, in
+              the line under it. */}
+          <ProgressBar value={progress.ratio} color={campaign.color} label={summary} decorative />
           <span className={`text-[11px] tabular-nums ${faintText}`}>
             {progress.planned === 0 ? 'No deliverables planned yet' : summary}
           </span>

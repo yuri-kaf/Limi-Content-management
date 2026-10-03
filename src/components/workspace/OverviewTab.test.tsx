@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import OverviewTab from './OverviewTab';
-import { Business, Client, ContentItem } from '../../types';
+import { Business, Campaign, Client, ContentItem } from '../../types';
 
 const BAKERY: Business = { id: 'b1', name: 'Bakery', color: 'orange', about: '', createdAt: 1 };
 const CAFE: Business = { id: 'b2', name: 'Cafe', color: 'green', about: '', createdAt: 2 };
@@ -18,7 +18,7 @@ function client(businesses: Business[], content: ContentItem[] = []): Client {
   return { id: 'acme', name: 'Acme', about: '', content, businesses, createdAt: 1 };
 }
 
-function renderOverview(c: Client) {
+function renderOverview(c: Client, over: Partial<React.ComponentProps<typeof OverviewTab>> = {}) {
   const props = {
     client: c,
     content: c.content,
@@ -31,6 +31,7 @@ function renderOverview(c: Client) {
     onAddBusiness: vi.fn(),
     onOpenItem: vi.fn(),
     onOpenCampaign: vi.fn(),
+    ...over,
   };
   render(<ThemeProvider><OverviewTab {...props} /></ThemeProvider>);
   return props;
@@ -56,6 +57,22 @@ describe('OverviewTab', () => {
     const props = renderOverview(client([BAKERY, CAFE], [waiting]));
     await userEvent.click(screen.getByRole('button', { name: /Menu reel — Cafe/ }));
     expect(props.onOpenItem).toHaveBeenCalledWith(waiting);
+  });
+
+  it('widens back to every business when the one in scope is pressed again', async () => {
+    const props = renderOverview(client([BAKERY, CAFE]), { businessId: 'b2' });
+    await userEvent.click(screen.getByRole('button', { name: /^Cafe/ }));
+    expect(props.onSelectBusiness).toHaveBeenCalledWith(undefined);
+  });
+
+  it('keeps completed campaigns out of Active campaigns', () => {
+    const campaign = (id: string, name: string, status: Campaign['status']): Campaign => ({
+      id, businessId: 'b1', name, brief: '', status, color: 'green', deliverables: [], createdAt: 1,
+    });
+    const both = [campaign('c1', 'Spring push', 'live'), campaign('c2', 'Old launch', 'completed')];
+    renderOverview(client([BAKERY]), { campaigns: both, allCampaigns: both });
+    expect(screen.getByText('Spring push')).toBeInTheDocument();
+    expect(screen.queryByText('Old launch')).not.toBeInTheDocument();
   });
 
   it('says so when nothing needs attention', () => {

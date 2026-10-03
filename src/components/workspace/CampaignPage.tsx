@@ -11,7 +11,7 @@ import ProgressBar from '../ProgressBar';
 import StagePill from '../StagePill';
 import ContentBoard from './ContentBoard';
 import {
-  shell, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
+  shellPad, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
   btnGhost, toolbarSelect,
 } from '../../ui';
 
@@ -125,10 +125,10 @@ export default function CampaignPage({
       <div className="flex-shrink-0 border-b border-hairline dark:border-hairline-dark px-4 pt-3 pb-2.5 flex flex-col gap-2.5">
         <button
           onClick={onBack}
-          className={`self-start inline-flex items-center gap-1 text-[12px] font-medium ${faintText} hover:text-ink dark:hover:text-ink-dark transition-colors`}
+          className={`self-start inline-flex items-center gap-1 min-h-8 text-[12px] font-medium ${faintText} hover:text-ink dark:hover:text-ink-dark transition-colors`}
         >
           <ArrowLeft size={13} />
-          Campaigns
+          All campaigns
         </button>
 
         <div className="flex items-start gap-3 flex-wrap">
@@ -137,10 +137,14 @@ export default function CampaignPage({
             style={{ backgroundColor: folderColor(campaign.color).swatch }}
             aria-hidden="true"
           />
-          <div className="flex-1 min-w-0">
-            <h1 className={`${heading} text-lg leading-snug`}>{campaign.name}</h1>
+          {/* min-w-48, not min-w-0: with no starting width the title never
+              lets the row wrap, and on a phone a long name ran underneath the
+              status and Edit controls. */}
+          <div className="flex-1 min-w-48">
+            <h1 className={`${heading} text-lg leading-snug break-words`}>{campaign.name}</h1>
             <p className={`text-[12px] mt-0.5 ${faintText}`}>{subtitle}</p>
           </div>
+          <div className="flex items-center gap-2 ml-auto">
           {canManage ? (
             <select
               aria-label="Status"
@@ -156,16 +160,19 @@ export default function CampaignPage({
             <ColorLabel color={status.color}>{status.label}</ColorLabel>
           )}
           {canManage && (
-            <button onClick={onEdit} className={`${btnGhost} h-9 min-h-0 px-3 text-[12px]`}>
+            <button onClick={onEdit} className={btnGhost}>
               <Pencil size={13} />
               Edit
             </button>
           )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 max-w-md">
           <ProgressBar value={progress.ratio} color={campaign.color} label={summary} />
-          <span className={`text-[12px] tabular-nums whitespace-nowrap ${faintText}`}>{summary}</span>
+          <span className={`text-[12px] tabular-nums whitespace-nowrap ${faintText}`}>
+            {progress.planned === 0 ? 'No deliverables planned yet' : summary}
+          </span>
         </div>
 
         <div className={`${segmented} self-start`}>
@@ -199,7 +206,7 @@ export default function CampaignPage({
         />
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className={`${shell} py-6 max-w-[820px] flex flex-col gap-6`}>
+          <div className={`${shellPad} max-w-[820px] py-6 flex flex-col gap-6`}>
             <section aria-label="Brief">
               <h2 className={`${sectionLabel} mb-1.5`}>Brief</h2>
               {campaign.brief ? (

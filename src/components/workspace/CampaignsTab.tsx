@@ -3,7 +3,7 @@ import { Business, Campaign, ContentItem } from '../../types';
 import { CAMPAIGN_GROUP_ORDER, campaignStatusMeta, sortCampaigns } from '../../campaigns';
 import CampaignCard from './CampaignCard';
 import {
-  shell, heading, faintText, card, btnPrimary, sectionLabel, countChip,
+  shellPad, heading, faintText, card, btnPrimary, sectionLabel, countChip,
   emptyState, emptyTitle, emptyBody,
 } from '../../ui';
 
@@ -25,7 +25,7 @@ export default function CampaignsTab({ campaigns, content, businesses, canManage
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shell} py-6 max-w-[1100px]`}>
+      <div className={`${shellPad} max-w-[1100px] py-6`}>
         <div className="flex items-start justify-between gap-3 mb-5">
           <div>
             <h1 className={`${heading} text-lg`}>Campaigns</h1>

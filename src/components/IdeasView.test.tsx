@@ -57,4 +57,14 @@ describe('IdeasView — business scope', () => {
       expect.objectContaining({ title: 'Pop-up stall', businessId: 'b2' })
     );
   });
+
+  it('files a new idea under no particular business when none is in scope', async () => {
+    ideasApi.ideas = [];
+    render(<IdeasView clientId="acme" businesses={[BAKERY, CAFE]} canTriage onConvert={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /New Idea/ }));
+    await userEvent.type(screen.getByPlaceholderText('Behind the scenes of the new store'), 'Pop-up stall');
+    await userEvent.click(screen.getByRole('button', { name: 'Submit Idea' }));
+    const [data] = ideasApi.addIdea.mock.calls[0] as unknown as [object];
+    expect('businessId' in data).toBe(false);
+  });
 });

@@ -8,6 +8,14 @@ describe('ProgressBar', () => {
       .toHaveAttribute('aria-valuenow', '29');
   });
 
+  it('hides a decorative bar from screen readers', () => {
+    const { container } = render(
+      <ProgressBar value={0.5} color="green" label="1 of 2 posted" decorative />
+    );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(container.firstChild).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('clamps values outside 0 to 1, and treats NaN as empty', () => {
     const { rerender } = render(<ProgressBar value={1.4} color="green" label="p" />);
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');

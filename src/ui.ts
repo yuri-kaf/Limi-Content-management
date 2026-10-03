@@ -118,7 +118,12 @@ export const readout = `${inset} p-3 text-sm leading-relaxed whitespace-pre-wrap
 export const divider = 'pt-3 border-t border-hairline dark:border-hairline-dark';
 
 export const page = 'min-h-screen min-h-dvh bg-canvas dark:bg-canvas-dark';
-export const shell = 'max-w-[1440px] mx-auto px-4 sm:px-8';
+// The shell's centring and padding without its width, for a page that sets a
+// narrower max-width of its own. Stacking a max-w-* on `shell` is unreliable:
+// Tailwind orders same-property utilities itself, so which width wins depends
+// on how the two values sort, not on their order in the class list.
+export const shellPad = 'mx-auto px-4 sm:px-8';
+export const shell = `max-w-[1440px] ${shellPad}`;
 
 // A wide, two-pane detail dialog. Bottom sheet on phones; from lg up a centred
 // panel whose header and footer stay put while the two panes scroll on their

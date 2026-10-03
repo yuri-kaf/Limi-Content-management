@@ -7,7 +7,7 @@ import { QUEUE_SECTIONS, QueueGroup } from '../QueueGroup';
 import StagePill from '../StagePill';
 import BusinessCard from './BusinessCard';
 import CampaignCard from './CampaignCard';
-import { shell, heading, faintText, tile, sectionLabel, countChip } from '../../ui';
+import { shellPad, heading, faintText, tile, sectionLabel, countChip } from '../../ui';
 
 interface Props {
   client: Client;
@@ -57,7 +57,7 @@ export default function OverviewTab({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shell} py-6 max-w-[1100px] flex flex-col gap-7`}>
+      <div className={`${shellPad} max-w-[1100px] py-6 flex flex-col gap-7`}>
         {multi && (
           <section aria-label="Businesses">
             <div className="flex items-center gap-2 mb-2 px-1">
@@ -115,8 +115,9 @@ export default function OverviewTab({
                   entries={groups[section.key]}
                   now={now}
                   onOpen={(entry) => onOpenItem(entry.item)}
-                  // With one business every row would name the client again.
-                  showSource={multi}
+                  // Only where rows can come from different businesses: with
+                  // one, or scoped to one, every row would repeat the name.
+                  showSource={multi && !businessId}
                 />
               ))
             )}

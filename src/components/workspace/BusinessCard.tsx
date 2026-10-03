@@ -53,7 +53,7 @@ export default function BusinessCard({ business, summary, selected, canManage, o
           // would lose anyway (Tailwind orders same-property utilities itself),
           // and 36px is the better target on a phone. pr-12 above keeps the
           // name clear of it.
-          className={`${btnIcon} absolute top-2 right-2 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100`}
+          className={`${btnIcon} absolute top-2 right-2 [@media(hover:hover)]:lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100`}
           aria-label={`Edit ${business.name}`}
         >
           <Pencil size={13} />

@@ -4,7 +4,7 @@ import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { buildToday, TodayEntry, todayTotal } from '../today';
 import { QUEUE_SECTIONS, QueueGroup } from '../components/QueueGroup';
-import { shell, heading, faintText, card, emptyState, emptyTitle, emptyBody } from '../ui';
+import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody } from '../ui';
 
 // The home page answers one question: what needs me. The clients grid answers
 // "what exists", which is a different and much less frequent question.
@@ -33,7 +33,7 @@ export default function TodayPage() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shell} py-6 max-w-[820px]`}>
+      <div className={`${shellPad} max-w-[820px] py-6`}>
         <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
           <h1 className={`${heading} text-lg`}>Today</h1>
           <span className={`text-[12px] ${faintText}`}>{today}</span>
