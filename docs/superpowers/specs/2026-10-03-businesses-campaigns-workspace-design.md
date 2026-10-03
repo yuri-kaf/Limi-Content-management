@@ -83,9 +83,9 @@ interface Deliverable {
 ```
 
 `FolderColor` is a named palette, not a free hex, so every colour is known to
-render legibly in both themes. The palette's hex values live in one module
-(`src/palette.ts` already exists for this purpose) and are covered by the
-existing contrast test.
+render legibly in both themes. The palette's hex values live in a new module,
+`src/folderColors.ts` (`src/palette.ts` is the command palette), with its own
+contrast test.
 
 **Deliverable progress is derived, never stored.** Filled count for a
 deliverable = content in that campaign whose `deliverableId` matches; "done"
@@ -243,6 +243,29 @@ Vitest, matching existing tests:
 - `firestore.rules` changes verified manually against the emulator-free
   checklist used in the auth spec (client can read businesses/campaigns of an
   assigned client, cannot write them, cannot change `campaignId` on content).
+
+## Revisions made while planning
+
+Recorded here so the spec and the plan agree. Details in
+`docs/superpowers/plans/2026-10-03-businesses-campaigns-workspace.md`.
+
+1. **Client-role users see Content, Calendar and Ideas only**, exactly the
+   views they had. Overview and Campaigns are team-facing until the client
+   portal (sub-project 3).
+2. **One business-scope control.** A chip bar under the tabs (two or more
+   businesses only) sets `?b=` for every tab; Overview's business cards set the
+   same parameter. This replaces the separate breadcrumb chip and per-tab
+   filter chips described above.
+3. **The folder colour is chosen in the client form**, not a header picker. It
+   shows immediately on the lettered avatar; sub-project 2 renders the folder
+   icon.
+4. **The campaign page has Plan and Board views**, not a short kanban under
+   the checklist.
+5. **Adding a business or a campaign waits for the client's first business**,
+   so a business added before the migration cannot become the default and
+   absorb the client's existing content.
+6. Converting an idea now marks it converted. The old board never called
+   `markConverted`, so "Make content" never went away.
 
 ## Non-goals for this sub-project
 
