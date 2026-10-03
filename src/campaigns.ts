@@ -1,4 +1,8 @@
-import { Business, Campaign, CampaignStatus, ContentItem, Deliverable, FolderColor } from './types';
+import {
+  Business, Campaign, CampaignStatus, Client, ContentItem, Deliverable, FolderColor,
+} from './types';
+import { awaitingReview } from './nav';
+import { DEFAULT_FOLDER_COLOR } from './folderColors';
 
 // ─── Scope ───────────────────────────────────────────────────────────────────
 
@@ -137,4 +141,96 @@ export function sortCampaigns(campaigns: Campaign[]): Campaign[] {
       byStartDate(a.startDate, b.startDate) ||
       a.createdAt - b.createdAt
   );
+}
+
+// ─── Businesses ──────────────────────────────────────────────────────────────
+
+export interface BusinessSummary {
+  total: number;
+  awaitingReview: number;
+  /** Planning or live — anything not yet completed. */
+  activeCampaigns: number;
+}
+
+export function businessSummary(
+  businessId: string,
+  businesses: Pick<Business, 'id'>[],
+  content: ContentItem[],
+  campaigns: Pick<Campaign, 'businessId' | 'status'>[]
+): BusinessSummary {
+  const mine = content.filter((i) => businessIdOf(i, businesses) === businessId);
+  return {
+    total: mine.length,
+    awaitingReview: awaitingReview(mine),
+    activeCampaigns: campaigns.filter(
+      (c) => c.businessId === businessId && c.status !== 'completed'
+    ).length,
+  };
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/**
+ * Why a business cannot be deleted, or null when it can. Deleting one that
+ * still holds content or campaigns would strand them in no business at all.
+ * The first business is never deletable: anything without a businessId —
+ * content before the migration, ideas from before businesses existed — belongs
+ * to it, and would silently move to whichever business became first instead.
+ * (Ideas filed under a later business do not block: deleteBusiness() moves
+ * them to the first business in the same batch.)
+ */
+export function businessDeleteBlocker(
+  businessId: string,
+  businesses: Pick<Business, 'id'>[],
+  content: ContentItem[],
+  campaigns: Pick<Campaign, 'businessId'>[]
+): string | null {
+  if (businesses.length <= 1) return 'A client always keeps at least one business.';
+  if (businesses[0].id === businessId) {
+    return 'This is the first business, which holds everything filed before businesses existed, so it cannot be deleted. Rename it instead.';
+  }
+  const items = content.filter((i) => businessIdOf(i, businesses) === businessId).length;
+  if (items > 0) {
+    return `It still holds ${plural(items, 'content item')}. Move ${items === 1 ? 'it' : 'them'} to another business or delete ${items === 1 ? 'it' : 'them'} first.`;
+  }
+  const owned = campaigns.filter((c) => c.businessId === businessId).length;
+  if (owned > 0) {
+    return `It still has ${plural(owned, 'campaign')}. Delete ${owned === 1 ? 'it' : 'them'} first.`;
+  }
+  return null;
+}
+
+/** The business every client starts with, named, coloured and pictured after the client. */
+export function defaultBusinessFor(
+  client: { name: string; imageUrl?: string; about?: string; color?: FolderColor },
+  createdAt: number
+): Omit<Business, 'id'> {
+  return {
+    name: client.name,
+    color: client.color ?? DEFAULT_FOLDER_COLOR,
+    // Omitted, not undefined: Firestore rejects an undefined field outright.
+    ...(client.imageUrl ? { logoUrl: client.imageUrl } : {}),
+    about: client.about ?? '',
+    createdAt,
+  };
+}
+
+export interface BusinessMigrationStep {
+  clientId: string;
+  /** True when the client has no business yet and the migration must create one. */
+  createDefault: boolean;
+  /** Items that carry no businessId. */
+  contentIds: string[];
+}
+
+export function planBusinessMigration(
+  clients: Pick<Client, 'id' | 'content' | 'businesses'>[]
+): BusinessMigrationStep[] {
+  return clients
+    .map((c) => ({
+      clientId: c.id,
+      createDefault: c.businesses.length === 0,
+      contentIds: c.content.filter((i) => !i.businessId).map((i) => i.id),
+    }))
+    .filter((s) => s.createDefault || s.contentIds.length > 0);
 }

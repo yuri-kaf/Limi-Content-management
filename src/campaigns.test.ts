@@ -1,6 +1,7 @@
 import {
-  NO_CAMPAIGN, businessIdOf, campaignIdOf, campaignProgress, campaignStatusMeta,
-  deliverableProgress, scopeContent, sortCampaigns, unslottedContent,
+  NO_CAMPAIGN, businessDeleteBlocker, businessIdOf, businessSummary, campaignIdOf,
+  campaignProgress, campaignStatusMeta, defaultBusinessFor, deliverableProgress,
+  planBusinessMigration, scopeContent, sortCampaigns, unslottedContent,
 } from './campaigns';
 import { Business, Campaign, ContentItem } from './types';
 
@@ -142,5 +143,88 @@ describe('campaign status', () => {
     ]);
     expect(sorted.map((c) => c.id))
       .toEqual(['live', 'plan-early', 'plan-late', 'plan-undated', 'done']);
+  });
+});
+
+describe('businessSummary', () => {
+  it('counts content, review waits and unfinished campaigns for one business', () => {
+    const content = [
+      item({ id: 'a', status: 'review' }), // no businessId, so the first business
+      item({ id: 'b', businessId: 'b1', status: 'posted' }),
+      item({ id: 'c', businessId: 'b2', status: 'review' }),
+    ];
+    const campaigns = [
+      campaign('live', { businessId: 'b1', status: 'live' }),
+      campaign('plan', { businessId: 'b1', status: 'planning' }),
+      campaign('done', { businessId: 'b1', status: 'completed' }),
+      campaign('other', { businessId: 'b2' }),
+    ];
+    expect(businessSummary('b1', [B1, B2], content, campaigns)).toEqual({
+      total: 2, awaitingReview: 1, activeCampaigns: 2,
+    });
+  });
+});
+
+describe('businessDeleteBlocker', () => {
+  it('never allows deleting the last business', () => {
+    expect(businessDeleteBlocker('b1', [B1], [], [])).toMatch(/at least one business/);
+  });
+
+  it('never allows deleting the first business, which holds everything unfiled', () => {
+    expect(businessDeleteBlocker('b1', [B1, B2], [], [])).toMatch(/first business/);
+  });
+
+  it('blocks while the business holds content', () => {
+    expect(businessDeleteBlocker('b2', [B1, B2], [item({ businessId: 'b2' })], []))
+      .toMatch(/1 content item/);
+  });
+
+  it('blocks while the business has campaigns', () => {
+    expect(businessDeleteBlocker('b2', [B1, B2], [], [{ businessId: 'b2' }, { businessId: 'b2' }]))
+      .toMatch(/2 campaigns/);
+  });
+
+  it('allows deleting an empty business', () => {
+    expect(businessDeleteBlocker('b2', [B1, B2], [item({ businessId: 'b1' })], [])).toBeNull();
+  });
+});
+
+describe('defaultBusinessFor', () => {
+  it('names, colours and pictures the business after the client', () => {
+    expect(
+      defaultBusinessFor({ name: 'Acme', imageUrl: 'https://x/a.png', about: 'Hi', color: 'pink' }, 5)
+    ).toEqual({ name: 'Acme', color: 'pink', logoUrl: 'https://x/a.png', about: 'Hi', createdAt: 5 });
+  });
+
+  it('omits the logo rather than writing undefined, which Firestore rejects', () => {
+    const b = defaultBusinessFor({ name: 'Acme' }, 5);
+    expect('logoUrl' in b).toBe(false);
+    expect(b.color).toBe('blue');
+    expect(b.about).toBe('');
+  });
+});
+
+describe('planBusinessMigration', () => {
+  const client = (id: string, content: ContentItem[], businesses: Business[]) =>
+    ({ id, content, businesses });
+
+  it('creates a default business and stamps every item for an unmigrated client', () => {
+    expect(planBusinessMigration([client('a', [item({ id: 'x' }), item({ id: 'y' })], [])]))
+      .toEqual([{ clientId: 'a', createDefault: true, contentIds: ['x', 'y'] }]);
+  });
+
+  it('stamps only the items still missing a business', () => {
+    expect(planBusinessMigration([
+      client('a', [item({ id: 'x', businessId: 'b1' }), item({ id: 'y' })], [B1]),
+    ])).toEqual([{ clientId: 'a', createDefault: false, contentIds: ['y'] }]);
+  });
+
+  it('creates a business for a client with no content at all', () => {
+    expect(planBusinessMigration([client('a', [], [])]))
+      .toEqual([{ clientId: 'a', createDefault: true, contentIds: [] }]);
+  });
+
+  it('is empty once everything is migrated, so a second run does nothing', () => {
+    expect(planBusinessMigration([client('a', [item({ businessId: 'b1' })], [B1])])).toEqual([]);
   });
 });
