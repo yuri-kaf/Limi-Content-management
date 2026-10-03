@@ -130,7 +130,7 @@ export interface Business {
 }
 
 /** What the business form produces. */
-export type BusinessDraft = Pick<Business, 'name' | 'color' | 'about'> & { logoUrl?: string };
+export type BusinessDraft = Omit<Business, 'id' | 'createdAt'>;
 
 // A planned piece of a campaign — "3 Reels". Progress is never stored: it is
 // counted from the content whose deliverableId points here.
@@ -149,10 +149,11 @@ export interface Campaign {
   name: string;
   brief: string;
   status: CampaignStatus;
-  /** Local midnight of the first day. */
-  startDate?: number;
-  /** Local midnight of the last day. */
-  endDate?: number;
+  // Calendar days as 'YYYY-MM-DD', not timestamps. A day has no time zone: a
+  // timestamp saved at midnight in Kathmandu reads as the day before anywhere
+  // west of it. ISO days also sort correctly as plain strings.
+  startDate?: string;
+  endDate?: string;
   color: FolderColor;
   deliverables: Deliverable[];
   createdAt: number;

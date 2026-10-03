@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -10,7 +11,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
-    // The harness files under .superpowers are mockups, not tests.
-    exclude: ['node_modules', 'dist', '.superpowers'],
+    // The harness files under .superpowers are mockups, not tests. Worktrees
+    // under .claude are whole other checkouts of this repo, and their tests
+    // would otherwise run alongside — and be counted with — this one's.
+    exclude: [...configDefaults.exclude, '.superpowers/**', '**/.claude/**'],
   },
 })
