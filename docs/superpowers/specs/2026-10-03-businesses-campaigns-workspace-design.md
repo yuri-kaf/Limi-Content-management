@@ -276,6 +276,11 @@ Recorded here so the spec and the plan agree. Details in
 9. **The first business can never be deleted** — everything without a
    `businessId` belongs to it. Deleting another business moves its ideas to
    the first business in the same batch; content and campaigns still block.
+10. **The first business has the fixed id `main`**, so two migration runs at
+    once write one document rather than two "first" businesses.
+11. **A deliverable's progress is out of `max(target, made)`**, and the
+    campaign total sums the same figure, so a deliverable row and its campaign
+    never disagree when more were made than planned.
 
 ## Non-goals for this sub-project
 

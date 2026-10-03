@@ -78,6 +78,13 @@ Added after the Task 1 review:
 9. **Campaign dates are calendar days, `'YYYY-MM-DD'` strings**, not timestamps. A timestamp saved at midnight in Kathmandu reads as the day before anywhere west of it — every client in Europe or the Americas once the portal shows campaigns.
 10. **The first business can never be deleted**, because everything without a `businessId` belongs to it. Deleting any other business moves its ideas to the first business in the same batch rather than leaving them pointing at nothing; content and campaigns still block the delete.
 
+Added after the Tasks 2–7 review (already applied to the committed code in `fa3441a`; the later tasks below are written against it):
+
+11. **Tests run in processes** (`pool: 'forks'` in `vite.config.ts`): a test that assigns `process.env.TZ` changes the zone only in a process of its own; under worker threads the assignment is ignored.
+12. **The first business has a fixed id, `DEFAULT_BUSINESS_ID = 'main'`** (exported from `src/campaigns.ts`), used by `addClient` and by the migration, so two simultaneous migration runs write one document instead of two "first" businesses.
+13. **`DeliverableProgress.planned`** (the target, or more if more were made) is what every progress display reads — the campaign total sums it — so a deliverable row and its campaign can never disagree.
+14. `businessIdOf` falls back to the first business when an item's stored business no longer exists; `tabsFor` grants the team tabs only to admin and social-media-manager; `formatDateRange` shows a one-day range once and treats malformed days as no date.
+
 ---
 
 ### Task 1: Types and the businesses read path
@@ -136,7 +143,7 @@ export interface Business {
 }
 
 /** What the business form produces. */
-export type BusinessDraft = Pick<Business, 'name' | 'color' | 'about'> & { logoUrl?: string };
+export type BusinessDraft = Omit<Business, 'id' | 'createdAt'>;
 
 // A planned piece of a campaign — "3 Reels". Progress is never stored: it is
 // counted from the content whose deliverableId points here.
@@ -155,10 +162,11 @@ export interface Campaign {
   name: string;
   brief: string;
   status: CampaignStatus;
-  /** Local midnight of the first day. */
-  startDate?: number;
-  /** Local midnight of the last day. */
-  endDate?: number;
+  // Calendar days as 'YYYY-MM-DD', not timestamps. A day has no time zone: a
+  // timestamp saved at midnight in Kathmandu reads as the day before anywhere
+  // west of it. ISO days also sort correctly as plain strings.
+  startDate?: string;
+  endDate?: string;
   color: FolderColor;
   deliverables: Deliverable[];
   createdAt: number;
@@ -1403,7 +1411,7 @@ import {
 (`addDoc` goes: `addClient` now uses a batch.) Add `BusinessDraft` to the `./types` import. Below the `./utils` import add:
 
 ```ts
-import { defaultBusinessFor, planBusinessMigration } from './campaigns';
+import { DEFAULT_BUSINESS_ID, defaultBusinessFor, planBusinessMigration } from './campaigns';
 import { DEFAULT_FOLDER_COLOR } from './folderColors';
 ```
 
@@ -1552,7 +1560,7 @@ Replace `addClient` and `updateClient` with:
         color: data.color ?? DEFAULT_FOLDER_COLOR,
         createdAt: now,
       });
-      batch.set(doc(businessesCol(clientRef.id)), defaultBusinessFor(data, now));
+      batch.set(doc(businessesCol(clientRef.id), DEFAULT_BUSINESS_ID), defaultBusinessFor(data, now));
       await batch.commit();
     },
     []
@@ -1681,7 +1689,7 @@ Directly after `migrateLegacyCaptions`, add:
       const writes: ((batch: WriteBatch) => void)[] = [];
       let businessId = client.businesses[0]?.id;
       if (step.createDefault || !businessId) {
-        const ref = doc(businessesCol(client.id));
+        const ref = doc(businessesCol(client.id), DEFAULT_BUSINESS_ID);
         businessId = ref.id;
         writes.push((b) => b.set(ref, defaultBusinessFor(client, Date.now())));
       }
@@ -4371,7 +4379,7 @@ export default function CampaignCard({ campaign, content, businessName, onOpen }
 
         {slots.length > 0 && (
           <span className={`text-[11px] leading-relaxed line-clamp-2 ${faintText}`}>
-            {slots.map((s) => `${s.deliverable.label} ${s.posted}/${s.deliverable.target}`).join(' · ')}
+            {slots.map((s) => `${s.deliverable.label} ${s.posted}/${s.planned}`).join(' · ')}
           </span>
         )}
       </span>
@@ -4970,7 +4978,7 @@ function DeliverableRow({
   onOpenItem: (item: ContentItem) => void;
   onAdd: () => void;
 }) {
-  const { deliverable, items, posted } = slot;
+  const { deliverable, items, posted, planned } = slot;
   const toMake = Math.max(0, deliverable.target - items.length);
   return (
     <div className="px-3 py-2.5 flex flex-col gap-2">
@@ -4984,13 +4992,13 @@ function DeliverableRow({
           )}
         </span>
         <span className={`text-[12px] tabular-nums ${faintText}`}>
-          {`${posted}/${deliverable.target} posted`}
+          {`${posted}/${planned} posted`}
         </span>
       </div>
       <ProgressBar
-        value={posted / deliverable.target}
+        value={posted / planned}
         color={color}
-        label={`${deliverable.label}: ${posted} of ${deliverable.target} posted`}
+        label={`${deliverable.label}: ${posted} of ${planned} posted`}
       />
       <div className="flex flex-wrap items-center gap-1.5">
         {items.map((i) => (
