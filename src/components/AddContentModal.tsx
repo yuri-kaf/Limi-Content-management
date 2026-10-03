@@ -3,6 +3,7 @@ import { X, Film, Image as ImageIcon } from 'lucide-react';
 import { ContentItem, ContentStatus, MediaType, Platform } from '../types';
 import {
   extractDriveFileId, getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS,
+  toDateInput,
 } from '../utils';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
@@ -55,7 +56,7 @@ export default function AddContentModal({
 
   const [schedDate, setSchedDate] = useState(() => {
     const ts = existingItem?.scheduledAt ?? defaultScheduledAt;
-    if (ts && ts > 0) return new Date(ts).toISOString().slice(0, 10);
+    if (ts && ts > 0) return toDateInput(ts);
     return '';
   });
   const [schedTime, setSchedTime] = useState(() => {
