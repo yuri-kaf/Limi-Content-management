@@ -224,9 +224,10 @@ Adding a second business turns all of this on with no other change.
 - A route naming a campaign or business that does not exist (deleted, or a
   stale link) shows an inline "This campaign no longer exists" with a link back
   to the client, rather than a blank page.
-- Content whose `campaignId` points at a deleted campaign (possible if a delete
-  batch partially failed) is treated as having no campaign by `scopeContent`,
-  and the campaign delete action is safe to re-run to clean it up.
+- Content whose `campaignId` points at a deleted campaign (possible if an item
+  was filed into the campaign while it was being deleted) is treated as having
+  no campaign by `scopeContent`. The stale id is cleared the next time the item
+  is edited, because the content form always sends its campaign, or `null`.
 
 ## Testing
 

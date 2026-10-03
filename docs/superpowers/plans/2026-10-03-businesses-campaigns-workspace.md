@@ -85,6 +85,14 @@ Added after the Tasks 2–7 review (already applied to the committed code in `fa
 13. **`DeliverableProgress.planned`** (the target, or more if more were made) is what every progress display reads — the campaign total sums it — so a deliverable row and its campaign can never disagree.
 14. `businessIdOf` falls back to the first business when an item's stored business no longer exists; `tabsFor` grants the team tabs only to admin and social-media-manager; `formatDateRange` shows a one-day range once and treats malformed days as no date.
 
+Added after the Tasks 8–10 review (applied in `3a46a5c`; the Task 9 and 10 code blocks below show the pre-review version — the committed `src/store.ts` is authoritative):
+
+15. **Only server snapshots count as loaded** (`snap.metadata.fromCache` is ignored), and the loaded map resets with the lists, so neither migration can plan against an offline cache. The legacy content migration got the same guard — before it, a click during the gap between a client's document and its content snapshot could copy old array items over live documents.
+16. **`migrateBusinesses` asks the server** (`getDocsFromServer`) whether a client already has a business before creating `'main'`, so it can never overwrite an existing first business; offline it refuses to run.
+17. **`deleteBusiness` re-checks on the server** that the business is not `'main'` and has no content or campaigns, throwing a readable error otherwise. `updateCampaign` re-files every linked item whose business differs, judged from the content, not the hook's copy of the campaign. `updateContent` clears `deliverableId` when a campaign is named without one.
+18. **Task 24 keys the workspace by client** (`<Workspace key={client.id} …/>`), so switching clients — including with ⌘K while a form is open — starts fresh rather than carrying a form or campaign list into the wrong client.
+19. **Batch size and the rules' access-call budget:** Firestore allows 20 document-access calls per batched write and only says repeated calls *may* be cached. Every write here evaluates `isAdmin()` (an `exists` and a `get` of the caller's profile). Batches are kept at up to 400 writes; the supervised migration in Task 25 is the test — a rejected batch writes nothing — and if it fails with `permission-denied`, lower `BATCH_LIMIT` and chunk the other multi-write batches.
+
 ---
 
 ### Task 1: Types and the businesses read path
@@ -5426,7 +5434,10 @@ export default function ClientWorkspacePage() {
     return <Navigate to="/" replace />;
   }
 
-  return <Workspace client={client} store={store} />;
+  // Keyed by client, so switching clients (the sidebar, or ⌘K with a form
+  // open) starts a fresh workspace: no form, filter or campaign list carries
+  // over and saves into the wrong client.
+  return <Workspace key={client.id} client={client} store={store} />;
 }
 
 function Workspace({ client, store }: { client: Client; store: Store }) {
