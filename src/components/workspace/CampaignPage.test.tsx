@@ -72,6 +72,7 @@ describe('CampaignPage', () => {
   it('hides editing controls from someone who cannot manage campaigns', () => {
     renderPage({ canManage: false });
     expect(screen.queryByRole('button', { name: 'Add to Reels' })).not.toBeInTheDocument();
+    // Exact name: a stage pill reading "Editing" sits inside an item chip.
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
   });
