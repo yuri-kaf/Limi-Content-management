@@ -1,7 +1,8 @@
 import {
   NO_CAMPAIGN, businessDeleteBlocker, businessIdOf, businessSummary, campaignIdOf,
   campaignProgress, campaignStatusMeta, defaultBusinessFor, deliverableProgress,
-  planBusinessMigration, scopeContent, sortCampaigns, unslottedContent,
+  endsBeforeStart, formatDateRange, planBusinessMigration, scopeContent, sortCampaigns,
+  unslottedContent,
 } from './campaigns';
 import { Business, Campaign, ContentItem } from './types';
 
@@ -226,5 +227,36 @@ describe('planBusinessMigration', () => {
 
   it('is empty once everything is migrated, so a second run does nothing', () => {
     expect(planBusinessMigration([client('a', [item({ businessId: 'b1' })], [B1])])).toEqual([]);
+  });
+});
+
+describe('calendar days', () => {
+  it('formats both ends, either end, or neither', () => {
+    expect(formatDateRange('2026-10-03', '2026-10-20')).toBe('Oct 3 – Oct 20');
+    expect(formatDateRange('2026-10-03')).toBe('From Oct 3');
+    expect(formatDateRange(undefined, '2026-10-20')).toBe('Until Oct 20');
+    expect(formatDateRange()).toBe('');
+  });
+
+  it('reads a day as a local date, so it never shows as the day before', () => {
+    // new Date('2026-10-01') is UTC midnight, which is still Sep 30 in Los
+    // Angeles. The suite normally runs east of Greenwich, where that bug cannot
+    // show, so this pins a western zone. Node re-reads TZ when it is assigned.
+    const zone = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles';
+    try {
+      expect(formatDateRange('2026-10-01')).toBe('From Oct 1');
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
+  });
+
+  it('knows when the end comes before the start', () => {
+    expect(endsBeforeStart('2026-10-20', '2026-10-03')).toBe(true);
+    expect(endsBeforeStart('2026-10-03', '2026-10-03')).toBe(false);
+    expect(endsBeforeStart('2026-10-03', '2026-10-20')).toBe(false);
+    expect(endsBeforeStart('', '2026-10-03')).toBe(false);
+    expect(endsBeforeStart(undefined, undefined)).toBe(false);
   });
 });

@@ -234,3 +234,26 @@ export function planBusinessMigration(
     }))
     .filter((s) => s.createDefault || s.contentIds.length > 0);
 }
+
+// ─── Dates ───────────────────────────────────────────────────────────────────
+
+/**
+ * 'YYYY-MM-DD' as "Oct 3". Built from the parts rather than new Date(value),
+ * which reads an ISO day as UTC midnight — the day before, west of Greenwich.
+ */
+function dayLabel(value: string): string {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export function formatDateRange(start?: string, end?: string): string {
+  if (start && end) return `${dayLabel(start)} – ${dayLabel(end)}`;
+  if (start) return `From ${dayLabel(start)}`;
+  if (end) return `Until ${dayLabel(end)}`;
+  return '';
+}
+
+/** True only when both days are set and the end comes first. ISO days compare as strings. */
+export function endsBeforeStart(start?: string, end?: string): boolean {
+  return !!start && !!end && end < start;
+}
