@@ -112,9 +112,14 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
   const [editingClient, setEditingClient] = useState(false);
   // False once this workspace has gone — another client opened while a save
   // was in flight — so a late navigate cannot pull the person back here.
+  // Set on mount as well as cleared on unmount: StrictMode mounts, unmounts
+  // and mounts again in development, which would otherwise leave it false.
   const alive = useRef(true);
-  useEffect(() => () => {
-    alive.current = false;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
   }, []);
 
   // ?item=<id> opens that item's sheet on whichever tab is showing. This is
@@ -325,12 +330,16 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
           />
         );
       case 'campaigns':
+        // Not the empty state while the list is on its way: "No campaigns yet"
+        // would be briefly, and wrongly, true.
+        if (campaignsLoading) return <Spinner />;
         return (
           <CampaignsTab
             campaigns={scopedCampaigns}
             content={client.content}
             businesses={businesses}
             canManage={canManage && hasBusinesses}
+            setupNeeded={canManage && !hasBusinesses}
             onOpen={(c) => navigate(campaignPath(client.id, c.id, scopeFor(c)))}
             onNew={() => setCampaignForm({})}
           />
@@ -380,8 +389,14 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
           <ContentBoard
             content={content}
             // Scoped like the content, so a board showing one business offers
-            // only that business's campaigns to filter by.
-            campaigns={scopedCampaigns}
+            // only that business's campaigns to filter by. A client is offered
+            // only campaigns with something they can see: the campaign list
+            // itself is the team's.
+            campaigns={
+              isClientRole
+                ? scopedCampaigns.filter((c) => visibleContent.some((i) => i.campaignId === c.id))
+                : scopedCampaigns
+            }
             businesses={businesses}
             isClientRole={isClientRole}
             canAdd={canManage}

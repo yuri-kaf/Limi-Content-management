@@ -14,11 +14,18 @@ interface Props {
   content: ContentItem[];
   businesses: Business[];
   canManage: boolean;
+  /**
+   * The client has no business yet, so no campaign can be made. Says why,
+   * rather than leaving an empty tab with no button and no reason.
+   */
+  setupNeeded?: boolean;
   onOpen: (campaign: Campaign) => void;
   onNew: () => void;
 }
 
-export default function CampaignsTab({ campaigns, content, businesses, canManage, onOpen, onNew }: Props) {
+export default function CampaignsTab({
+  campaigns, content, businesses, canManage, setupNeeded = false, onOpen, onNew,
+}: Props) {
   const sorted = sortCampaigns(campaigns);
   const multi = businesses.length >= 2;
   const nameOf = (id: string) => businesses.find((b) => b.id === id)?.name;
@@ -50,8 +57,9 @@ export default function CampaignsTab({ campaigns, content, businesses, canManage
             </div>
             <p className={emptyTitle}>No campaigns yet</p>
             <p className={emptyBody}>
-              A campaign is a launch, a season or a promotion: a brief, a date range, and the
-              pieces of content it needs.
+              {setupNeeded
+                ? 'Campaigns belong to a business, and this client has none yet. An admin can run Set up businesses on the Clients page.'
+                : 'A campaign is a launch, a season or a promotion: a brief, a date range, and the pieces of content it needs.'}
             </p>
           </div>
         ) : (

@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -85,16 +86,20 @@ function go(to: string | number) {
 
 function renderAt(url: string | string[]) {
   const entries = Array.isArray(url) ? url : [url];
+  // StrictMode, as in main.tsx: its double mount is what once left a ref
+  // guarding navigation stuck at false in development.
   return render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
-        <Routes>
-          <Route path="/client/:id/campaign/:campaignId" element={<><ClientWorkspacePage /><Probe /></>} />
-          <Route path="/client/:id/:tab?" element={<><ClientWorkspacePage /><Probe /></>} />
-          <Route path="*" element={<Probe />} />
-        </Routes>
-      </MemoryRouter>
-    </ThemeProvider>
+    <StrictMode>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
+          <Routes>
+            <Route path="/client/:id/campaign/:campaignId" element={<><ClientWorkspacePage /><Probe /></>} />
+            <Route path="/client/:id/:tab?" element={<><ClientWorkspacePage /><Probe /></>} />
+            <Route path="*" element={<Probe />} />
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    </StrictMode>
   );
 }
 

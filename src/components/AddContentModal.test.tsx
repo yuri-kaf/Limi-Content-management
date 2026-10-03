@@ -84,7 +84,7 @@ describe('AddContentModal — filing', () => {
     await userEvent.type(screen.getByLabelText('Content Title'), ' v2');
     await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
     const data = onSubmit.mock.calls[0][0];
-    expect(data.businessId).toBe('b2');
+    expect('businessId' in data).toBe(false);
     expect('campaignId' in data).toBe(false);
     expect('deliverableId' in data).toBe(false);
   });

@@ -46,7 +46,10 @@ describe('fuzzyScore', () => {
 describe('buildIndex', () => {
   const clients = [
     client('a', 'Mortgage Superheroes', [item(), item({ id: 'i2', title: 'Graphic 6: Refinance' })]),
-    client('b', 'Shopit Nepal', [item({ id: 'i3', title: 'Vok lako bela' })]),
+    client('b', 'Shopit Nepal', [
+      item({ id: 'i3', title: 'Vok lako bela', status: 'review' }),
+      item({ id: 'i4', title: 'Unfinished cut' }),
+    ]),
   ];
 
   it('is empty until the user resolves', () => {
@@ -56,7 +59,8 @@ describe('buildIndex', () => {
   it('indexes places, boards, content and commands for an admin', () => {
     const index = buildIndex(clients, user('admin'));
     expect(index.filter((i) => i.kind === 'client')).toHaveLength(2);
-    expect(index.filter((i) => i.kind === 'content')).toHaveLength(3);
+    // Every item, including the one still in Editing.
+    expect(index.filter((i) => i.kind === 'content')).toHaveLength(4);
     expect(index.some((i) => i.label === 'Team')).toBe(true);
     expect(index.some((i) => i.command === 'sign-out')).toBe(true);
   });
@@ -66,10 +70,15 @@ describe('buildIndex', () => {
       .toBe(false);
   });
 
-  it('scopes a client-role user to their own boards and content', () => {
+  it('scopes a client-role user to their own boards and content, leaving out Editing', () => {
     const index = buildIndex(clients, user('client', ['b']));
     expect(index.filter((i) => i.kind === 'client').map((i) => i.label)).toEqual(['Shopit Nepal']);
     expect(index.filter((i) => i.kind === 'content').map((i) => i.label)).toEqual(['Vok lako bela']);
+  });
+
+  it('indexes work still in Editing for the team', () => {
+    const index = buildIndex(clients, user('admin'));
+    expect(index.some((i) => i.label === 'Unfinished cut')).toBe(true);
   });
 
   it('carries a client folder colour, so its avatar matches the sidebar', () => {

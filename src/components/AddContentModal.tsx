@@ -183,7 +183,8 @@ export default function AddContentModal({
       notes: notes.trim() || undefined,
       status: existingItem?.status ?? defaultStatus,
       scheduledAt: getScheduledAt(),
-      ...(businessId ? { businessId } : {}),
+      // An untouched edit stamps a business only on an item that has none.
+      ...(businessId && !(keepFiling && existingItem?.businessId) ? { businessId } : {}),
       ...(keepFiling
         ? {}
         : { campaignId: selectedCampaign?.id ?? null, deliverableId: deliverable?.id ?? null }),

@@ -14,8 +14,12 @@ export default function TodayPage() {
   const { currentUser } = useAuth();
 
   const isClientRole = currentUser?.role === 'client';
+  // A client never sees work still in Editing — the workspace will not open
+  // it for them — so it stays out of their queue too.
   const visible = isClientRole
-    ? clients.filter((c) => currentUser?.assignedClientIds?.includes(c.id))
+    ? clients
+        .filter((c) => currentUser?.assignedClientIds?.includes(c.id))
+        .map((c) => ({ ...c, content: c.content.filter((i) => i.status !== 'editing') }))
     : clients;
 
   const now = Date.now();

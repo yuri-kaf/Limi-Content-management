@@ -91,7 +91,11 @@ export function buildIndex(clients: Client[], user: AppUser | null): PaletteItem
       imageUrl: client.imageUrl,
       color: client.color,
     });
-    for (const item of client.content ?? []) {
+    // A client cannot open work still in Editing, so it is not indexed for them.
+    const searchable = (client.content ?? []).filter(
+      (i) => !isClientRole || i.status !== 'editing'
+    );
+    for (const item of searchable) {
       items.push({
         id: `content-${client.id}-${item.id}`,
         kind: 'content',

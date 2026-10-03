@@ -63,6 +63,11 @@ describe('CampaignsTab', () => {
     expect(screen.queryByRole('button', { name: 'New campaign' })).not.toBeInTheDocument();
   });
 
+  it('says why there is no New campaign before the client has a business', () => {
+    renderTab({ campaigns: [], canManage: false, setupNeeded: true });
+    expect(screen.getByText(/this client has none yet/)).toBeInTheDocument();
+  });
+
   it('explains campaigns when there are none', () => {
     renderTab({ campaigns: [] });
     expect(screen.getByText('No campaigns yet')).toBeInTheDocument();

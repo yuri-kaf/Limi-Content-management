@@ -688,7 +688,15 @@ export function useClients() {
       onSnapshot(
         query(businessesCol(id), orderBy('createdAt', 'asc')),
         (snap) => {
-          const list = snap.docs.map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }));
+          const list = snap.docs
+            .map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }))
+            // 'main' is always first: everything unfiled belongs to the first
+            // business, and a skewed clock on whoever added another one must
+            // not let it sort ahead. Array.sort is stable, so the rest keep
+            // their createdAt order.
+            .sort((a, b) =>
+              a.id === DEFAULT_BUSINESS_ID ? -1 : b.id === DEFAULT_BUSINESS_ID ? 1 : 0
+            );
           setBusinessesByClient((prev) => ({ ...prev, [id]: list }));
           if (!snap.metadata.fromCache) markLoaded(`businesses:${id}`);
         },
@@ -736,13 +744,17 @@ export function useClients() {
   // server. Planning against anything older could mistake a client for one
   // with no business yet, or stamp an item that has since been deleted — and
   // one bad update fails its whole batch.
-  const pendingBusinessMigration = useMemo(
-    () =>
-      planBusinessMigration(
-        clients.filter((c) => loaded[`content:${c.id}`] && loaded[`businesses:${c.id}`])
-      ),
-    [clients, loaded]
-  );
+  // A client still waiting on the legacy content migration is left out until
+  // that has run for it — its old items are not in the subcollection to stamp —
+  // but it no longer holds back every other client.
+  const pendingBusinessMigration = useMemo(() => {
+    const legacy = new Set(pendingMigration.map((c) => c.id));
+    return planBusinessMigration(
+      clients.filter(
+        (c) => !legacy.has(c.id) && loaded[`content:${c.id}`] && loaded[`businesses:${c.id}`]
+      )
+    );
+  }, [clients, loaded, pendingMigration]);
 
   // The client and its first business are written in one batch, so no client
   // ever exists without a business.
@@ -820,7 +832,7 @@ export function useClients() {
       throw new Error('the first business cannot be deleted.');
     }
     const filedUnder = (col: CollectionReference) =>
-      getDocs(query(col, where('businessId', '==', businessId), limit(1)));
+      getDocsFromServer(query(col, where('businessId', '==', businessId), limit(1)));
     const [content, campaigns] = await Promise.all([
       filedUnder(collection(db, 'clients', clientId, 'content')),
       filedUnder(campaignsCol(clientId)),

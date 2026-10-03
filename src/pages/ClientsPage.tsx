@@ -117,10 +117,10 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* After the content migration, never alongside it: items still in the
-          old array are not in the subcollection yet, so they could not be
-          filed under a business. */}
-      {isAdmin && pendingMigration.length === 0 && pendingBusinessMigration.length > 0 && (
+      {/* Clients still waiting on the content migration are left out of this
+          one (their old items are not in the subcollection yet), but they do
+          not hold it back for everyone else. */}
+      {isAdmin && pendingBusinessMigration.length > 0 && (
         <div className={banner}>
           <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
             Set up businesses
