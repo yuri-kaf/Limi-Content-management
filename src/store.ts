@@ -3,15 +3,17 @@ import {
   collection,
   doc,
   onSnapshot,
-  addDoc,
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
+  getDocs,
   writeBatch,
   arrayUnion,
   query,
   where,
   orderBy,
+  WriteBatch,
 } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
@@ -21,10 +23,12 @@ import {
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
-  AppUser, Business, Client, ClientReview, Comment, ContentItem, ContentStatus, FolderColor, Idea,
-  IdeaStatus, MediaType, Platform, Share,
+  AppUser, Business, BusinessDraft, Client, ClientReview, Comment, ContentItem, ContentStatus,
+  FolderColor, Idea, IdeaStatus, MediaType, Platform, Share,
 } from './types';
 import { generateId, generateShareToken, publicAppOrigin } from './utils';
+import { DEFAULT_BUSINESS_ID, defaultBusinessFor, planBusinessMigration } from './campaigns';
+import { DEFAULT_FOLDER_COLOR } from './folderColors';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +43,27 @@ function contentDoc(clientId: string, contentId: string) {
 
 function businessesCol(clientId: string) {
   return collection(db, 'clients', clientId, 'businesses');
+}
+
+// Firestore rejects a field whose value is undefined — the whole write fails —
+// so optional fields are dropped rather than written empty. One level deep;
+// nested objects are cleaned by their callers.
+function defined<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== undefined)
+  ) as T;
+}
+
+// A batch holds at most 500 writes. Chunked well under that so one large
+// client cannot fail the business migration on size alone.
+const BATCH_LIMIT = 400;
+
+async function commitInChunks(writes: ((batch: WriteBatch) => void)[]) {
+  for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    writes.slice(i, i + BATCH_LIMIT).forEach((write) => write(batch));
+    await batch.commit();
+  }
 }
 
 // Comments hang off content items and ideas alike — one primitive, two parents.
@@ -216,7 +241,7 @@ export function useIdeas(clientId: string | undefined) {
   }, [clientId]);
 
   const addIdea = useCallback(
-    async (data: { title: string; description: string; links: string[] }) => {
+    async (data: { title: string; description: string; links: string[]; businessId?: string }) => {
       if (!clientId) return;
       const id = generateId();
       const idea: Idea = {
@@ -224,6 +249,7 @@ export function useIdeas(clientId: string | undefined) {
         title: data.title,
         description: data.description,
         links: data.links,
+        ...(data.businessId ? { businessId: data.businessId } : {}),
         status: 'new',
         createdByEmail: currentUser?.email ?? '',
         createdByName: currentUser?.name ?? 'Someone',
@@ -241,14 +267,6 @@ export function useIdeas(clientId: string | undefined) {
         status,
         decisionNote: decisionNote ?? '',
       });
-    },
-    [clientId]
-  );
-
-  const markConverted = useCallback(
-    async (ideaId: string, contentId: string) => {
-      if (!clientId) return;
-      await updateDoc(doc(ideasCol(clientId), ideaId), { convertedContentId: contentId });
     },
     [clientId]
   );
@@ -278,7 +296,15 @@ export function useIdeas(clientId: string | undefined) {
     [clientId, currentUser]
   );
 
-  return { ideas, loading, addIdea, setIdeaStatus, markConverted, deleteIdea, addIdeaComment };
+  return { ideas, loading, addIdea, setIdeaStatus, deleteIdea, addIdeaComment };
+}
+
+// Marks an accepted idea as turned into content, so it stops offering "Make
+// content". A plain function rather than part of useIdeas: the conversion
+// finishes in the workspace page, which does not hold that hook. The old board
+// never called the hook's version, so converted ideas kept the button forever.
+export async function markIdeaConverted(clientId: string, ideaId: string, contentId: string) {
+  await updateDoc(doc(ideasCol(clientId), ideaId), { convertedContentId: contentId });
 }
 
 const STATUS_LABELS: Record<ContentStatus, string> = {
@@ -368,7 +394,7 @@ function toBaseClient(id: string, data: Record<string, any>): BaseClient {
 
 // Cached clients are already-merged reads, so they carry no legacy array —
 // which keeps a cold start from falsely reporting a pending migration.
-function toBaseFromCache(c: Client): BaseClient {
+function toBaseFromCache(c: CachedClient): BaseClient {
   return {
     id: c.id,
     name: c.name,
@@ -386,11 +412,15 @@ function clientsCacheKey(uid: string) {
   return `limi_clients_v2_${uid}`;
 }
 
-function readClientsCache(uid: string | null): Client[] {
+// What the cache holds. Typed apart from Client because entries written before
+// businesses existed have no `businesses`.
+type CachedClient = Omit<Client, 'businesses'> & { businesses?: Business[] };
+
+function readClientsCache(uid: string | null): CachedClient[] {
   if (!uid) return [];
   try {
     const raw = localStorage.getItem(clientsCacheKey(uid));
-    return raw ? (JSON.parse(raw) as Client[]) : [];
+    return raw ? (JSON.parse(raw) as CachedClient[]) : [];
   } catch {
     return [];
   }
@@ -417,16 +447,23 @@ export function useClients() {
     [currentUser]
   );
 
-  const [baseClients, setBaseClients] = useState<BaseClient[]>(() =>
-    readClientsCache(uid).map(toBaseFromCache)
-  );
+  // Parsed once: every initial list below is seeded from the same read.
+  const [cached] = useState(() => readClientsCache(uid));
+  const [baseClients, setBaseClients] = useState<BaseClient[]>(() => cached.map(toBaseFromCache));
   const [contentByClient, setContentByClient] = useState<Record<string, ContentItem[]>>(() =>
-    Object.fromEntries(readClientsCache(uid).map((c) => [c.id, c.content]))
+    Object.fromEntries(cached.map((c) => [c.id, c.content]))
   );
-  // Old caches predate businesses, hence the fallback.
+  // Caches written before businesses existed have none, hence the fallback.
   const [businessesByClient, setBusinessesByClient] = useState<Record<string, Business[]>>(() =>
-    Object.fromEntries(readClientsCache(uid).map((c) => [c.id, c.businesses ?? []]))
+    Object.fromEntries(cached.map((c) => [c.id, c.businesses ?? []]))
   );
+  // Which listeners have delivered a live snapshot, keyed `content:<id>` and
+  // `businesses:<id>`. The cache seeds the lists above, so without this a cold
+  // start would plan the business migration against stale data.
+  const [loaded, setLoaded] = useState<Record<string, true>>({});
+  const markLoaded = useCallback((key: string) => {
+    setLoaded((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  }, []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -493,8 +530,10 @@ export function useClients() {
     return unsubscribe;
   }, [uid, role, assignedKey]);
 
-  // One subscription per client's content subcollection. Accurate by
-  // construction, unlike denormalised counters; revisit around 50+ clients.
+  // One listener per client for its content, and one more for its businesses
+  // (below) — every client's, because the business migration has to see them
+  // all. Accurate by construction, unlike denormalised counters; revisit
+  // around 50+ clients, when two listeners each start to add up.
   const clientIdsKey = baseClients.map((c) => c.id).join(',');
 
   useEffect(() => {
@@ -514,13 +553,14 @@ export function useClients() {
             id: d.id,
           }));
           setContentByClient((prev) => ({ ...prev, [id]: items }));
+          markLoaded(`content:${id}`);
         },
         (err) => console.error(`[limi] content subscription for ${id} failed`, err)
       )
     );
 
     return () => unsubscribes.forEach((u) => u());
-  }, [uid, clientIdsKey]);
+  }, [uid, clientIdsKey, markLoaded]);
 
   // Same shape as the content subscription: one listener per client, oldest
   // business first, because the first one is the default.
@@ -538,13 +578,14 @@ export function useClients() {
         (snap) => {
           const list = snap.docs.map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }));
           setBusinessesByClient((prev) => ({ ...prev, [id]: list }));
+          markLoaded(`businesses:${id}`);
         },
         (err) => console.error(`[limi] businesses subscription for ${id} failed`, err)
       )
     );
 
     return () => unsubscribes.forEach((u) => u());
-  }, [uid, clientIdsKey]);
+  }, [uid, clientIdsKey, markLoaded]);
 
   const clients = useMemo<Client[]>(
     () =>
@@ -575,30 +616,93 @@ export function useClients() {
     [baseClients, contentByClient]
   );
 
+  // Only clients whose content and businesses have both arrived live. Planning
+  // against the cache could create a second default business, or stamp an
+  // item that has since been deleted — and one bad update fails its batch.
+  const pendingBusinessMigration = useMemo(
+    () =>
+      planBusinessMigration(
+        clients.filter((c) => loaded[`content:${c.id}`] && loaded[`businesses:${c.id}`])
+      ),
+    [clients, loaded]
+  );
+
+  // The client and its first business are written in one batch, so no client
+  // ever exists without a business.
   const addClient = useCallback(
-    async (data: { name: string; imageUrl?: string; about: string }) => {
-      await addDoc(collection(db, 'clients'), {
+    async (data: { name: string; imageUrl?: string; about: string; color?: FolderColor }) => {
+      const clientRef = doc(collection(db, 'clients'));
+      const now = Date.now();
+      const batch = writeBatch(db);
+      batch.set(clientRef, {
         name: data.name,
         imageUrl: data.imageUrl || '',
         about: data.about,
-        createdAt: Date.now(),
+        color: data.color ?? DEFAULT_FOLDER_COLOR,
+        createdAt: now,
+      });
+      batch.set(doc(businessesCol(clientRef.id), DEFAULT_BUSINESS_ID), defaultBusinessFor(data, now));
+      await batch.commit();
+    },
+    []
+  );
+
+  // Writes only the editable fields, so createdAt and anything added to the
+  // document later survive an edit untouched.
+  const updateClient = useCallback(
+    async (
+      clientId: string,
+      data: { name: string; imageUrl?: string; about: string; color?: FolderColor }
+    ) => {
+      await updateDoc(doc(db, 'clients', clientId), {
+        name: data.name,
+        imageUrl: data.imageUrl || '',
+        about: data.about,
+        ...(data.color ? { color: data.color } : {}),
       });
     },
     []
   );
 
-  // Writes only the three editable fields, so createdAt and anything added to
-  // the document later survive an edit untouched.
-  const updateClient = useCallback(
-    async (clientId: string, data: { name: string; imageUrl?: string; about: string }) => {
-      await updateDoc(doc(db, 'clients', clientId), {
-        name: data.name,
-        imageUrl: data.imageUrl || '',
-        about: data.about,
+  const addBusiness = useCallback(async (clientId: string, draft: BusinessDraft) => {
+    const ref = doc(businessesCol(clientId));
+    await setDoc(
+      ref,
+      defined({
+        name: draft.name,
+        color: draft.color,
+        logoUrl: draft.logoUrl || undefined,
+        about: draft.about,
+        createdAt: Date.now(),
+      })
+    );
+    return ref.id;
+  }, []);
+
+  const updateBusiness = useCallback(
+    async (clientId: string, businessId: string, draft: BusinessDraft) => {
+      await updateDoc(doc(businessesCol(clientId), businessId), {
+        name: draft.name,
+        color: draft.color,
+        about: draft.about,
+        logoUrl: draft.logoUrl || deleteField(),
       });
     },
     []
   );
+
+  // The UI only offers this for a business with no content and no campaigns
+  // that is not the first one — see businessDeleteBlocker(). Ideas do not
+  // block it: any filed under this business are moved to the first business
+  // (dropping their businessId does exactly that) in the same batch as the
+  // delete, so none is left pointing at a business that is gone.
+  const deleteBusiness = useCallback(async (clientId: string, businessId: string) => {
+    const ideas = await getDocs(query(ideasCol(clientId), where('businessId', '==', businessId)));
+    const batch = writeBatch(db);
+    ideas.docs.forEach((d) => batch.update(d.ref, { businessId: deleteField() }));
+    batch.delete(doc(businessesCol(clientId), businessId));
+    await batch.commit();
+  }, []);
 
   const addContent = useCallback(
     async (
@@ -615,6 +719,9 @@ export function useClients() {
         status: ContentStatus;
         scheduledAt?: number;
         uploadedByEmail: string;
+        businessId?: string;
+        campaignId?: string | null;
+        deliverableId?: string | null;
       }
     ) => {
       const id = generateId();
@@ -634,8 +741,13 @@ export function useClients() {
         uploadedByEmail: data.uploadedByEmail,
         clientReview: 'pending',
         reviewNote: '',
+        businessId: data.businessId,
+        campaignId: data.campaignId ?? undefined,
+        deliverableId: data.deliverableId ?? undefined,
       };
-      await setDoc(contentDoc(clientId, id), newItem);
+      // The three filing fields are optional; defined() drops the unset ones.
+      await setDoc(contentDoc(clientId, id), defined(newItem));
+      return id;
     },
     []
   );
@@ -658,6 +770,10 @@ export function useClients() {
         platforms?: Platform[];
         notes?: string;
         scheduledAt?: number;
+        businessId?: string;
+        /** undefined leaves it as it is; null takes the item out of its campaign. */
+        campaignId?: string | null;
+        deliverableId?: string | null;
       }
     ) => {
       const previous = clients
@@ -679,6 +795,14 @@ export function useClients() {
         platforms: data.platforms ?? [],
         notes: data.notes || '',
         scheduledAt: data.scheduledAt || 0,
+        // Only ever set, never cleared: content always belongs to a business.
+        ...(data.businessId ? { businessId: data.businessId } : {}),
+        ...(data.campaignId === undefined
+          ? {}
+          : { campaignId: data.campaignId ?? deleteField() }),
+        ...(data.deliverableId === undefined
+          ? {}
+          : { deliverableId: data.deliverableId ?? deleteField() }),
         ...(linkChanged
           ? {
               versions: arrayUnion({
@@ -797,11 +921,42 @@ export function useClients() {
     return pendingCaptionMigration.length;
   }, [pendingCaptionMigration]);
 
+  // Gives each unmigrated client a default business and stamps its items with
+  // it. Idempotent: the business goes out in the first chunk, so a rerun after
+  // a partial failure finds it and stamps only what is still missing.
+  const migrateBusinesses = useCallback(async () => {
+    let stamped = 0;
+    for (const step of pendingBusinessMigration) {
+      const client = clients.find((c) => c.id === step.clientId);
+      if (!client) continue;
+
+      const writes: ((batch: WriteBatch) => void)[] = [];
+      let businessId = client.businesses[0]?.id;
+      if (step.createDefault || !businessId) {
+        const ref = doc(businessesCol(client.id), DEFAULT_BUSINESS_ID);
+        businessId = ref.id;
+        writes.push((b) => b.set(ref, defaultBusinessFor(client, Date.now())));
+      }
+      // A const, so the closures below see a string rather than string | undefined.
+      const target = businessId;
+      for (const contentId of step.contentIds) {
+        writes.push((b) => b.update(contentDoc(client.id, contentId), { businessId: target }));
+      }
+
+      await commitInChunks(writes);
+      stamped += step.contentIds.length;
+    }
+    return stamped;
+  }, [pendingBusinessMigration, clients]);
+
   return {
     clients,
     loading,
     addClient,
     updateClient,
+    addBusiness,
+    updateBusiness,
+    deleteBusiness,
     addContent,
     updateContent,
     deleteContent,
@@ -812,6 +967,8 @@ export function useClients() {
     migrateLegacyContent,
     pendingCaptionMigration,
     migrateLegacyCaptions,
+    pendingBusinessMigration,
+    migrateBusinesses,
   };
 }
 
