@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Announcements,
   DndContext,
   DragEndEvent,
+  Over,
   PointerSensor,
   TouchSensor,
   KeyboardSensor,
+  UniqueIdentifier,
   useSensor,
   useSensors,
   closestCorners,
@@ -38,6 +41,9 @@ interface StageDef {
 }
 
 const TEAM_STAGES: StageDef[] = STAGES.map((s) => ({ id: s.id, label: s.label, tab: s.label }));
+
+// Each stage as its column header names it, for what a screen reader is told.
+const STAGE_LABELS = Object.fromEntries(STAGES.map((s) => [s.id, s.label])) as Record<ContentStatus, string>;
 
 // Clients see three stages — 'editing' is internal — and the labels are written
 // from their point of view rather than the team's.
@@ -148,6 +154,8 @@ export default function ContentBoard({
   // business in scope, or a teammate deleting the campaign.
   const [picked, setPicked] = useState('');
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  // The stage the live region last named for the card being carried.
+  const spokenStage = useRef<ContentStatus | null>(null);
   const [activeStage, setActiveStage] = useState<ContentStatus>(
     isClientRole ? 'review' : 'editing'
   );
@@ -191,9 +199,11 @@ export default function ContentBoard({
     return filterContent(inStage, filters, now).sort((a, b) => a.createdAt - b.createdAt);
   }
 
+  const itemWithId = (id: UniqueIdentifier) => content.find((c) => c.id === id);
+
   function handleDragStart(event: DragStartEvent) {
     if (!canMove) return;
-    const item = content.find((c) => c.id === event.active.id);
+    const item = itemWithId(event.active.id);
     if (item) setActiveItem(item);
   }
 
@@ -202,7 +212,15 @@ export default function ContentBoard({
   function resolveDropStatus(overId: string): ContentStatus | null {
     const column = TEAM_STAGES.find((col) => col.id === overId);
     if (column) return column.id;
-    return content.find((c) => c.id === overId)?.status ?? null;
+    return itemWithId(overId)?.status ?? null;
+  }
+
+  // The stage a drop sends a card to, or null when it stays where it is. The
+  // move and what a screen reader is told about it both ask this, so the two
+  // cannot disagree.
+  function destination(item: ContentItem, over: Over | null): ContentStatus | null {
+    const target = over ? resolveDropStatus(over.id as string) : null;
+    return target && target !== item.status ? target : null;
   }
 
   // Committing on drag-over used to look like a live move, but each commit
@@ -212,13 +230,47 @@ export default function ContentBoard({
   function handleDragEnd(event: DragEndEvent) {
     setActiveItem(null);
     if (!canMove) return;
-    const { active, over } = event;
-    if (!over) return;
-    const target = resolveDropStatus(over.id as string);
-    const item = content.find((c) => c.id === active.id);
-    if (!target || !item || item.status === target) return;
-    onMove(item, target);
+    const item = itemWithId(event.active.id);
+    const target = item && destination(item, event.over);
+    if (item && target) onMove(item, target);
   }
+
+  // What a screen reader hears while a card is carried. dnd-kit's defaults
+  // read out ids, which here are Firestore keys: "Draggable item xK9fQ2 was
+  // moved over droppable area xK9fQ2". These name the card by its title and
+  // the stage by its label. A stage is named only when it changes: dnd-kit
+  // reports the card as over its own spot as soon as it is lifted, which cut
+  // "Picked up" short, and every step between the cards of one column would
+  // name the same stage again.
+  const announcements: Announcements = {
+    onDragStart({ active }) {
+      const item = itemWithId(active.id);
+      if (!item) return undefined;
+      spokenStage.current = item.status;
+      return `Picked up ${item.title} from ${STAGE_LABELS[item.status]}.`;
+    },
+    onDragOver({ active, over }) {
+      const item = itemWithId(active.id);
+      const stage = over ? resolveDropStatus(over.id as string) : null;
+      if (!item || stage === spokenStage.current) return undefined;
+      spokenStage.current = stage;
+      return stage
+        ? `${item.title} is over ${STAGE_LABELS[stage]}.`
+        : `${item.title} is not over a stage.`;
+    },
+    onDragEnd({ active, over }) {
+      const item = itemWithId(active.id);
+      if (!item) return undefined;
+      const target = destination(item, over);
+      return target
+        ? `Moved ${item.title} from ${STAGE_LABELS[item.status]} to ${STAGE_LABELS[target]}.`
+        : `${item.title} stays in ${STAGE_LABELS[item.status]}.`;
+    },
+    onDragCancel({ active }) {
+      const item = itemWithId(active.id);
+      return item && `${item.title} was put back in ${STAGE_LABELS[item.status]}.`;
+    },
+  };
 
   const stages = isClientRole ? CLIENT_STAGES : TEAM_STAGES;
   // A stage the current role cannot see must not leave the phone board showing
@@ -294,7 +346,7 @@ export default function ContentBoard({
 
       <DndContext
         sensors={sensors}
-        accessibility={{ screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
+        accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}

@@ -277,6 +277,49 @@ describe('ContentBoard — keyboard', () => {
   });
 });
 
+describe('ContentBoard — what a screen reader hears', () => {
+  afterEach(putDownAnyLiftedCard);
+
+  // Ids shaped like Firestore's, which dnd-kit's own announcements read out.
+  const content = [
+    item({ id: 'xK9fQ2', title: 'Launch reel', status: 'editing' }),
+    item({ id: 'pL3mZ8', title: 'Menu post', status: 'to-post' }),
+  ];
+  const reel = { id: 'xK9fQ2' } as never;
+  const over = (id: string) => ({ id }) as never;
+  const say = () => dnd.props!.accessibility!.announcements!;
+
+  it('names a lifted card by its title and stage, and says when it is put back', async () => {
+    renderBoard({ content });
+    focus(card('Launch reel'));
+    await userEvent.keyboard(' ');
+    // dnd-kit reports the card as over its own spot the moment it is lifted;
+    // naming that stage again would cut this off.
+    expect(screen.getByRole('status')).toHaveTextContent('Picked up Launch reel from Editing.');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('status')).toHaveTextContent('Launch reel was put back in Editing.');
+  });
+
+  it('names the stage under a carried card only when it changes', () => {
+    renderBoard({ content });
+    say().onDragStart({ active: reel });
+    expect(say().onDragOver({ active: reel, over: over('xK9fQ2') })).toBeUndefined();
+    expect(say().onDragOver({ active: reel, over: over('to-post') })).toBe('Launch reel is over To Post.');
+    // Another card in the same column is the same stage.
+    expect(say().onDragOver({ active: reel, over: over('pL3mZ8') })).toBeUndefined();
+    expect(say().onDragOver({ active: reel, over: null })).toBe('Launch reel is not over a stage.');
+    expect(say().onDragOver({ active: reel, over: over('editing') })).toBe('Launch reel is over Editing.');
+  });
+
+  it('says what a drop did', () => {
+    renderBoard({ content });
+    expect(say().onDragEnd({ active: reel, over: over('pL3mZ8') }))
+      .toBe('Moved Launch reel from Editing to To Post.');
+    expect(say().onDragEnd({ active: reel, over: over('editing') })).toBe('Launch reel stays in Editing.');
+    expect(say().onDragEnd({ active: reel, over: null })).toBe('Launch reel stays in Editing.');
+  });
+});
+
 describe('ContentBoard — a client board', () => {
   afterEach(putDownAnyLiftedCard);
 
