@@ -396,6 +396,7 @@ export default function ClientBoardPage() {
           <div className={`${shell} py-5`}>
             <IdeasView
               clientId={client.id}
+              businesses={client.businesses}
               canTriage={!isClientRole}
               onConvert={(idea) => setConvertingIdea(idea)}
             />

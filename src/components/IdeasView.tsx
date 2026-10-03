@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lightbulb, Plus, X, Link as LinkIcon, Check, Ban, Trash2, ArrowRight } from 'lucide-react';
-import { Idea, IdeaStatus } from '../types';
+import { Business, Idea, IdeaStatus } from '../types';
+import { businessIdOf } from '../campaigns';
 import { useIdeas } from '../store';
 import { runWrite } from '../utils';
 import CommentThread from './CommentThread';
@@ -126,15 +127,26 @@ function IdeaForm({
 
 export default function IdeasView({
   clientId,
+  businesses,
+  businessId,
   canTriage,
   onConvert,
 }: {
   clientId: string;
+  /** The client's businesses, for placing ideas submitted before businesses existed. */
+  businesses: Business[];
+  /** Shows only this business's ideas, and files new ones under it. */
+  businessId?: string;
   /** Admins and managers triage; clients submit and discuss. */
   canTriage: boolean;
   onConvert: (idea: Idea) => void;
 }) {
-  const { ideas, loading, addIdea, setIdeaStatus, deleteIdea, addIdeaComment } = useIdeas(clientId);
+  const {
+    ideas: allIdeas, loading, addIdea, setIdeaStatus, deleteIdea, addIdeaComment,
+  } = useIdeas(clientId);
+  const ideas = businessId
+    ? allIdeas.filter((i) => businessIdOf(i, businesses) === businessId)
+    : allIdeas;
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -316,7 +328,12 @@ export default function IdeasView({
         </div>
       )}
 
-      {showForm && <IdeaForm onClose={() => setShowForm(false)} onSubmit={addIdea} />}
+      {showForm && (
+        <IdeaForm
+          onClose={() => setShowForm(false)}
+          onSubmit={(data) => addIdea({ ...data, ...(businessId ? { businessId } : {}) })}
+        />
+      )}
     </div>
   );
 }
