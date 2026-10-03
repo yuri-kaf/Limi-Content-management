@@ -11,6 +11,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // Processes, not worker threads: a test that sets process.env.TZ to reach a
+    // western time zone only changes the zone in a process of its own. Under
+    // threads the assignment is silently ignored and such a test cannot fail.
+    pool: 'forks',
     // The harness files under .superpowers are mockups, not tests. Worktrees
     // under .claude are whole other checkouts of this repo, and their tests
     // would otherwise run alongside — and be counted with — this one's.
