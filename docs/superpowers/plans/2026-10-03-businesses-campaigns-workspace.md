@@ -91,6 +91,9 @@ Added after the Tasks 8–10 review (applied in `3a46a5c`; the Task 9 and 10 cod
 16. **`migrateBusinesses` asks the server** (`getDocsFromServer`) whether a client already has a business before creating `'main'`, so it can never overwrite an existing first business; offline it refuses to run.
 17. **`deleteBusiness` re-checks on the server** that the business is not `'main'` and has no content or campaigns, throwing a readable error otherwise. `updateCampaign` re-files every linked item whose business differs, judged from the content, not the hook's copy of the campaign. `updateContent` clears `deliverableId` when a campaign is named without one.
 18. **Task 24 keys the workspace by client** (`<Workspace key={client.id} …/>`), so switching clients — including with ⌘K while a form is open — starts fresh rather than carrying a form or campaign list into the wrong client.
+20. **Tailwind same-property overrides do not work by class order** (found in the Tasks 11–14 review): `${input} w-[96px]` keeps `input`'s `w-full`, because Tailwind orders utilities itself. New code overrides with `!` where it must (the deliverables row) or uses the base size. Existing `h-9 min-h-0` button overrides throughout the app already render at the base size and the current look depends on it, so they are left for the visual refresh (sub-project 2).
+21. **The business and campaign forms await `onSave`** and stay open when it resolves `false`, so the page's save handlers return `runWrite(...)`'s result (Task 24).
+
 19. **Batch size and the rules' access-call budget:** Firestore allows 20 document-access calls per batched write and only says repeated calls *may* be cached. Every write here evaluates `isAdmin()` (an `exists` and a `get` of the caller's profile). Batches are kept at up to 400 writes; the supervised migration in Task 25 is the test — a rejected batch writes nothing — and if it fails with `permission-denied`, lower `BATCH_LIMIT` and chunk the other multi-write batches.
 
 ---
@@ -4623,7 +4626,7 @@ export default function BusinessCard({ business, summary, selected, canManage, o
       <button
         onClick={onSelect}
         aria-pressed={selected}
-        className="w-full text-left p-3.5 pr-10 flex items-start gap-3 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+        className="w-full text-left p-3.5 pr-12 flex items-start gap-3 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
       >
         <ClientAvatar name={business.name} imageUrl={business.logoUrl} color={business.color} size={36} />
         <span className="flex-1 min-w-0">
@@ -4642,7 +4645,11 @@ export default function BusinessCard({ business, summary, selected, canManage, o
       {canManage && (
         <button
           onClick={onEdit}
-          className={`${btnIcon} w-7 h-7 absolute top-2.5 right-2.5 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100`}
+          // btnIcon's own 36px, not a smaller override: a w-7 written after it
+          // would lose anyway (Tailwind orders same-property utilities itself),
+          // and 36px is the better target on a phone. pr-12 above keeps the
+          // name clear of it.
+          className={`${btnIcon} absolute top-2 right-2 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100`}
           aria-label={`Edit ${business.name}`}
         >
           <Pencil size={13} />
@@ -5561,8 +5568,10 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
     );
   }
 
+  // Both saves hand their result back to the form, which stays open with what
+  // was typed when the write fails.
   function saveBusiness(draft: BusinessDraft) {
-    runWrite(
+    return runWrite(
       () =>
         formBusiness
           ? store.updateBusiness(client.id, formBusiness.id, draft)
@@ -5577,7 +5586,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
   }
 
   function saveCampaign(draft: CampaignDraft) {
-    runWrite(async () => {
+    return runWrite(async () => {
       if (formCampaign) {
         await updateCampaign(formCampaign.id, draft);
         return;
