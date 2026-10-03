@@ -96,6 +96,7 @@ Added after the Tasks 8–10 review (applied in `3a46a5c`; the Task 9 and 10 cod
 21. **The business and campaign forms await `onSave`** and stay open when it resolves `false`, so the page's save handlers return `runWrite(...)`'s result (Task 24).
 22. **The content form never reads a campaign it cannot find as "no campaign"** (found in the Tasks 15–16 review): its pickers start from the stored ids, an edit that never touches them sends no filing (`updateContent` leaves it as stored), and choices are checked against the list at save time. Task 24 also mounts the form only once campaigns have loaded.
 23. **One `CampaignOptions` component** renders every campaign picker's options — sorted live-first, grouped by business with 2+ businesses, campaigns of a missing business kept — in the content form and the board filter. The board files new content under the campaign it is filtered to (`onAdd(status, campaignId)`), and Task 24 gives the board the business-scoped campaigns.
+24. **The board derives its applied campaign filter** from the campaigns on offer (found in the Tasks 17–18 review), so a pick that leaves the list — another business in scope, a deleted campaign — lets go instead of emptying the board. Queue rows speak their stage, and take `showSource={false}` where every row would name the same client (the single-business Overview, Task 21). The campaign page's board gets no campaigns, so its cards do not all repeat the campaign's label (Task 22).
 
 ---
 
@@ -4808,6 +4809,8 @@ export default function OverviewTab({
                   entries={groups[section.key]}
                   now={now}
                   onOpen={(entry) => onOpenItem(entry.item)}
+                  // With one business every row would name the client again.
+                  showSource={multi}
                 />
               ))
             )}
@@ -5149,7 +5152,9 @@ export default function CampaignPage({
       {view === 'board' ? (
         <ContentBoard
           content={own}
-          campaigns={campaigns}
+          // No campaigns: every card here is in this one, so a label on each
+          // would repeat the page title.
+          campaigns={[]}
           businesses={businesses}
           isClientRole={false}
           canAdd={canManage}
