@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
-import { buildToday, TodayEntry, todayTotal } from '../today';
+import { buildToday, TodayEntry, todayTotal, todaySources } from '../today';
 import { QUEUE_SECTIONS, QueueGroup } from '../components/QueueGroup';
 import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody } from '../ui';
 
@@ -13,14 +13,7 @@ export default function TodayPage() {
   const { clients, loading } = useClients();
   const { currentUser } = useAuth();
 
-  const isClientRole = currentUser?.role === 'client';
-  // A client never sees work still in Editing — the workspace will not open
-  // it for them — so it stays out of their queue too.
-  const visible = isClientRole
-    ? clients
-        .filter((c) => currentUser?.assignedClientIds?.includes(c.id))
-        .map((c) => ({ ...c, content: c.content.filter((i) => i.status !== 'editing') }))
-    : clients;
+  const visible = todaySources(clients, currentUser);
 
   const now = Date.now();
   const groups = buildToday(visible, now);

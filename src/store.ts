@@ -30,7 +30,9 @@ import {
   Comment, ContentItem, ContentStatus, FolderColor, Idea, IdeaStatus, MediaType, Platform, Share,
 } from './types';
 import { generateId, generateShareToken, publicAppOrigin } from './utils';
-import { DEFAULT_BUSINESS_ID, defaultBusinessFor, planBusinessMigration } from './campaigns';
+import {
+  DEFAULT_BUSINESS_ID, defaultBusinessFor, firstBusinessFirst, planBusinessMigration,
+} from './campaigns';
 import { DEFAULT_FOLDER_COLOR } from './folderColors';
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
@@ -688,15 +690,9 @@ export function useClients() {
       onSnapshot(
         query(businessesCol(id), orderBy('createdAt', 'asc')),
         (snap) => {
-          const list = snap.docs
-            .map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }))
-            // 'main' is always first: everything unfiled belongs to the first
-            // business, and a skewed clock on whoever added another one must
-            // not let it sort ahead. Array.sort is stable, so the rest keep
-            // their createdAt order.
-            .sort((a, b) =>
-              a.id === DEFAULT_BUSINESS_ID ? -1 : b.id === DEFAULT_BUSINESS_ID ? 1 : 0
-            );
+          const list = firstBusinessFirst(
+            snap.docs.map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }))
+          );
           setBusinessesByClient((prev) => ({ ...prev, [id]: list }));
           if (!snap.metadata.fromCache) markLoaded(`businesses:${id}`);
         },
@@ -744,17 +740,18 @@ export function useClients() {
   // server. Planning against anything older could mistake a client for one
   // with no business yet, or stamp an item that has since been deleted — and
   // one bad update fails its whole batch.
-  // A client still waiting on the legacy content migration is left out until
-  // that has run for it — its old items are not in the subcollection to stamp —
-  // but it no longer holds back every other client.
-  const pendingBusinessMigration = useMemo(() => {
-    const legacy = new Set(pendingMigration.map((c) => c.id));
-    return planBusinessMigration(
-      clients.filter(
-        (c) => !legacy.has(c.id) && loaded[`content:${c.id}`] && loaded[`businesses:${c.id}`]
-      )
-    );
-  }, [clients, loaded, pendingMigration]);
+  // Not held back by the legacy content migration: that one can stay pending
+  // for good (an old array item deleted since it ran still counts as unmigrated),
+  // and this one only stamps items already in the subcollection. Anything the
+  // content migration copies across later arrives unstamped, belongs to the
+  // first business meanwhile (businessIdOf), and is picked up by the next run.
+  const pendingBusinessMigration = useMemo(
+    () =>
+      planBusinessMigration(
+        clients.filter((c) => loaded[`content:${c.id}`] && loaded[`businesses:${c.id}`])
+      ),
+    [clients, loaded]
+  );
 
   // The client and its first business are written in one batch, so no client
   // ever exists without a business.
@@ -1101,7 +1098,7 @@ export function useClients() {
           query(businessesCol(client.id), orderBy('createdAt', 'asc'))
         );
         if (!existing.empty) {
-          businessId = existing.docs[0].id;
+          businessId = firstBusinessFirst(existing.docs)[0].id;
         } else {
           const ref = doc(businessesCol(client.id), DEFAULT_BUSINESS_ID);
           businessId = ref.id;

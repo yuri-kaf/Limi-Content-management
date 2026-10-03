@@ -1,5 +1,5 @@
-import { buildToday, slotLabel, todayTotal } from './today';
-import { Client, ContentItem } from './types';
+import { buildToday, slotLabel, todaySources, todayTotal } from './today';
+import { AppUser, Client, ContentItem } from './types';
 
 const NOW = new Date('2026-08-20T12:00:00Z').getTime();
 const DAY = 86_400_000;
@@ -103,5 +103,26 @@ describe('slotLabel', () => {
     expect(slotLabel(day(-3), noon)).toEqual({ text: '3 days late', late: true });
     expect(slotLabel(day(-14), noon)).toEqual({ text: '2 weeks late', late: true });
     expect(slotLabel(day(-60), noon)).toEqual({ text: '2 months late', late: true });
+  });
+});
+
+describe('todaySources', () => {
+  const user = (role: AppUser['role'], assignedClientIds: string[] = []): AppUser =>
+    ({ id: 'u', name: 'U', email: 'u@x.com', role, assignedClientIds, createdAt: 1 });
+  const clients = [
+    client('a', [item({ id: 'draft', status: 'editing' }), item({ id: 'ready', status: 'review' })]),
+    client('b', [item({ id: 'other', status: 'review' })]),
+  ];
+
+  it('gives the team every client and every item', () => {
+    const sources = todaySources(clients, user('admin'));
+    expect(sources.map((c) => c.id)).toEqual(['a', 'b']);
+    expect(sources[0].content.map((i) => i.id)).toEqual(['draft', 'ready']);
+  });
+
+  it("gives a client only their own clients, without work still in Editing", () => {
+    const sources = todaySources(clients, user('client', ['a']));
+    expect(sources.map((c) => c.id)).toEqual(['a']);
+    expect(sources[0].content.map((i) => i.id)).toEqual(['ready']);
   });
 });

@@ -232,7 +232,9 @@ export async function runWrite(action: () => Promise<unknown>, what: string) {
     const message =
       code === 'permission-denied'
         ? `Could not ${what}: the database rejected the write (permission denied). Check the Firestore security rules for this project.`
-        : `Could not ${what}: ${(err as Error)?.message ?? 'unknown error'}`;
+        : code === 'unavailable'
+          ? `Could not ${what}: you appear to be offline, so nothing was changed. Try again once you are connected.`
+          : `Could not ${what}: ${(err as Error)?.message ?? 'unknown error'}`;
     console.error(`[limi] ${what} failed`, err);
     alert(message);
     return false;

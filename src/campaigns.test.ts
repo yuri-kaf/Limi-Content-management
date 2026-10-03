@@ -1,7 +1,7 @@
 import {
   NO_CAMPAIGN, businessDeleteBlocker, businessIdOf, businessSummary, campaignIdOf,
   campaignProgress, campaignStatusMeta, defaultBusinessFor, deliverableProgress,
-  endsBeforeStart, formatDateRange, planBusinessMigration, scopeContent, sortCampaigns,
+  endsBeforeStart, firstBusinessFirst, formatDateRange, planBusinessMigration, scopeContent, sortCampaigns,
   unslottedContent,
 } from './campaigns';
 import { Business, Campaign, ContentItem } from './types';
@@ -285,5 +285,18 @@ describe('calendar days', () => {
     expect(endsBeforeStart('2026-10-03', '2026-10-20')).toBe(false);
     expect(endsBeforeStart('', '2026-10-03')).toBe(false);
     expect(endsBeforeStart(undefined, undefined)).toBe(false);
+  });
+});
+
+describe('firstBusinessFirst', () => {
+  it("puts 'main' first however its date compares, and keeps the rest in order", () => {
+    const early = business('early', 0);
+    const main = business('main', 5);
+    const late = business('late', 9);
+    expect(firstBusinessFirst([early, main, late]).map((b) => b.id)).toEqual(['main', 'early', 'late']);
+  });
+
+  it('leaves a list without main as it was', () => {
+    expect(firstBusinessFirst([B1, B2]).map((b) => b.id)).toEqual(['b1', 'b2']);
   });
 });

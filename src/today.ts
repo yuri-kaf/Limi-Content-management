@@ -1,4 +1,4 @@
-import { Client, ContentItem, FolderColor } from './types';
+import { AppUser, Client, ContentItem, FolderColor } from './types';
 
 export interface TodayEntry {
   clientId: string;
@@ -43,6 +43,18 @@ function entries(clients: Client[]): TodayEntry[] {
 // records *when* a review decision was made, so it could not be computed
 // honestly. readyToSchedule replaces it and is a real gap in the workflow —
 // approved work with no slot booked simply stops moving.
+/**
+ * The clients a viewer's Today is built from. A client-role user sees only
+ * their own clients, and never work still in Editing — the workspace will not
+ * open it for them, so it must not be in their queue either.
+ */
+export function todaySources(clients: Client[], user: AppUser | null): Client[] {
+  if (user?.role !== 'client') return clients;
+  return clients
+    .filter((c) => user.assignedClientIds?.includes(c.id))
+    .map((c) => ({ ...c, content: c.content.filter((i) => i.status !== 'editing') }));
+}
+
 export function buildToday(clients: Client[], now: number): TodayGroups {
   const all = entries(clients);
   const bySlot = (a: TodayEntry, b: TodayEntry) =>

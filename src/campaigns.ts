@@ -219,6 +219,18 @@ export function businessDeleteBlocker(
 // migration at once write the same document instead of two "first" businesses.
 export const DEFAULT_BUSINESS_ID = 'main';
 
+/**
+ * A client's businesses with 'main' first and the rest in the order given
+ * (createdAt). Everything unfiled belongs to the first business, so a skewed
+ * clock on whoever added another one must not let it sort ahead of 'main'.
+ */
+export function firstBusinessFirst<T extends Pick<Business, 'id'>>(businesses: T[]): T[] {
+  // Array.sort is stable, so everything but 'main' keeps its order.
+  return [...businesses].sort((a, b) =>
+    a.id === DEFAULT_BUSINESS_ID ? -1 : b.id === DEFAULT_BUSINESS_ID ? 1 : 0
+  );
+}
+
 /** The business every client starts with, named, coloured and pictured after the client. */
 export function defaultBusinessFor(
   client: { name: string; imageUrl?: string; about?: string; color?: FolderColor },

@@ -89,6 +89,13 @@ describe('AddContentModal — filing', () => {
     expect('deliverableId' in data).toBe(false);
   });
 
+  it('stamps the first business on an item that has none, even on an untouched edit', async () => {
+    const unfiledLegacy = { ...FILED, businessId: undefined, campaignId: undefined, deliverableId: undefined };
+    const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [SUMMER], existingItem: unfiledLegacy });
+    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    expect(onSubmit.mock.calls[0][0].businessId).toBe('b1');
+  });
+
   it('does not unlink an item edited before its campaigns have loaded', async () => {
     const onSubmit = vi.fn();
     const modal = (campaigns: Campaign[]) => (
