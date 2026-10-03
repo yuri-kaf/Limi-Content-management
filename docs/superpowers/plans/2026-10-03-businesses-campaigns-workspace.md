@@ -4904,7 +4904,6 @@ function renderPage(over: Partial<React.ComponentProps<typeof CampaignPage>> = {
     campaign: SUMMER,
     content: CONTENT,
     businesses: [BAKERY],
-    campaigns: [SUMMER],
     canManage: true,
     canEditItem: () => true,
     canDeleteItem: () => true,
@@ -4948,7 +4947,8 @@ describe('CampaignPage', () => {
   it('hides editing controls from someone who cannot manage campaigns', () => {
     renderPage({ canManage: false });
     expect(screen.queryByRole('button', { name: 'Add to Reels' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Edit/ })).not.toBeInTheDocument();
+    // Exact name: a stage pill reading "Editing" sits inside an item chip.
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
   });
 });
@@ -4986,8 +4986,6 @@ interface Props {
   /** The client's content; the page picks out the campaign's own. */
   content: ContentItem[];
   businesses: Business[];
-  /** Every campaign of the client, for the board's card labels. */
-  campaigns: Campaign[];
   canManage: boolean;
   canEditItem: (item: ContentItem) => boolean;
   canDeleteItem: (item: ContentItem) => boolean;
@@ -5069,7 +5067,7 @@ function DeliverableRow({
 }
 
 export default function CampaignPage({
-  campaign, content, businesses, campaigns, canManage, canEditItem, canDeleteItem,
+  campaign, content, businesses, canManage, canEditItem, canDeleteItem,
   onBack, onEdit, onSetStatus, onOpenItem, onAddContent, onEditItem, onMoveItem,
 }: Props) {
   // Plan first: the checklist is what this page adds. The board is the same
@@ -5662,7 +5660,6 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
           campaign={campaign}
           content={client.content}
           businesses={businesses}
-          campaigns={campaigns}
           canManage={canManage}
           canEditItem={canChangeItem}
           canDeleteItem={canChangeItem}
