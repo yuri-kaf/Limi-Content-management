@@ -54,8 +54,8 @@ clients/{clientId}
     name: string
     brief: string
     status: 'planning' | 'live' | 'completed'
-    startDate?: number
-    endDate?: number
+    startDate?: string               // 'YYYY-MM-DD'
+    endDate?: string                 // 'YYYY-MM-DD'
     color: FolderColor
     deliverables: Deliverable[]
     createdAt: number
@@ -266,6 +266,16 @@ Recorded here so the spec and the plan agree. Details in
    absorb the client's existing content.
 6. Converting an idea now marks it converted. The old board never called
    `markConverted`, so "Make content" never went away.
+7. **Businesses are subscribed for every client inside `useClients()`**, not
+   through the per-client `useBusinesses(clientId)` described under Data
+   access: the migration banner must see every client's businesses. Cost: one
+   more listener per client.
+8. **Campaign `startDate`/`endDate` are `'YYYY-MM-DD'` strings**, not
+   timestamps. A day has no time zone; a timestamp saved at midnight in
+   Kathmandu reads as the day before anywhere west of it.
+9. **The first business can never be deleted** — everything without a
+   `businessId` belongs to it. Deleting another business moves its ideas to
+   the first business in the same batch; content and campaigns still block.
 
 ## Non-goals for this sub-project
 

@@ -72,6 +72,12 @@
 6. **"Add business" and "New campaign" stay hidden until the client has its first business** (i.e. until the migration has run for it), so a business added before migration can't swallow the client's existing content.
 7. Found in passing and fixed in the page rewrite: converting an idea never called `markConverted`, so "Make content" never went away.
 
+Added after the Task 1 review:
+
+8. **Businesses are subscribed for every client inside `useClients()`**, not through a per-client `useBusinesses(clientId)` as the spec said. The migration banner has to see every client's businesses, which a per-client hook cannot provide. Cost: one more listener per client.
+9. **Campaign dates are calendar days, `'YYYY-MM-DD'` strings**, not timestamps. A timestamp saved at midnight in Kathmandu reads as the day before anywhere west of it — every client in Europe or the Americas once the portal shows campaigns.
+10. **The first business can never be deleted**, because everything without a `businessId` belongs to it. Deleting any other business moves its ideas to the first business in the same batch rather than leaving them pointing at nothing; content and campaigns still block the delete.
+
 ---
 
 ### Task 1: Types and the businesses read path
@@ -703,10 +709,12 @@ describe('campaign status', () => {
     const sorted = sortCampaigns([
       campaign('done', { status: 'completed' }),
       campaign('plan-undated', { status: 'planning' }),
-      campaign('plan-early', { status: 'planning', startDate: 100 }),
+      campaign('plan-late', { status: 'planning', startDate: '2026-11-01' }),
+      campaign('plan-early', { status: 'planning', startDate: '2026-10-01' }),
       campaign('live', { status: 'live' }),
     ]);
-    expect(sorted.map((c) => c.id)).toEqual(['live', 'plan-early', 'plan-undated', 'done']);
+    expect(sorted.map((c) => c.id))
+      .toEqual(['live', 'plan-early', 'plan-late', 'plan-undated', 'done']);
   });
 });
 ```
@@ -797,15 +805,21 @@ export function campaignStatusMeta(status: CampaignStatus): CampaignStatusMeta {
   return CAMPAIGN_STATUSES.find((s) => s.id === status) ?? CAMPAIGN_STATUSES[0];
 }
 
+// ISO days ('YYYY-MM-DD') sort correctly as plain strings. Undated goes last.
+function byStartDate(a: string | undefined, b: string | undefined): number {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a < b ? -1 : 1;
+}
+
 /** Live, then planning, then completed; within each, by start date with undated last. */
 export function sortCampaigns(campaigns: Campaign[]): Campaign[] {
   const rank = (s: CampaignStatus) => CAMPAIGN_GROUP_ORDER.indexOf(s);
   return [...campaigns].sort(
     (a, b) =>
       rank(a.status) - rank(b.status) ||
-      // Infinity - Infinity is NaN, which is falsy, so two undated campaigns
-      // fall through to creation order.
-      (a.startDate ?? Infinity) - (b.startDate ?? Infinity) ||
+      byStartDate(a.startDate, b.startDate) ||
       a.createdAt - b.createdAt
   );
 }
@@ -860,6 +874,10 @@ describe('businessSummary', () => {
 describe('businessDeleteBlocker', () => {
   it('never allows deleting the last business', () => {
     expect(businessDeleteBlocker('b1', [B1], [], [])).toMatch(/at least one business/);
+  });
+
+  it('never allows deleting the first business, which holds everything unfiled', () => {
+    expect(businessDeleteBlocker('b1', [B1, B2], [], [])).toMatch(/first business/);
   });
 
   it('blocks while the business holds content', () => {
@@ -968,6 +986,11 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 /**
  * Why a business cannot be deleted, or null when it can. Deleting one that
  * still holds content or campaigns would strand them in no business at all.
+ * The first business is never deletable: anything without a businessId —
+ * content before the migration, ideas from before businesses existed — belongs
+ * to it, and would silently move to whichever business became first instead.
+ * (Ideas filed under a later business do not block: deleteBusiness() moves
+ * them to the first business in the same batch.)
  */
 export function businessDeleteBlocker(
   businessId: string,
@@ -976,6 +999,9 @@ export function businessDeleteBlocker(
   campaigns: Pick<Campaign, 'businessId'>[]
 ): string | null {
   if (businesses.length <= 1) return 'A client always keeps at least one business.';
+  if (businesses[0].id === businessId) {
+    return 'This is the first business, which holds everything filed before businesses existed, so it cannot be deleted. Rename it instead.';
+  }
   const items = content.filter((i) => businessIdOf(i, businesses) === businessId).length;
   if (items > 0) {
     return `It still holds ${plural(items, 'content item')}. Move ${items === 1 ? 'it' : 'them'} to another business or delete ${items === 1 ? 'it' : 'them'} first.`;
@@ -1026,7 +1052,7 @@ export function planBusinessMigration(
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run src/campaigns.test.ts`
-Expected: PASS (28 tests).
+Expected: PASS (29 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -1039,7 +1065,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Date helpers
+### Task 6: Calendar-day helpers
+
+Campaign dates are stored as calendar days, `'YYYY-MM-DD'` strings (see `Campaign` in `src/types.ts`) — exactly what `<input type="date">` produces, so the form needs no conversion. These helpers only display and compare them.
 
 **Files:**
 - Modify: `src/campaigns.ts`
@@ -1047,36 +1075,37 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write the failing tests**
 
-Extend the `./campaigns` import with `formatDateRange, fromDateInput, toDateInput`. Append:
+Extend the `./campaigns` import with `endsBeforeStart, formatDateRange`. Append:
 
 ```ts
-describe('date inputs', () => {
-  it('round-trips a day through the date input format in local time', () => {
-    const ms = fromDateInput('2026-10-03')!;
-    expect(new Date(ms).getDate()).toBe(3);
-    expect(toDateInput(ms)).toBe('2026-10-03');
-  });
-
-  it('keeps the local day late in the evening, where an ISO string would not', () => {
-    expect(toDateInput(new Date(2026, 9, 3, 23, 30).getTime())).toBe('2026-10-03');
-  });
-
-  it('treats empty and malformed values as no date', () => {
-    expect(fromDateInput('')).toBeUndefined();
-    expect(fromDateInput('03/10/2026')).toBeUndefined();
-    expect(toDateInput(undefined)).toBe('');
-  });
-});
-
-describe('formatDateRange', () => {
-  const oct3 = new Date(2026, 9, 3).getTime();
-  const oct20 = new Date(2026, 9, 20).getTime();
-
+describe('calendar days', () => {
   it('formats both ends, either end, or neither', () => {
-    expect(formatDateRange(oct3, oct20)).toBe('Oct 3 – Oct 20');
-    expect(formatDateRange(oct3)).toBe('From Oct 3');
-    expect(formatDateRange(undefined, oct20)).toBe('Until Oct 20');
+    expect(formatDateRange('2026-10-03', '2026-10-20')).toBe('Oct 3 – Oct 20');
+    expect(formatDateRange('2026-10-03')).toBe('From Oct 3');
+    expect(formatDateRange(undefined, '2026-10-20')).toBe('Until Oct 20');
     expect(formatDateRange()).toBe('');
+  });
+
+  it('reads a day as a local date, so it never shows as the day before', () => {
+    // new Date('2026-10-01') is UTC midnight, which is still Sep 30 in Los
+    // Angeles. The suite normally runs east of Greenwich, where that bug cannot
+    // show, so this pins a western zone. Node re-reads TZ when it is assigned.
+    const zone = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles';
+    try {
+      expect(formatDateRange('2026-10-01')).toBe('From Oct 1');
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
+  });
+
+  it('knows when the end comes before the start', () => {
+    expect(endsBeforeStart('2026-10-20', '2026-10-03')).toBe(true);
+    expect(endsBeforeStart('2026-10-03', '2026-10-03')).toBe(false);
+    expect(endsBeforeStart('2026-10-03', '2026-10-20')).toBe(false);
+    expect(endsBeforeStart('', '2026-10-03')).toBe(false);
+    expect(endsBeforeStart(undefined, undefined)).toBe(false);
   });
 });
 ```
@@ -1084,7 +1113,7 @@ describe('formatDateRange', () => {
 - [ ] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run src/campaigns.test.ts`
-Expected: FAIL — `toDateInput is not a function`.
+Expected: FAIL — `formatDateRange is not a function`.
 
 - [ ] **Step 3: Implement**
 
@@ -1093,36 +1122,25 @@ Append to `src/campaigns.ts`:
 ```ts
 // ─── Dates ───────────────────────────────────────────────────────────────────
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
 /**
- * A timestamp as an <input type="date"> value, in local time. Not
- * toISOString(), which is UTC: east of Greenwich that turns an early-morning
- * date into the day before.
+ * 'YYYY-MM-DD' as "Oct 3". Built from the parts rather than new Date(value),
+ * which reads an ISO day as UTC midnight — the day before, west of Greenwich.
  */
-export function toDateInput(ms: number | undefined): string {
-  if (!ms) return '';
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function dayLabel(value: string): string {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-/** Local midnight of that day, or undefined for an empty or malformed value. */
-export function fromDateInput(value: string): number | undefined {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!m) return undefined;
-  const ms = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
-  return Number.isNaN(ms) ? undefined : ms;
-}
-
-function shortDate(ms: number): string {
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-export function formatDateRange(start?: number, end?: number): string {
-  if (start && end) return `${shortDate(start)} – ${shortDate(end)}`;
-  if (start) return `From ${shortDate(start)}`;
-  if (end) return `Until ${shortDate(end)}`;
+export function formatDateRange(start?: string, end?: string): string {
+  if (start && end) return `${dayLabel(start)} – ${dayLabel(end)}`;
+  if (start) return `From ${dayLabel(start)}`;
+  if (end) return `Until ${dayLabel(end)}`;
   return '';
+}
+
+/** True only when both days are set and the end comes first. ISO days compare as strings. */
+export function endsBeforeStart(start?: string, end?: string): boolean {
+  return !!start && !!end && end < start;
 }
 ```
 
@@ -1137,7 +1155,7 @@ Expected: PASS (32 tests).
 
 ```bash
 git add src/campaigns.ts src/campaigns.test.ts
-git commit -m "Add local-time date helpers for campaign date ranges
+git commit -m "Add calendar-day helpers for campaign date ranges
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1460,6 +1478,44 @@ In the **content** subscription effect, after `setContentByClient((prev) => ({ .
 
 In the **businesses** subscription effect (added in Task 1), after `setBusinessesByClient((prev) => ({ ...prev, [id]: list }));` add `markLoaded(\`businesses:${id}\`);` and change its dependency array to `[uid, clientIdsKey, markLoaded]`.
 
+- [ ] **Step 4b: Read the cache once, typed for old entries**
+
+The three initial states each parse the whole cache, and the cache is typed `Client[]` although entries written before businesses existed have no `businesses`. Fix both.
+
+Directly above `function readClientsCache`, add:
+
+```ts
+// What the cache holds. Typed apart from Client because entries written before
+// businesses existed have no `businesses`.
+type CachedClient = Omit<Client, 'businesses'> & { businesses?: Business[] };
+```
+
+Change `readClientsCache` to return `CachedClient[]` (its signature and its `JSON.parse(raw) as …` cast), and `toBaseFromCache`'s parameter to `c: CachedClient`. `writeClientsCache` keeps taking `Client[]`.
+
+In `useClients`, replace the three cache-seeded `useState` calls (`baseClients`, `contentByClient`, `businessesByClient`) with:
+
+```ts
+  // Parsed once: every initial list below is seeded from the same read.
+  const [cached] = useState(() => readClientsCache(uid));
+  const [baseClients, setBaseClients] = useState<BaseClient[]>(() => cached.map(toBaseFromCache));
+  const [contentByClient, setContentByClient] = useState<Record<string, ContentItem[]>>(() =>
+    Object.fromEntries(cached.map((c) => [c.id, c.content]))
+  );
+  // Caches written before businesses existed have none, hence the fallback.
+  const [businessesByClient, setBusinessesByClient] = useState<Record<string, Business[]>>(() =>
+    Object.fromEntries(cached.map((c) => [c.id, c.businesses ?? []]))
+  );
+```
+
+Replace the comment above the content subscription effect (`// One subscription per client's content subcollection. …`) with:
+
+```ts
+  // One listener per client for its content, and one more for its businesses
+  // (below) — every client's, because the business migration has to see them
+  // all. Accurate by construction, unlike denormalised counters; revisit
+  // around 50+ clients, when two listeners each start to add up.
+```
+
 - [ ] **Step 5: The pending business migration**
 
 Directly after the existing `pendingMigration` memo, add:
@@ -1546,10 +1602,17 @@ Replace `addClient` and `updateClient` with:
     []
   );
 
-  // The UI only offers this for an empty business that is not the last one —
-  // see businessDeleteBlocker().
+  // The UI only offers this for a business with no content and no campaigns
+  // that is not the first one — see businessDeleteBlocker(). Ideas do not
+  // block it: any filed under this business are moved to the first business
+  // (dropping their businessId does exactly that) in the same batch as the
+  // delete, so none is left pointing at a business that is gone.
   const deleteBusiness = useCallback(async (clientId: string, businessId: string) => {
-    await deleteDoc(doc(businessesCol(clientId), businessId));
+    const ideas = await getDocs(query(ideasCol(clientId), where('businessId', '==', businessId)));
+    const batch = writeBatch(db);
+    ideas.docs.forEach((d) => batch.update(d.ref, { businessId: deleteField() }));
+    batch.delete(doc(businessesCol(clientId), businessId));
+    await batch.commit();
   }, []);
 ```
 
@@ -2564,7 +2627,7 @@ import { X, Plus, Trash2 } from 'lucide-react';
 import {
   Business, Campaign, CampaignDraft, CampaignStatus, Deliverable, FolderColor, MediaType,
 } from '../types';
-import { CAMPAIGN_STATUSES, fromDateInput, toDateInput } from '../campaigns';
+import { CAMPAIGN_STATUSES, endsBeforeStart } from '../campaigns';
 import { generateId } from '../utils';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
@@ -2610,17 +2673,16 @@ export default function CampaignModal({
     campaign?.businessId ?? defaultBusinessId ?? businesses[0]?.id ?? ''
   );
   const [status, setStatus] = useState<CampaignStatus>(campaign?.status ?? 'planning');
-  const [start, setStart] = useState(toDateInput(campaign?.startDate));
-  const [end, setEnd] = useState(toDateInput(campaign?.endDate));
+  // Stored days are already the 'YYYY-MM-DD' a date input reads and writes.
+  const [start, setStart] = useState(campaign?.startDate ?? '');
+  const [end, setEnd] = useState(campaign?.endDate ?? '');
   const [color, setColor] = useState<FolderColor>(campaign?.color ?? 'green');
   const [brief, setBrief] = useState(campaign?.brief ?? '');
   // Existing ids are kept: content points at a deliverable by id, so an edit
   // must not quietly unlink everything filed under it.
   const [rows, setRows] = useState<Row[]>(campaign ? toRows(campaign.deliverables) : []);
 
-  const startMs = fromDateInput(start);
-  const endMs = fromDateInput(end);
-  const datesBackwards = startMs !== undefined && endMs !== undefined && endMs < startMs;
+  const datesBackwards = endsBeforeStart(start, end);
   const rowsInvalid = rows.some((r) => !r.label.trim() || !(Number(r.target) >= 1));
   const canSave = !!name.trim() && !!businessId && !datesBackwards && !rowsInvalid;
 
@@ -2636,8 +2698,9 @@ export default function CampaignModal({
       name: name.trim(),
       brief: brief.trim(),
       status,
-      startDate: startMs,
-      endDate: endMs,
+      // An emptied date input is '', which means no date rather than a day.
+      startDate: start || undefined,
+      endDate: end || undefined,
       color,
       deliverables: rows.map((r) => ({
         id: r.id,
