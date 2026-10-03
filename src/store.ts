@@ -21,8 +21,8 @@ import {
 import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
-  AppUser, Client, ClientReview, Comment, ContentItem, ContentStatus, Idea, IdeaStatus,
-  MediaType, Platform, Share,
+  AppUser, Business, Client, ClientReview, Comment, ContentItem, ContentStatus, FolderColor, Idea,
+  IdeaStatus, MediaType, Platform, Share,
 } from './types';
 import { generateId, generateShareToken, publicAppOrigin } from './utils';
 
@@ -31,10 +31,14 @@ import { generateId, generateShareToken, publicAppOrigin } from './utils';
 // Content lives in clients/{clientId}/content/{itemId}. `legacyContent` holds
 // whatever remains in the pre-migration array field so the migration can find
 // it; it is not surfaced to the UI.
-type BaseClient = Omit<Client, 'content'> & { legacyContent: ContentItem[] };
+type BaseClient = Omit<Client, 'content' | 'businesses'> & { legacyContent: ContentItem[] };
 
 function contentDoc(clientId: string, contentId: string) {
   return doc(db, 'clients', clientId, 'content', contentId);
+}
+
+function businessesCol(clientId: string) {
+  return collection(db, 'clients', clientId, 'businesses');
 }
 
 // Comments hang off content items and ideas alike — one primitive, two parents.
@@ -356,6 +360,7 @@ function toBaseClient(id: string, data: Record<string, any>): BaseClient {
     name: data.name as string,
     imageUrl: data.imageUrl as string | undefined,
     about: data.about as string,
+    color: data.color as FolderColor | undefined,
     createdAt: data.createdAt as number,
     legacyContent: (data.content as ContentItem[]) ?? [],
   };
@@ -369,6 +374,7 @@ function toBaseFromCache(c: Client): BaseClient {
     name: c.name,
     imageUrl: c.imageUrl,
     about: c.about,
+    color: c.color,
     createdAt: c.createdAt,
     legacyContent: [],
   };
@@ -416,6 +422,10 @@ export function useClients() {
   );
   const [contentByClient, setContentByClient] = useState<Record<string, ContentItem[]>>(() =>
     Object.fromEntries(readClientsCache(uid).map((c) => [c.id, c.content]))
+  );
+  // Old caches predate businesses, hence the fallback.
+  const [businessesByClient, setBusinessesByClient] = useState<Record<string, Business[]>>(() =>
+    Object.fromEntries(readClientsCache(uid).map((c) => [c.id, c.businesses ?? []]))
   );
   const [loading, setLoading] = useState(true);
 
@@ -512,6 +522,30 @@ export function useClients() {
     return () => unsubscribes.forEach((u) => u());
   }, [uid, clientIdsKey]);
 
+  // Same shape as the content subscription: one listener per client, oldest
+  // business first, because the first one is the default.
+  useEffect(() => {
+    if (!uid) return;
+    const ids = clientIdsKey ? clientIdsKey.split(',') : [];
+    if (ids.length === 0) {
+      setBusinessesByClient({});
+      return;
+    }
+
+    const unsubscribes = ids.map((id) =>
+      onSnapshot(
+        query(businessesCol(id), orderBy('createdAt', 'asc')),
+        (snap) => {
+          const list = snap.docs.map((d) => ({ ...(d.data() as Omit<Business, 'id'>), id: d.id }));
+          setBusinessesByClient((prev) => ({ ...prev, [id]: list }));
+        },
+        (err) => console.error(`[limi] businesses subscription for ${id} failed`, err)
+      )
+    );
+
+    return () => unsubscribes.forEach((u) => u());
+  }, [uid, clientIdsKey]);
+
   const clients = useMemo<Client[]>(
     () =>
       baseClients.map((c) => ({
@@ -519,10 +553,12 @@ export function useClients() {
         name: c.name,
         imageUrl: c.imageUrl,
         about: c.about,
+        color: c.color,
         createdAt: c.createdAt,
         content: contentByClient[c.id] ?? [],
+        businesses: businessesByClient[c.id] ?? [],
       })),
-    [baseClients, contentByClient]
+    [baseClients, contentByClient, businessesByClient]
   );
 
   useEffect(() => {

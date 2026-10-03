@@ -9,7 +9,7 @@ function item(over: Partial<ContentItem> = {}): ContentItem {
 }
 
 function client(id: string, name: string, content: ContentItem[] = []): Client {
-  return { id, name, about: '', content, createdAt: 1 };
+  return { id, name, about: '', content, businesses: [], createdAt: 1 };
 }
 
 function user(role: AppUser['role'], assignedClientIds: string[] = []): AppUser {

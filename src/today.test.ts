@@ -12,7 +12,7 @@ function item(over: Partial<ContentItem> = {}): ContentItem {
 }
 
 function client(id: string, content: ContentItem[]): Client {
-  return { id, name: id.toUpperCase(), about: '', content, createdAt: 1 };
+  return { id, name: id.toUpperCase(), about: '', content, businesses: [], createdAt: 1 };
 }
 
 describe('buildToday', () => {
