@@ -1,4 +1,7 @@
-import { NO_CAMPAIGN, businessIdOf, campaignIdOf, scopeContent } from './campaigns';
+import {
+  NO_CAMPAIGN, businessIdOf, campaignIdOf, campaignProgress, campaignStatusMeta,
+  deliverableProgress, scopeContent, sortCampaigns, unslottedContent,
+} from './campaigns';
 import { Business, Campaign, ContentItem } from './types';
 
 function item(over: Partial<ContentItem> = {}): ContentItem {
@@ -77,5 +80,67 @@ describe('scopeContent', () => {
 
   it('combines business and campaign', () => {
     expect(ids({ businessId: 'b2', campaignId: NO_CAMPAIGN })).toEqual(['dangling']);
+  });
+});
+
+describe('deliverable and campaign progress', () => {
+  const reels = { id: 'd-reels', label: 'Reels', mediaType: 'video' as const, target: 3 };
+  const carousels = { id: 'd-car', label: 'Carousels', mediaType: 'graphic' as const, target: 2 };
+  const summer = campaign('c1', { deliverables: [reels, carousels] });
+
+  const content = [
+    item({ id: 'r1', campaignId: 'c1', deliverableId: 'd-reels', status: 'posted', createdAt: 2 }),
+    item({ id: 'r2', campaignId: 'c1', deliverableId: 'd-reels', status: 'review', createdAt: 1 }),
+    item({ id: 'loose', campaignId: 'c1', status: 'posted' }),
+    item({ id: 'orphan', campaignId: 'c1', deliverableId: 'removed', status: 'editing' }),
+    item({ id: 'other', campaignId: 'c2', deliverableId: 'd-reels', status: 'posted' }),
+  ];
+
+  it('counts linked and posted items per deliverable, oldest first', () => {
+    const [r, c] = deliverableProgress(summer, content);
+    expect(r.items.map((i) => i.id)).toEqual(['r2', 'r1']);
+    expect(r.posted).toBe(1);
+    expect(c.items).toHaveLength(0);
+  });
+
+  it('treats items with no deliverable, or a removed one, as unslotted', () => {
+    expect(unslottedContent(summer, content).map((i) => i.id)).toEqual(['loose', 'orphan']);
+  });
+
+  it('plans every target plus unslotted items, and counts every posted item', () => {
+    // 3 reels + 2 carousels + 2 unslotted = 7 planned; r1 and loose are posted.
+    expect(campaignProgress(summer, content)).toEqual({ posted: 2, planned: 7, ratio: 2 / 7 });
+  });
+
+  it('lets a deliverable run over its target without passing 100%', () => {
+    const one = campaign('c1', { deliverables: [{ id: 'd', label: 'Post', target: 1 }] });
+    const made = [1, 2, 3].map((n) =>
+      item({ id: `p${n}`, campaignId: 'c1', deliverableId: 'd', status: 'posted' })
+    );
+    expect(campaignProgress(one, made)).toEqual({ posted: 3, planned: 3, ratio: 1 });
+  });
+
+  it('is zero, not NaN, for an empty campaign', () => {
+    expect(campaignProgress(campaign('c1'), [])).toEqual({ posted: 0, planned: 0, ratio: 0 });
+  });
+});
+
+describe('campaign status', () => {
+  it('names and colours each status', () => {
+    expect(campaignStatusMeta('live')).toMatchObject({ label: 'Live', color: 'green' });
+    expect(campaignStatusMeta('planning')).toMatchObject({ label: 'Planning', color: 'graphite' });
+    expect(campaignStatusMeta('completed')).toMatchObject({ label: 'Completed', color: 'blue' });
+  });
+
+  it('orders live, planning, completed, then by start date with undated last', () => {
+    const sorted = sortCampaigns([
+      campaign('done', { status: 'completed' }),
+      campaign('plan-undated', { status: 'planning' }),
+      campaign('plan-late', { status: 'planning', startDate: '2026-11-01' }),
+      campaign('plan-early', { status: 'planning', startDate: '2026-10-01' }),
+      campaign('live', { status: 'live' }),
+    ]);
+    expect(sorted.map((c) => c.id))
+      .toEqual(['live', 'plan-early', 'plan-late', 'plan-undated', 'done']);
   });
 });

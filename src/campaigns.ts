@@ -1,4 +1,4 @@
-import { Business, Campaign, ContentItem } from './types';
+import { Business, Campaign, CampaignStatus, ContentItem, Deliverable, FolderColor } from './types';
 
 // ─── Scope ───────────────────────────────────────────────────────────────────
 
@@ -48,4 +48,93 @@ export function scopeContent(
     }
     return true;
   });
+}
+
+// ─── Progress ────────────────────────────────────────────────────────────────
+
+export interface DeliverableProgress {
+  deliverable: Deliverable;
+  /** Items linked to this deliverable, oldest first. */
+  items: ContentItem[];
+  posted: number;
+}
+
+// Progress is counted, never stored, so it cannot drift from the board.
+export function deliverableProgress(campaign: Campaign, content: ContentItem[]): DeliverableProgress[] {
+  const inCampaign = content.filter((i) => i.campaignId === campaign.id);
+  return campaign.deliverables.map((deliverable) => {
+    const items = inCampaign
+      .filter((i) => i.deliverableId === deliverable.id)
+      .sort((a, b) => a.createdAt - b.createdAt);
+    return { deliverable, items, posted: items.filter((i) => i.status === 'posted').length };
+  });
+}
+
+/** In the campaign but filling no deliverable — never slotted, or slotted into one since removed. */
+export function unslottedContent(campaign: Campaign, content: ContentItem[]): ContentItem[] {
+  const slots = new Set(campaign.deliverables.map((d) => d.id));
+  return content
+    .filter((i) => i.campaignId === campaign.id && !(i.deliverableId && slots.has(i.deliverableId)))
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export interface CampaignProgress {
+  posted: number;
+  /** Each deliverable's target (or more, if more were made) plus anything unslotted. */
+  planned: number;
+  /** posted / planned, and 0 when nothing is planned. */
+  ratio: number;
+}
+
+// Every posted item is also counted in `planned`, so the ratio can never pass
+// 1 — making four reels against a target of three plans four, not three.
+export function campaignProgress(campaign: Campaign, content: ContentItem[]): CampaignProgress {
+  const slots = deliverableProgress(campaign, content);
+  const extra = unslottedContent(campaign, content);
+  const planned =
+    slots.reduce((sum, s) => sum + Math.max(s.deliverable.target, s.items.length), 0) + extra.length;
+  const posted =
+    slots.reduce((sum, s) => sum + s.posted, 0) + extra.filter((i) => i.status === 'posted').length;
+  return { posted, planned, ratio: planned === 0 ? 0 : posted / planned };
+}
+
+// ─── Status ──────────────────────────────────────────────────────────────────
+
+export interface CampaignStatusMeta {
+  id: CampaignStatus;
+  label: string;
+  color: FolderColor;
+}
+
+/** In lifecycle order — the order a status picker lists them. */
+export const CAMPAIGN_STATUSES: CampaignStatusMeta[] = [
+  { id: 'planning', label: 'Planning', color: 'graphite' },
+  { id: 'live', label: 'Live', color: 'green' },
+  { id: 'completed', label: 'Completed', color: 'blue' },
+];
+
+/** The order campaigns are grouped in: what is running now comes first. */
+export const CAMPAIGN_GROUP_ORDER: CampaignStatus[] = ['live', 'planning', 'completed'];
+
+export function campaignStatusMeta(status: CampaignStatus): CampaignStatusMeta {
+  return CAMPAIGN_STATUSES.find((s) => s.id === status) ?? CAMPAIGN_STATUSES[0];
+}
+
+// ISO days ('YYYY-MM-DD') sort correctly as plain strings. Undated goes last.
+function byStartDate(a: string | undefined, b: string | undefined): number {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a < b ? -1 : 1;
+}
+
+/** Live, then planning, then completed; within each, by start date with undated last. */
+export function sortCampaigns(campaigns: Campaign[]): Campaign[] {
+  const rank = (s: CampaignStatus) => CAMPAIGN_GROUP_ORDER.indexOf(s);
+  return [...campaigns].sort(
+    (a, b) =>
+      rank(a.status) - rank(b.status) ||
+      byStartDate(a.startDate, b.startDate) ||
+      a.createdAt - b.createdAt
+  );
 }
