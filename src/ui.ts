@@ -329,6 +329,8 @@ export function scopeChip(active: boolean) {
   }`;
 }
 
-// A compact native select for toolbars, sized to sit beside the 36px buttons.
+// A compact native select for toolbars. 44px tall, like the buttons beside it:
+// their h-9 overrides lose to btnPrimary's own min-h-11 (Tailwind orders
+// same-property utilities itself), so the toolbar's real height is 44px.
 export const toolbarSelect =
-  'h-9 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark focus:outline-none focus:ring-2 focus:ring-brand/30';
+  'h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark focus:outline-none focus:ring-2 focus:ring-brand/30';

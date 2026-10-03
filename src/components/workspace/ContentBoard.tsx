@@ -131,8 +131,10 @@ export default function ContentBoard({
   campaignFilter = false, onOpen, onAdd, onEdit, onMove,
 }: Props) {
   const [filters, setFilters] = useState<ContentFilters>(NO_FILTERS);
-  // '' is every campaign; NO_CAMPAIGN is the content outside all of them.
-  const [campaignId, setCampaignId] = useState('');
+  // The campaign the person picked. The filter actually applied is worked out
+  // below, because the campaigns on offer change underneath it: another
+  // business in scope, or a teammate deleting the campaign.
+  const [picked, setPicked] = useState('');
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
   const [activeStage, setActiveStage] = useState<ContentStatus>(
     isClientRole ? 'review' : 'editing'
@@ -143,6 +145,13 @@ export default function ContentBoard({
   // Captured once per render so a filtered view cannot shift mid-interaction.
   const now = Date.now();
   const showCampaignFilter = campaignFilter && campaigns.length > 0;
+  // '' is every campaign; NO_CAMPAIGN is the content outside all of them. A
+  // pick that is no longer on offer lets go, rather than filtering the board
+  // down to nothing behind a select that cannot show the reason.
+  const campaignId =
+    showCampaignFilter && (picked === NO_CAMPAIGN || campaigns.some((c) => c.id === picked))
+      ? picked
+      : '';
   const isFiltered = activeFilterCount(filters) > 0 || campaignId !== '';
   // Content added while the board is filtered to one campaign is filed under
   // it; otherwise the new card would vanish from the view it was added in.
@@ -249,7 +258,7 @@ export default function ContentBoard({
             <select
               aria-label="Campaign"
               value={campaignId}
-              onChange={(e) => setCampaignId(e.target.value)}
+              onChange={(e) => setPicked(e.target.value)}
               className={toolbarSelect}
             >
               <option value="">All campaigns</option>

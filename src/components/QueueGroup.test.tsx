@@ -31,6 +31,31 @@ describe('QueueGroup', () => {
     expect(onOpen).toHaveBeenCalledWith(e);
   });
 
+  it('names each row with its stage, since the label replaces what a reader would hear', () => {
+    render(
+      <ThemeProvider>
+        <QueueGroup section={QUEUE_SECTIONS[0]} entries={[entry('Menu reel')]} now={NOW} onOpen={vi.fn()} />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole('button', { name: 'Menu reel — Cafe, Review' })).toBeInTheDocument();
+  });
+
+  it('can leave out the client where every row would name the same one', () => {
+    render(
+      <ThemeProvider>
+        <QueueGroup
+          section={QUEUE_SECTIONS[0]}
+          entries={[entry('Menu reel')]}
+          now={NOW}
+          onOpen={vi.fn()}
+          showSource={false}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole('button', { name: 'Menu reel, Review' })).toBeInTheDocument();
+    expect(screen.queryByText('Cafe')).not.toBeInTheDocument();
+  });
+
   it('renders nothing for an empty section', () => {
     const { container } = render(
       <ThemeProvider>

@@ -3,6 +3,7 @@ import { TodayEntry, TodayGroups, slotLabel } from '../today';
 import StagePill from './StagePill';
 import ClientAvatar from './ClientAvatar';
 import { faintText, rowList, queueRow, countChip, sectionLabel } from '../ui';
+import { STAGES } from '../utils';
 
 export interface QueueSection {
   key: keyof TodayGroups;
@@ -36,13 +37,32 @@ export const QUEUE_SECTIONS: QueueSection[] = [
 // work — and the client name moved under it, because a fixed 112px column of
 // "Mortgage Superh…" repeated eleven times was the loudest thing on the page
 // and told you the least.
-export function QueueRow({ entry, now, onOpen }: { entry: TodayEntry; now: number; onOpen: () => void }) {
+export function QueueRow({
+  entry, now, onOpen, showSource = true,
+}: {
+  entry: TodayEntry;
+  now: number;
+  onOpen: () => void;
+  /**
+   * The avatar and name of the client (or business) the item belongs to. Off
+   * where every row would name the same one — a single client's own queue.
+   */
+  showSource?: boolean;
+}) {
   const slot = slotLabel(entry.item.scheduledAt, now);
   // Something already posted cannot be late, however old its slot.
   const late = !!slot?.late && entry.item.status !== 'posted';
   const when = entry.item.scheduledAt
     ? new Date(entry.item.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null;
+  const stage = STAGES.find((s) => s.id === entry.item.status)?.label;
+  const name = [
+    showSource ? `${entry.item.title} — ${entry.clientName}` : entry.item.title,
+    slot?.text,
+    // The label replaces the row's content for a screen reader, so it has to
+    // carry the stage too: the one signal that says whose move it is.
+    stage,
+  ].filter(Boolean).join(', ');
 
   return (
     <button
@@ -50,14 +70,16 @@ export function QueueRow({ entry, now, onOpen }: { entry: TodayEntry; now: numbe
       className={queueRow}
       // Spelled out because the row's text is split across nested spans, which
       // left the button with no computed name in the accessibility tree.
-      aria-label={`${entry.item.title} — ${entry.clientName}${slot ? `, ${slot.text}` : ''}`}
+      aria-label={name}
     >
-      <ClientAvatar
-        name={entry.clientName}
-        imageUrl={entry.clientImageUrl}
-        color={entry.clientColor}
-        size={22}
-      />
+      {showSource && (
+        <ClientAvatar
+          name={entry.clientName}
+          imageUrl={entry.clientImageUrl}
+          color={entry.clientColor}
+          size={22}
+        />
+      )}
 
       <span className="flex-1 min-w-0">
         <span className="block text-[13px] leading-snug text-ink dark:text-ink-dark truncate">
@@ -66,10 +88,10 @@ export function QueueRow({ entry, now, onOpen }: { entry: TodayEntry; now: numbe
         {/* Flex, not one truncating line: the client name is the part that may
             be cut, and "2 months late" is the part that must not be. */}
         <span className={`flex items-center text-[11px] leading-snug min-w-0 ${faintText}`}>
-          <span className="truncate">{entry.clientName}</span>
+          {showSource && <span className="truncate">{entry.clientName}</span>}
           {slot && (
             <>
-              <span className="mx-1.5 opacity-50 flex-shrink-0">·</span>
+              {showSource && <span className="mx-1.5 opacity-50 flex-shrink-0">·</span>}
               {/* "2 months late" says what a red date only implied. */}
               <span
                 className={`flex-shrink-0 ${late ? 'text-brand dark:text-red-400 font-medium' : ''}`}
@@ -103,12 +125,14 @@ export function QueueRow({ entry, now, onOpen }: { entry: TodayEntry; now: numbe
 }
 
 export function QueueGroup({
-  section, entries, now, onOpen,
+  section, entries, now, onOpen, showSource = true,
 }: {
   section: QueueSection;
   entries: TodayEntry[];
   now: number;
   onOpen: (e: TodayEntry) => void;
+  /** See QueueRow. */
+  showSource?: boolean;
 }) {
   if (entries.length === 0) return null;
   const { icon: Icon } = section;
@@ -124,7 +148,13 @@ export function QueueGroup({
       </div>
       <div className={rowList}>
         {entries.map((e) => (
-          <QueueRow key={`${e.clientId}-${e.item.id}`} entry={e} now={now} onOpen={() => onOpen(e)} />
+          <QueueRow
+            key={`${e.clientId}-${e.item.id}`}
+            entry={e}
+            now={now}
+            onOpen={() => onOpen(e)}
+            showSource={showSource}
+          />
         ))}
       </div>
     </section>
