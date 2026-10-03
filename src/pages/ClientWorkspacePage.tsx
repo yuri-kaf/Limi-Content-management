@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  markIdeaConverted, useCampaigns, useClients, useShareActions, useShareReconciler,
-} from '../store';
+import { useCampaigns, useClients, useShareActions, useShareReconciler } from '../store';
 import {
   Business, BusinessDraft, Campaign, CampaignDraft, Client, ClientReview, ContentItem,
   ContentStatus, Idea,
@@ -40,7 +38,7 @@ interface AddRequest {
   businessId?: string;
   campaignId?: string;
   deliverableId?: string;
-  /** Set when converting an idea, so the idea is marked done afterwards. */
+  /** Set when converting an idea, so the idea is marked done in the same write. */
   ideaId?: string;
 }
 
@@ -69,7 +67,7 @@ export default function ClientWorkspacePage() {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <p className={`mb-4 text-sm ${faintText}`}>Client not found.</p>
-          <button onClick={() => navigate('/')} className="text-sm text-brand hover:text-brand-hover">
+          <button onClick={() => navigate('/clients')} className="text-sm text-brand hover:text-brand-hover">
             ← Back to clients
           </button>
         </div>
@@ -112,6 +110,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
   const [businessForm, setBusinessForm] = useState<{ business?: Business } | null>(null);
   const [campaignForm, setCampaignForm] = useState<{ campaign?: Campaign } | null>(null);
   const [editingClient, setEditingClient] = useState(false);
+  // False once this workspace has gone — another client opened while a save
+  // was in flight — so a late navigate cannot pull the person back here.
+  const alive = useRef(true);
+  useEffect(() => () => {
+    alive.current = false;
+  }, []);
 
   // ?item=<id> opens that item's sheet on whichever tab is showing. This is
   // what lets Today and the command palette link to one piece of content.
@@ -136,8 +140,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
   // the calendar has to agree with it.
   const visibleContent = isClientRole ? content.filter((i) => i.status !== 'editing') : content;
   // Read from the live list rather than a snapshot held in state, so the sheet
-  // reflects a stage change or a review decision as it happens.
-  const selectedItem = selectedId ? client.content.find((c) => c.id === selectedId) ?? null : null;
+  // reflects a stage change or a review decision as it happens. A client's list
+  // leaves out Editing, so a link to work in progress opens nothing for them.
+  const openable = isClientRole
+    ? client.content.filter((i) => i.status !== 'editing')
+    : client.content;
+  const selectedItem = selectedId ? openable.find((c) => c.id === selectedId) ?? null : null;
   const formBusiness = businessForm?.business;
   const formCampaign = campaignForm?.campaign;
 
@@ -159,6 +167,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
     setSearchParams(params, { replace: true });
   }
 
+  // A campaign link keeps the business scope only when the campaign is that
+  // business's; otherwise "All campaigns" would lead back to a list without it.
+  function scopeFor(campaign: Campaign): string | undefined {
+    return businessId && campaign.businessId === businessId ? businessId : undefined;
+  }
+
   function canChangeItem(item: ContentItem): boolean {
     if (isAdmin) return true;
     if (isSMM) return item.uploadedByEmail === currentUser?.email;
@@ -177,13 +191,15 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
 
   function submitAdd(request: AddRequest, data: ContentFormData) {
     setAdding(null);
-    runWrite(async () => {
-      const contentId = await store.addContent(client.id, {
-        ...data,
-        uploadedByEmail: currentUser?.email ?? '',
-      });
-      if (request.ideaId) await markIdeaConverted(client.id, request.ideaId, contentId);
-    }, request.ideaId ? 'create the content' : 'add the content');
+    runWrite(
+      () =>
+        store.addContent(
+          client.id,
+          { ...data, uploadedByEmail: currentUser?.email ?? '' },
+          request.ideaId ? { convertsIdeaId: request.ideaId } : undefined
+        ),
+      request.ideaId ? 'create the content' : 'add the content'
+    );
   }
 
   function submitEdit(item: ContentItem, data: ContentFormData) {
@@ -220,8 +236,9 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
     );
   }
 
+  // No scope reset here: if the delete goes through, resolveScope() already
+  // ignores a business that is gone, and if it is refused, the scope should stay.
   function removeBusiness(business: Business) {
-    if (businessId === business.id) setScope(undefined);
     runWrite(() => store.deleteBusiness(client.id, business.id), 'delete the business');
   }
 
@@ -232,7 +249,8 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
         return;
       }
       const newId = await addCampaign(draft);
-      if (newId) navigate(campaignPath(client.id, newId, businessId));
+      const scope = businessId && draft.businessId === businessId ? businessId : undefined;
+      if (newId && alive.current) navigate(campaignPath(client.id, newId, scope));
     }, formCampaign ? 'save the campaign' : 'create the campaign');
   }
 
@@ -303,7 +321,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
             onEditBusiness={(business) => setBusinessForm({ business })}
             onAddBusiness={() => setBusinessForm({})}
             onOpenItem={(item) => setSelectedId(item.id)}
-            onOpenCampaign={(c) => navigate(campaignPath(client.id, c.id, businessId))}
+            onOpenCampaign={(c) => navigate(campaignPath(client.id, c.id, scopeFor(c)))}
           />
         );
       case 'campaigns':
@@ -313,7 +331,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
             content={client.content}
             businesses={businesses}
             canManage={canManage && hasBusinesses}
-            onOpen={(c) => navigate(campaignPath(client.id, c.id, businessId))}
+            onOpen={(c) => navigate(campaignPath(client.id, c.id, scopeFor(c)))}
             onNew={() => setCampaignForm({})}
           />
         );
@@ -371,9 +389,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
             canDeleteItem={canChangeItem}
             campaignFilter
             onOpen={(item) => setSelectedId(item.id)}
-            onAdd={(status, campaignId) =>
-              startAdd({ status, ...(campaignId ? { campaignId } : {}) })
-            }
+            onAdd={(status, filed) => startAdd({ status, ...(filed ? { campaignId: filed } : {}) })}
             onEdit={setEditingItem}
             onMove={moveItem}
           />
@@ -386,7 +402,11 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
       <WorkspaceTabs
         tabs={tabs}
         active={campaignId ? 'campaigns' : tab}
-        onSelect={(t) => navigate(workspacePath(client.id, t, businessId))}
+        // The place already showing is not a new history entry; otherwise
+        // Back would step through every repeated click.
+        onSelect={(t) => {
+          if (t !== tab || campaignId) navigate(workspacePath(client.id, t, businessId));
+        }}
         actions={
           canManage ? (
             <WorkspaceMenu
@@ -401,6 +421,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
           chips would scope nothing there except where "All campaigns" leads. */}
       {!campaignId && (
         <BusinessScopeBar businesses={businesses} value={businessId} onChange={setScope} />
+      )}
+
+      {/* Campaigns and a campaign page carry their own visible h1; the other
+          places get one for screen readers, so every page has a top heading. */}
+      {!campaignId && tab !== 'campaigns' && (
+        <h1 className="sr-only">{`${client.name} — ${tabs.find((t) => t.id === tab)?.label}`}</h1>
       )}
 
       {renderBody()}
@@ -425,8 +451,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
         />
       )}
 
+      {/* Keyed by item, like the sheet below: opening another item (⌘K while
+          one is open) must start a fresh form, not save this one's fields
+          onto it. */}
       {editingItem && !campaignsLoading && (
         <AddContentModal
+          key={editingItem.id}
           defaultStatus={editingItem.status}
           existingItem={editingItem}
           businesses={businesses}
@@ -438,6 +468,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
 
       {selectedItem && (
         <ContentDetailModal
+          key={selectedItem.id}
           clientId={client.id}
           item={selectedItem}
           isClientRole={isClientRole}

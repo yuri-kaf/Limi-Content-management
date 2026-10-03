@@ -306,14 +306,6 @@ export function useIdeas(clientId: string | undefined) {
   return { ideas, loading, addIdea, setIdeaStatus, deleteIdea, addIdeaComment };
 }
 
-// Marks an accepted idea as turned into content, so it stops offering "Make
-// content". A plain function rather than part of useIdeas: the conversion
-// finishes in the workspace page, which does not hold that hook. The old board
-// never called the hook's version, so converted ideas kept the button forever.
-export async function markIdeaConverted(clientId: string, ideaId: string, contentId: string) {
-  await updateDoc(doc(ideasCol(clientId), ideaId), { convertedContentId: contentId });
-}
-
 // ─── Campaigns ───────────────────────────────────────────────────────────────
 
 // Deliverables are written whole, and their optional mediaType must be dropped
@@ -862,7 +854,13 @@ export function useClients() {
         businessId?: string;
         campaignId?: string | null;
         deliverableId?: string | null;
-      }
+      },
+      // An accepted idea this item was made from. The idea is marked in the
+      // same batch, so the two can never disagree: no "Make content" left on an
+      // idea whose content exists (and none clickable twice while the first
+      // write is in flight), and no content reported as failed when only the
+      // mark did. The old board never marked ideas at all.
+      options: { convertsIdeaId?: string } = {}
     ) => {
       const id = generateId();
       const newItem: ContentItem = {
@@ -885,8 +883,13 @@ export function useClients() {
         campaignId: data.campaignId ?? undefined,
         deliverableId: data.deliverableId ?? undefined,
       };
+      const batch = writeBatch(db);
       // The three filing fields are optional; defined() drops the unset ones.
-      await setDoc(contentDoc(clientId, id), defined(newItem));
+      batch.set(contentDoc(clientId, id), defined(newItem));
+      if (options.convertsIdeaId) {
+        batch.update(doc(ideasCol(clientId), options.convertsIdeaId), { convertedContentId: id });
+      }
+      await batch.commit();
       return id;
     },
     []
