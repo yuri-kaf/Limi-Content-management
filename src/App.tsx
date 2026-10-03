@@ -5,7 +5,7 @@ import { isConfigured } from './firebase';
 import TodayPage from './pages/TodayPage';
 import ClientsPage from './pages/ClientsPage';
 import ProfilePage from './pages/ProfilePage';
-import ClientBoardPage from './pages/ClientBoardPage';
+import ClientWorkspacePage from './pages/ClientWorkspacePage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
@@ -66,7 +66,10 @@ function AuthenticatedRoutes() {
       <Route path="/" element={<AppShell><TodayPage /></AppShell>} />
       <Route path="/clients" element={<AppShell><ClientsPage /></AppShell>} />
       <Route path="/profile" element={<AppShell><ProfilePage /></AppShell>} />
-      <Route path="/client/:id" element={<AppShell><ClientBoardPage /></AppShell>} />
+      {/* :tab is optional, so the bare /client/:id every older link uses still
+          opens the default tab. */}
+      <Route path="/client/:id/campaign/:campaignId" element={<AppShell><ClientWorkspacePage /></AppShell>} />
+      <Route path="/client/:id/:tab?" element={<AppShell><ClientWorkspacePage /></AppShell>} />
       <Route path="/users" element={<AppShell><UserManagementPage /></AppShell>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
