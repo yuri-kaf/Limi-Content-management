@@ -184,8 +184,10 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
     return false;
   }
 
+  // The write is handed back so the board can keep a dropped card in its new
+  // column until the write ends, and put it back if the write failed.
   function moveItem(item: ContentItem, status: ContentStatus) {
-    runWrite(() => store.updateContentStatus(client.id, item.id, status), 'move the content');
+    return runWrite(() => store.updateContentStatus(client.id, item.id, status), 'move the content');
   }
 
   // New content lands in whatever is being looked at: the scoped business, and

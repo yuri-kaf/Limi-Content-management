@@ -30,7 +30,8 @@ interface Props {
   /** Opens the add-content form already filed under this campaign. */
   onAddContent: (defaults: { status: ContentStatus; deliverableId?: string }) => void;
   onEditItem: (item: ContentItem) => void;
-  onMoveItem: (item: ContentItem, status: ContentStatus) => void;
+  /** Handed to the board as its onMove, so it may return the write in the same way. */
+  onMoveItem: (item: ContentItem, status: ContentStatus) => Promise<unknown> | void;
 }
 
 // A content item as a chip: stage first, because "which stage is each of the

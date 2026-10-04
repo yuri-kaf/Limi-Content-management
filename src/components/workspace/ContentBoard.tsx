@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Announcements,
   DndContext,
@@ -161,7 +161,11 @@ interface Props {
   /** The campaign is set when the board is filtered to one, so new content lands in it. */
   onAdd: (status: ContentStatus, campaignId?: string) => void;
   onEdit: (item: ContentItem) => void;
-  onMove: (item: ContentItem, status: ContentStatus) => void;
+  /**
+   * Moves a card to another stage. A returned promise tells the board when
+   * the write has finished; until then the card is drawn where it was dropped.
+   */
+  onMove: (item: ContentItem, status: ContentStatus) => Promise<unknown> | void;
 }
 
 export default function ContentBoard({
@@ -174,6 +178,14 @@ export default function ContentBoard({
   // business in scope, or a teammate deleting the campaign.
   const [picked, setPicked] = useState('');
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  // Moves made on this board that `content` does not show yet, by item id. A
+  // move reaches `content` only when the database echoes it back, a tick
+  // after the drop, but the drop's own render is when dnd-kit measures where
+  // the card lands and when it gives keyboard focus back. A card still in its
+  // old column drew the settling copy back there, and when it moved a moment
+  // later it was unmounted from under the focus. So a dropped card is drawn in
+  // its new column at once, until `content` shows the move or the write ends.
+  const [pending, setPending] = useState<Record<string, ContentStatus>>({});
   // The stage the live region last named for the card being carried.
   const spokenStage = useRef<ContentStatus | null>(null);
   const [activeStage, setActiveStage] = useState<ContentStatus>(
@@ -211,16 +223,37 @@ export default function ContentBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // An entry has done its job once `content` shows the move. Kept any longer,
+  // it would hide whatever happens to the card next, such as a teammate
+  // moving it on.
+  useEffect(() => {
+    setPending((moves) => {
+      const left = Object.entries(moves).filter(
+        ([id, status]) => content.find((item) => item.id === id)?.status !== status
+      );
+      return left.length === Object.keys(moves).length ? moves : Object.fromEntries(left);
+    });
+  }, [content]);
+
+  // The content as the board draws it, each card in the stage of any move of
+  // it still on its way. Everything below reads this rather than `content`, so
+  // the columns, their counts, the drop targets and what a screen reader hears
+  // all agree on where a card is, and a card takes its new stage's fill.
+  const placed = content.map((item) => {
+    const status = pending[item.id];
+    return status && status !== item.status ? { ...item, status } : item;
+  });
+
   const campaignOf = (item: ContentItem) =>
     item.campaignId ? campaigns.find((c) => c.id === item.campaignId) : undefined;
-  const shown = campaignId ? scopeContent(content, { campaignId }, [], campaigns) : content;
+  const shown = campaignId ? scopeContent(placed, { campaignId }, [], campaigns) : placed;
 
   function itemsIn(status: ContentStatus): ContentItem[] {
     const inStage = shown.filter((item) => item.status === status);
     return filterContent(inStage, filters, now).sort((a, b) => a.createdAt - b.createdAt);
   }
 
-  const itemWithId = (id: UniqueIdentifier) => content.find((c) => c.id === id);
+  const itemWithId = (id: UniqueIdentifier) => placed.find((c) => c.id === id);
 
   function handleDragStart(event: DragStartEvent) {
     if (!canMove) return;
@@ -253,7 +286,26 @@ export default function ContentBoard({
     if (!canMove) return;
     const item = itemWithId(event.active.id);
     const target = item && destination(item, event.over);
-    if (item && target) onMove(item, target);
+    if (!item || !target) return;
+    const write = onMove(item, target);
+    // Without a promise nothing would ever say the write had failed, and the
+    // card could be left drawn where it never went. It waits for `content`.
+    if (!write) return;
+    setPending((moves) => ({ ...moves, [item.id]: target }));
+    // runWrite resolves false on a failed write rather than rejecting, so this
+    // is also what puts a card whose move was refused back where it came from.
+    write.finally(() => settle(item.id, target));
+  }
+
+  // Lets go of a move once its write has finished, unless the card has been
+  // dropped somewhere else in the meantime.
+  function settle(id: string, status: ContentStatus) {
+    setPending((moves) => {
+      if (moves[id] !== status) return moves;
+      const rest = { ...moves };
+      delete rest[id];
+      return rest;
+    });
   }
 
   // What a screen reader hears while a card is carried. dnd-kit's defaults

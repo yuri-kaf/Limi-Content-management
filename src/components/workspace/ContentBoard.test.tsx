@@ -1,10 +1,12 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { DndContextProps, DragOverlayProps } from '@dnd-kit/core';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { LG } from '../../hooks/useMediaQuery';
 import ContentBoard from './ContentBoard';
-import { Campaign, ContentItem } from '../../types';
+import { Campaign, ContentItem, ContentStatus } from '../../types';
+import { STAGES } from '../../utils';
+import { boardColumn } from '../../ui';
 
 // A real pointer drag cannot happen in jsdom — every element measures zero —
 // so the board's DndContext is wrapped to keep hold of the handlers it was
@@ -98,6 +100,46 @@ function card(title: string) {
 
 function focus(element: HTMLElement) {
   act(() => element.focus());
+}
+
+// The desktop column a card is drawn in. The columns sit in stage order.
+function columnOf(title: string): ContentStatus | undefined {
+  let el: HTMLElement | null = screen.getByText(title);
+  while (el && el.className !== boardColumn) el = el.parentElement;
+  return el ? STAGES[Array.from(el.parentElement!.children).indexOf(el)].id : undefined;
+}
+
+// A write that has not come back yet, and the means to finish it.
+function pendingWrite() {
+  let finish!: (ok: boolean) => void;
+  const write = new Promise<boolean>((resolve) => { finish = resolve; });
+  return { onMove: vi.fn(() => write), finish };
+}
+
+// jsdom lays nothing out, so every element measures zero and the keyboard
+// sensor finds no stage to the right of a card. This gives the desktop board a
+// real one's geometry: 280px columns 300px apart, cards 80px apart down each,
+// and the drag copy wherever dnd-kit has placed it with fixed positioning.
+function layOutBoard() {
+  const box = (left: number, top: number, width: number, height: number) =>
+    ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top }) as DOMRect;
+  return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    for (let el: Element | null = this; el; el = el.parentElement) {
+      if (el instanceof HTMLElement && el.style.position === 'fixed') {
+        const { left, top, width, height } = el.style;
+        return box(parseFloat(left), parseFloat(top), parseFloat(width), parseFloat(height));
+      }
+    }
+    let column: Element | null = this;
+    while (column && column.className !== boardColumn) column = column.parentElement;
+    if (!column) return box(0, 0, 0, 0);
+    const x = 300 * Array.from(column.parentElement!.children).indexOf(column);
+    const card = this.closest('[data-stage]');
+    if (card && column.contains(card)) {
+      return box(x + 6, 50 + 80 * Array.from(card.parentElement!.children).indexOf(card), 268, 72);
+    }
+    return box(x, 44, 280, 400);
+  });
 }
 
 // A card dnd-kit is carrying is marked pressed, and its live region says so.
@@ -219,6 +261,54 @@ describe('ContentBoard — moving cards', () => {
     expect(props.onMove).not.toHaveBeenCalled();
   });
 
+  // The move reaches `content` only when the database echoes it back, which
+  // is after the drop has been drawn and its landing measured.
+  it('draws a dropped card in its new column while the move is saved', () => {
+    const { onMove } = pendingWrite();
+    renderBoard({ content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })], onMove });
+    drop('a', 'to-post');
+    expect(columnOf('Launch reel')).toBe('to-post');
+    expect(card('Launch reel')).toHaveAttribute('data-stage', 'to-post');
+  });
+
+  it('treats a card as already in the stage it was dropped on, before the save comes back', () => {
+    const { onMove } = pendingWrite();
+    renderBoard({
+      content: [item({ id: 'a', status: 'editing' }), item({ id: 'b', status: 'posted' })],
+      onMove,
+    });
+    drop('a', 'to-post');
+    drop('a', 'to-post');
+    expect(onMove).toHaveBeenCalledTimes(1);
+    // Dropped on a card, the stage is the one that card is drawn in.
+    drop('b', 'a');
+    expect(onMove).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'b' }), 'to-post');
+  });
+
+  it('puts the card back in the column it came from when the move fails', async () => {
+    const { onMove, finish } = pendingWrite();
+    renderBoard({ content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })], onMove });
+    drop('a', 'to-post');
+    expect(columnOf('Launch reel')).toBe('to-post');
+    // runWrite has shown its alert and resolves false.
+    await act(async () => finish(false));
+    expect(columnOf('Launch reel')).toBe('editing');
+  });
+
+  it('follows the content once it shows the move, so a later change is not hidden', () => {
+    const { onMove } = pendingWrite();
+    const board = renderBoard({
+      content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })],
+      onMove,
+    });
+    drop('a', 'to-post');
+    board.rerender({ content: [item({ id: 'a', title: 'Launch reel', status: 'to-post' })] });
+    expect(columnOf('Launch reel')).toBe('to-post');
+    // A teammate moves it on while this write is still on its way.
+    board.rerender({ content: [item({ id: 'a', title: 'Launch reel', status: 'posted' })] });
+    expect(columnOf('Launch reel')).toBe('posted');
+  });
+
   it('settles a dropped card into its slot', () => {
     renderBoard();
     expect(dnd.overlay?.dropAnimation).toEqual(expect.objectContaining({ duration: 220 }));
@@ -295,6 +385,32 @@ describe('ContentBoard — keyboard', () => {
     expect(followed).toHaveBeenCalled();
     expect(props.onOpen).not.toHaveBeenCalled();
     expectNothingLifted();
+  });
+
+  // The card is unmounted from one column and mounted in another, so focus
+  // survives only if the new card is in place when dnd-kit goes to restore it.
+  it('keeps focus on a card carried to another stage', async () => {
+    const layout = layOutBoard();
+    try {
+      const { onMove } = pendingWrite();
+      const board = renderBoard({
+        content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })],
+        onMove,
+      });
+      focus(card('Launch reel'));
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowRight}');
+      await userEvent.keyboard(' ');
+      expect(onMove).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), 'review');
+      await waitFor(() => expect(card('Launch reel')).toHaveFocus());
+      expect(columnOf('Launch reel')).toBe('review');
+      // The database echoes the move back a tick later.
+      board.rerender({ content: [item({ id: 'a', title: 'Launch reel', status: 'review' })] });
+      await waitFor(() => expect(card('Launch reel')).toHaveFocus());
+      expect(columnOf('Launch reel')).toBe('review');
+    } finally {
+      layout.mockRestore();
+    }
   });
 
   it('tells a screen reader that Enter opens a card and Space lifts it', () => {
