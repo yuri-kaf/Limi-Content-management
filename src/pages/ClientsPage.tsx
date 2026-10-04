@@ -3,7 +3,8 @@ import { Plus, Users } from 'lucide-react';
 import { Client } from '../types';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
-import ClientCard from '../components/ClientCard';
+import ClientFolder from '../components/ClientFolder';
+import { enter, staggerStyle } from '../motion';
 import ClientModal from '../components/ClientModal';
 import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
@@ -195,13 +196,16 @@ export default function ClientsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {visibleClients.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onEdit={canManageClients ? () => setEditingClient(client) : undefined}
-            />
+        // Folders in a grid, like Finder or OneDrive: as many columns as fit,
+        // each at least 132px, entering in a quick stagger.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-x-3 gap-y-4 sm:gap-x-4">
+          {visibleClients.map((client, i) => (
+            <div key={client.id} className={enter} style={staggerStyle(i)}>
+              <ClientFolder
+                client={client}
+                onEdit={canManageClients ? () => setEditingClient(client) : undefined}
+              />
+            </div>
           ))}
         </div>
       )}
