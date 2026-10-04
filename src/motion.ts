@@ -5,6 +5,10 @@ import type { CSSProperties } from 'react';
 // re-render never replays them, and index.css zeroes them for anyone who has
 // asked for reduced motion. Capped, so the fortieth client is not left waiting
 // a second for a decorative effect.
+//
+// Put `enter` on a wrapper around anything that moves itself (the `lift`
+// recipe, a dnd-kit card), because a running animation overrides the element's
+// own transform. Never put it on a board card.
 const STEP_MS = 30;
 const CAP = 12;
 

@@ -7,7 +7,7 @@ describe('staggerStyle', () => {
     expect(staggerStyle(3).animationDelay).toBe('90ms');
   });
 
-  it('stops growing after the twelfth item, so a long list is never kept waiting', () => {
+  it('stops growing after twelve steps, so a long list is never kept waiting', () => {
     expect(staggerStyle(12).animationDelay).toBe('360ms');
     expect(staggerStyle(50).animationDelay).toBe('360ms');
   });

@@ -9,11 +9,17 @@ export const card =
 // shares. Hover applies only where the pointer can hover, so a tap on a phone
 // never leaves a card stuck in the air. Reduced motion is handled globally in
 // index.css.
+//
+// A `[@media(hover:hover)]:` rule compiles after all of Tailwind's own, so an
+// ordinary `active:` class loses to it however the class list is ordered, which
+// is why the press carries the same prefix. Overriding the lift takes another
+// `[@media(hover:hover)]:` class or a `!`.
 export const lift =
-  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float active:translate-y-0 active:scale-[.98]';
+  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float [@media(hover:hover)]:active:translate-y-0 [@media(hover:hover)]:active:shadow-none active:scale-[.98]';
 
 // Clickable cards lift off the page, and their hairline firms up as they do.
-export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
+// A shadow does not show on the dark canvas, so dark mode tints on hover too.
+export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 dark:hover:bg-tint-dark cursor-pointer`;
 
 export const tile =
   'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
@@ -39,8 +45,8 @@ export const btnGhost =
   'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile border border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark text-sm font-medium hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
 // rounded-tile, not rounded-full: a circular icon button was the last
-// consumer-app radius left in a 4px system, and a header holding one of each
-// reads as two designs.
+// consumer-app radius left in a system of 6px controls and 12px cards, and a
+// header holding one of each reads as two designs.
 export const btnIcon =
   'inline-flex items-center justify-center w-9 h-9 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
@@ -159,13 +165,14 @@ export const readoutScroll = `${readout} max-h-[7.25rem] overflow-y-auto overscr
 // Replaces the rounded-full pill group for view switching. A `rounded-full`
 // control with a filled black active state is a consumer-app gesture; in this
 // register a view switcher is an inset strip whose active segment is *raised*
-// out of it. Same 4px geometry as everything else, so the toolbar stops
-// carrying two competing radii.
+// out of it. Same 6px geometry as the other controls, so the toolbar stops
+// carrying two competing radii. The segment's own 3px is the strip's 6px less
+// its 1px border and 2px padding, which keeps the two concentric.
 export const segmented =
   'inline-flex items-center gap-0.5 p-0.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
 
 export function segItem(active: boolean) {
-  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[4px] text-[12px] font-medium whitespace-nowrap transition-colors ${
+  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[3px] text-[12px] font-medium whitespace-nowrap transition-colors ${
     active
       ? 'bg-canvas dark:bg-hover-dark text-ink dark:text-ink-dark shadow-[0_1px_2px_rgba(15,15,15,0.07)]'
       : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'

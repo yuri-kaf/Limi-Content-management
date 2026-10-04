@@ -73,20 +73,14 @@ export default {
       transitionTimingFunction: {
         'out-soft': 'cubic-bezier(.2,.8,.2,1)',
       },
+      // No `to` frame on purpose: the browser fills it in from the element's
+      // own opacity and transform, so an entrance ends wherever the element
+      // rests instead of jumping to 1 and none.
       keyframes: {
-        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
-        'fade-up': {
-          from: { opacity: '0', transform: 'translateY(6px)' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        'scale-in': {
-          from: { opacity: '0', transform: 'scale(.97)' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        'sheet-up': {
-          from: { opacity: '0', transform: 'translateY(24px)' },
-          to: { opacity: '1', transform: 'none' },
-        },
+        'fade-in': { from: { opacity: '0' } },
+        'fade-up': { from: { opacity: '0', transform: 'translateY(6px)' } },
+        'scale-in': { from: { opacity: '0', transform: 'scale(.97)' } },
+        'sheet-up': { from: { opacity: '0', transform: 'translateY(24px)' } },
       },
       // `backwards` holds the first frame through any delay, which is what lets
       // a staggered list item stay hidden until its turn, and lets go once it

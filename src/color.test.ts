@@ -74,8 +74,8 @@ describe('stage pills meet WCAG AA', () => {
 
 describe('stage cards meet WCAG AA', () => {
   // A card's title is ink, its secondary text ink-soft, its chips the stage
-  // text. ink-faint is never used on a card: it measures 4.1 to 4.3:1 on the
-  // light tints.
+  // text. ink-faint is never used on a card: it measures about 4.1 to 4.3:1 on
+  // the light tints, and ink-faintdark 3.8 to 4.3:1 on the dark ones.
   it.each(STAGES)('$label card is readable in light mode', (stage) => {
     expect(contrastRatio(palette.ink.DEFAULT, stage.cardTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(palette.ink.soft, stage.cardTint)).toBeGreaterThanOrEqual(AA);
