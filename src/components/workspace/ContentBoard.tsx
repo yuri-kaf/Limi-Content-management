@@ -144,6 +144,10 @@ const DROP_ANIMATION: DropAnimation = {
   }),
 };
 
+// What the drag copy's actions do. The copy is never pressed; it carries them
+// only to take up the room they take up on the card.
+const doNothing = () => {};
+
 interface Props {
   /** Already scoped to the business or campaign being viewed. */
   content: ContentItem[];
@@ -447,7 +451,17 @@ export default function ContentBoard({
               jump; measured on this box it lands exactly. */}
           {activeItem ? (
             <div>
-              <ContentCard item={activeItem} campaign={campaignOf(activeItem)} isOverlay />
+              <ContentCard
+                item={activeItem}
+                campaign={campaignOf(activeItem)}
+                // The card's own actions, as handlers that do nothing: the
+                // title then wraps at the card's width, so the copy is the
+                // card's height and lands without a jump. ContentCard keeps
+                // them out of sight on the copy.
+                onEdit={canEditItem(activeItem) ? doNothing : undefined}
+                onDelete={canDeleteItem(activeItem) ? doNothing : undefined}
+                isOverlay
+              />
             </div>
           ) : null}
         </DragOverlay>

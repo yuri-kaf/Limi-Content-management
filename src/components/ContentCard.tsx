@@ -277,8 +277,14 @@ export default function ContentCard({
           </p>
           {/* Pointer-only, revealed on hover. On a phone the card itself is
               the target and the detail sheet carries the same four actions
-              at a size a thumb can hit. */}
-          <div className="hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0">
+              at a size a thumb can hit. On the drag copy the row keeps its
+              width, so the title wraps as it does on the card, but a hover
+              over the copy reveals nothing. */}
+          <div
+            className={`hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0 ${
+              isOverlay ? 'invisible' : ''
+            }`}
+          >
             <a
               href={item.driveLink}
               target="_blank"

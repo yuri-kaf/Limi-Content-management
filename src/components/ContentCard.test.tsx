@@ -63,6 +63,15 @@ describe('ContentCard', () => {
     expect(cardOf('Momo reel').style.transition).toBe('');
   });
 
+  it("keeps the drag copy's controls in their place but out of sight", () => {
+    const actions = { onEdit: vi.fn(), onDelete: vi.fn() };
+    const { unmount } = renderCard({ ...actions, isOverlay: true });
+    expect(screen.getByRole('button', { name: 'Edit' }).parentElement).toHaveClass('invisible');
+    unmount();
+    renderCard(actions);
+    expect(screen.getByRole('button', { name: 'Edit' }).parentElement).not.toHaveClass('invisible');
+  });
+
   it('tilts the copy that follows the pointer during a drag, and straightens it as it settles', () => {
     renderCard({ isOverlay: true });
     const card = cardOf('Momo reel');

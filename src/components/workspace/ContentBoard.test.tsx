@@ -419,6 +419,26 @@ describe('ContentBoard — keyboard', () => {
   });
 });
 
+describe('ContentBoard — the copy in the hand', () => {
+  afterEach(putDownAnyLiftedCard);
+
+  // The copy's title has to wrap at the card's width, or the copy is a
+  // different height from the card it lands on.
+  it('has the same controls as the card it was lifted from', async () => {
+    renderBoard({ canDeleteItem: () => false });
+    focus(card('Launch reel'));
+    await userEvent.keyboard(' ');
+    const [lifted, copy] = screen
+      .getAllByText('Launch reel')
+      .map((title) => title.closest('[data-stage]') as HTMLElement);
+    const controls = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('a, button'), (c) => c.getAttribute('aria-label'));
+    expect(controls(copy)).toEqual(controls(lifted));
+    expect(controls(copy)).toContain('Edit');
+    expect(controls(copy)).not.toContain('Delete');
+  });
+});
+
 describe('ContentBoard — what a screen reader hears', () => {
   afterEach(putDownAnyLiftedCard);
 
