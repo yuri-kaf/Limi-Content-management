@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { Client, FolderColor } from '../types';
 import { folderColor } from '../folderColors';
 import ColorSwatchPicker from './ColorSwatchPicker';
+import FolderIcon from './FolderIcon';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside,
   input, textarea, btnPrimary, btnGhost,
@@ -66,11 +67,22 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
             />
           </div>
 
-          {/* Like picking a folder colour in OneDrive: the colour marks this
-              client everywhere it appears. */}
+          {/* Like colouring a folder in OneDrive: the colour marks this client
+              everywhere it appears, and the preview shows the folder as it will
+              look, logo and all. */}
           <div>
             <span className={label}>Folder colour</span>
-            <ColorSwatchPicker value={color} onChange={setColor} label="Folder colour" />
+            <div className="flex items-center gap-4">
+              <FolderIcon
+                color={color}
+                size={56}
+                label={name}
+                imageUrl={imageUrl.trim() || undefined}
+              />
+              <div className="flex-1 min-w-0">
+                <ColorSwatchPicker value={color} onChange={setColor} label="Folder colour" />
+              </div>
+            </div>
           </div>
 
           <div>

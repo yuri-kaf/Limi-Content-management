@@ -24,4 +24,23 @@ describe('ClientModal', () => {
     );
     expect(screen.getByRole('radio', { name: 'Teal' })).toHaveAttribute('aria-checked', 'true');
   });
+
+  it('previews the folder in the colour being chosen', async () => {
+    render(<ClientModal onClose={vi.fn()} onSave={vi.fn()} />);
+    expect(document.querySelector('[data-folder-color="blue"]')).not.toBeNull();
+    await userEvent.click(screen.getByRole('radio', { name: 'Pink' }));
+    expect(document.querySelector('[data-folder-color="pink"]')).not.toBeNull();
+    expect(document.querySelector('[data-folder-color="blue"]')).toBeNull();
+  });
+
+  it('previews the name and the logo on the folder as they are typed', async () => {
+    render(<ClientModal onClose={vi.fn()} onSave={vi.fn()} />);
+    await userEvent.type(screen.getByPlaceholderText('Client name'), 'acme');
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(document.querySelector('img')).toBeNull();
+    // The spaces around a pasted URL are not part of it, as when it is saved.
+    await userEvent.type(screen.getByPlaceholderText('https://...'), ' https://x.test/logo.png ');
+    expect(document.querySelector('img')).toHaveAttribute('src', 'https://x.test/logo.png');
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
+  });
 });
