@@ -92,7 +92,8 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
     fall on a straight line to 36% and 26% at 88px and stay there, so a wider
     folder never carries a smaller logo. The emblem sits centred on the front
     panel.
-  - Below 40px there is no emblem. The same shape is drawn at every size.
+  - Below 40px there is no emblem, except the forced initial in the collapsed
+    rail. The same shape is drawn at every size.
 - **Accessibility:** always `aria-hidden`. The name is written beside it,
   except in the collapsed sidebar rail, where the row's label and tooltip name
   it.
