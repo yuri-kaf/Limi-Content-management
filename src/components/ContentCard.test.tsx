@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
 import ContentCard from './ContentCard';
 import { ContentItem } from '../types';
+import { lift } from '../ui';
 
 function item(over: Partial<ContentItem> = {}): ContentItem {
   return {
@@ -31,6 +33,10 @@ function renderCard(props: CardProps = {}) {
 }
 
 const cardOf = (title: string) => screen.getByText(title).closest('[data-stage]') as HTMLElement;
+
+// A link with a thumbnail, which is what a draggable card puts its grip on.
+const DRIVE = 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345/view';
+const gripOf = (card: HTMLElement) => card.querySelector('.lucide-grip-vertical');
 
 describe('ContentCard', () => {
   it("fills the card with its stage's pastel", () => {
@@ -102,5 +108,51 @@ describe('ContentCard', () => {
     expect(card.className).toContain('rotate-[1.5deg]');
     expect(card.className).toContain('[.settling_&]:rotate-0');
     expect(card.className).not.toContain('hover:-translate-y-0.5');
+  });
+});
+
+// A card that cannot move: on a client's board, and on the phone board. It
+// never registers with dnd-kit, so it needs no DndContext around it.
+describe('ContentCard that cannot move', () => {
+  function renderStatic(props: CardProps = {}) {
+    return render(<ContentCard item={item()} {...props} draggable={false} />);
+  }
+
+  it('is filled and lifts like any card, but shows no grip', () => {
+    renderStatic({ item: item({ status: 'posted', driveLink: DRIVE }) });
+    const card = cardOf('Momo reel');
+    expect(card).toHaveAttribute('data-stage', 'posted');
+    expect(card.style.getPropertyValue('--sc-tint')).toBe('#dcf0e1');
+    expect(card).toHaveClass(...lift.split(' '), 'cursor-pointer');
+    expect(gripOf(card)).toBeNull();
+    // The same card where it can move does have one.
+    renderCard({ item: item({ id: 'i2', title: 'Board reel', driveLink: DRIVE }) });
+    expect(gripOf(cardOf('Board reel'))).not.toBeNull();
+  });
+
+  it('opens on Enter and on Space, and Space does not also scroll the column', async () => {
+    const onCardClick = vi.fn();
+    renderStatic({ onCardClick });
+    const card = cardOf('Momo reel');
+    act(() => card.focus());
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(onCardClick).toHaveBeenCalledTimes(2);
+    // fireEvent returns false when the handler prevented the default.
+    expect(fireEvent.keyDown(card, { key: ' ' })).toBe(false);
+  });
+
+  it('leaves a key pressed on one of its links to the link', async () => {
+    const onCardClick = vi.fn();
+    renderStatic({ item: item({ driveLink: DRIVE }), onCardClick });
+    const link = screen.getByRole('link', { name: 'Open in Google Drive' });
+    // jsdom cannot navigate, so the click is recorded and stopped there.
+    const followed = vi.fn((e: Event) => e.preventDefault());
+    link.addEventListener('click', followed);
+    act(() => link.focus());
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(followed).toHaveBeenCalledTimes(1);
+    expect(onCardClick).not.toHaveBeenCalled();
   });
 });
