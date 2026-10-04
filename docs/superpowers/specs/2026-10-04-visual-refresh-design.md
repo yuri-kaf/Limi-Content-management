@@ -139,7 +139,8 @@ CSS only — no animation library. The global `prefers-reduced-motion` rule in
 ## 5. Geometry
 
 - `borderRadius.card` goes from 6px to 12px: cards, panels and dialogs.
-- `borderRadius.tile` goes from 4px to 6px: buttons, inputs and chips.
+- `borderRadius.tile` goes from 4px to 6px: buttons, inputs and chips. The
+  small chips inside a board card keep 4px, which suits their 18px height.
 - `segItem`'s inner radius stays 3px: the 6px strip less its 1px border and 2px
   padding.
 - `rounded-full` stays for badges.

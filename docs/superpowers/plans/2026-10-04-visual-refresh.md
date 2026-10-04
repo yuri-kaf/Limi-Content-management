@@ -3389,7 +3389,7 @@ The controller does this task, not a subagent. It needs the browser pane, and ju
 - `FolderIcon` at 14, 18, 40 and 88px;
 - a button that toggles the theme through `useTheme().toggleTheme`.
 
-Its `onMove` updates local state after 300ms, the way Firestore lands a move after the drop. The harness's own layout uses inline styles: Tailwind does not scan `.superpowers/`, so a class used only there would not exist.
+Its `onMove` returns a promise that lands the move in local state after 300ms, the way the real board's `onMove` returns the write's promise. The harness's own layout uses inline styles: Tailwind does not scan `.superpowers/`, so a class used only there would not exist.
 
 ```tsx
 import { StrictMode, useState } from 'react';
@@ -3441,8 +3441,16 @@ const CLIENTS: Client[] = [
 function Harness() {
   const { theme, toggleTheme } = useTheme();
   const [content, setContent] = useState(START);
+  // Resolves when the "write" lands, 300ms later, the way the real board's
+  // onMove returns runWrite's promise. The board shows the move at once and
+  // only drops its pending copy when this settles.
   const move = (target: ContentItem, status: ContentStatus) =>
-    setTimeout(() => setContent((all) => all.map((i) => (i.id === target.id ? { ...i, status } : i))), 300);
+    new Promise<void>((resolve) =>
+      setTimeout(() => {
+        setContent((all) => all.map((i) => (i.id === target.id ? { ...i, status } : i)));
+        resolve();
+      }, 300)
+    );
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -3497,7 +3505,9 @@ createRoot(document.getElementById('root')!).render(
 - [ ] The overdue date chip is red.
 - [ ] Columns have no grey box.
 - [ ] Hovering a card lifts it with a soft shadow.
-- [ ] Drag a card with the keyboard (focus it, Space, ArrowRight, Space). The overlay tilts, the source fades, the card settles, and it lands in the next column 300ms later.
+- [ ] Drag a card with the keyboard (focus it, Space, ArrowRight, Space). The overlay tilts, the source fades, and the card settles straight into its slot in the next column, without flying back to the old one.
+- [ ] After that keyboard move, focus is still on the moved card.
+- [ ] Enter on a focused card opens it, the `onOpen` no-op, and doesn't lift it.
 - [ ] Folders are in the right colours, and the 88px ones show the initial or the logo.
 - [ ] The Chiya Bandhu logo shows, or falls back to "C" if blocked.
 - [ ] Hovering a folder tile lifts the folder and dips its front.
