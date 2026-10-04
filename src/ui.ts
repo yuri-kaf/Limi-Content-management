@@ -5,9 +5,15 @@
 export const card =
   'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
 
-// Clickable cards get a hairline that firms up and a tint, not a lift. In this
-// register nothing floats unless it is genuinely floating.
-export const cardInteractive = `${card} transition-colors duration-150 hover:bg-tint dark:hover:bg-tint-dark hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
+// Raised on hover and pressed in on click: the one motion every clickable card
+// shares. Hover applies only where the pointer can hover, so a tap on a phone
+// never leaves a card stuck in the air. Reduced motion is handled globally in
+// index.css.
+export const lift =
+  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-hover active:translate-y-0 active:scale-[.98]';
+
+// Clickable cards lift off the page, and their hairline firms up as they do.
+export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
 
 export const tile =
   'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
@@ -83,18 +89,20 @@ export const btnGhostDanger = `${btnGhost} hover:!text-brand hover:!bg-brand-sof
 // One overlay recipe everywhere: dimmed, blurred canvas. Modals that want a
 // mobile bottom sheet override the alignment classes after this.
 export const overlay =
-  'fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 dark:bg-black/70 backdrop-blur-md';
+  'fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 dark:bg-black/70 backdrop-blur-md animate-fade-in';
 
 export const modalPanel =
-  'w-full max-w-md p-6 bg-surface dark:bg-surface-dark rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark max-h-[90dvh] overflow-y-auto';
+  'w-full max-w-md p-6 bg-surface dark:bg-surface-dark rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark max-h-[90dvh] overflow-y-auto animate-scale-in';
 
 // Bottom sheet on phones, centred dialog from `sm` up — for the taller,
 // media-led modals where a sheet reads more naturally on a small screen.
 export const sheetOverlay =
-  'fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4 bg-ink/40 dark:bg-black/70 backdrop-blur-md';
+  'fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4 bg-ink/40 dark:bg-black/70 backdrop-blur-md animate-fade-in';
 
+// A sheet rises from the bottom edge on a phone and scales in as a dialog from
+// `sm` up, matching where it sits in each layout.
 export const sheetPanel =
-  'w-full sm:max-w-lg bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark overflow-hidden overflow-y-auto max-h-[92dvh]';
+  'w-full sm:max-w-lg bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark overflow-hidden overflow-y-auto max-h-[92dvh] animate-sheet-up sm:animate-scale-in';
 
 export const modalTitle = `${heading} text-base`;
 
@@ -130,7 +138,7 @@ export const shell = `max-w-[1440px] ${shellPad}`;
 // own. Distinct from sheetPanel, which scrolls as a single column and so lets
 // the media and the close button slide away.
 export const sheetPanelWide =
-  'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden';
+  'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden animate-sheet-up sm:animate-scale-in';
 
 // One scroll region per pane below lg, two above it. min-h-0 is what actually
 // lets a flex child scroll instead of growing past its parent.
@@ -157,7 +165,7 @@ export const segmented =
   'inline-flex items-center gap-0.5 p-0.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
 
 export function segItem(active: boolean) {
-  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[3px] text-[12px] font-medium whitespace-nowrap transition-colors ${
+  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[4px] text-[12px] font-medium whitespace-nowrap transition-colors ${
     active
       ? 'bg-canvas dark:bg-hover-dark text-ink dark:text-ink-dark shadow-[0_1px_2px_rgba(15,15,15,0.07)]'
       : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'

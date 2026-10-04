@@ -50,11 +50,10 @@ export default {
         },
       },
       borderRadius: {
-        // Notion geometry: 4px for controls and cards, 6px for floating layers.
-        // Replaces the previous 14/18px, which read as consumer-app rather than
-        // document-tool.
-        card: '6px',
-        tile: '4px',
+        // Softer than the Notion register's 4/6px, to sit with the pastel
+        // cards: 12px for cards, panels and dialogs, 6px for controls.
+        card: '12px',
+        tile: '6px',
       },
       boxShadow: {
         // Static surfaces are defined by a hairline, not a shadow. `shadow-card`
@@ -62,7 +61,38 @@ export default {
         // that reference it become flat instead of losing a class silently.
         card: 'none',
         lift: '0 4px 12px rgba(15,15,15,0.10), 0 1px 3px rgba(15,15,15,0.06)',
+        // A card under the pointer: just enough to read as raised off the page.
+        hover: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
+        // A card in the hand, mid-drag.
+        drag: '0 18px 36px -10px rgba(15,15,15,0.25), 0 4px 10px rgba(15,15,15,0.08)',
         pill: 'none',
+      },
+      // One curve for everything that moves: quick to start, soft to land.
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(.2,.8,.2,1)',
+      },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(.97)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'sheet-up': {
+          from: { opacity: '0', transform: 'translateY(24px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+      },
+      // `both` holds the first frame through any delay, which is what lets a
+      // staggered list item stay hidden until its turn.
+      animation: {
+        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) both',
+        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) both',
+        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) both',
+        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) both',
       },
     },
   },
