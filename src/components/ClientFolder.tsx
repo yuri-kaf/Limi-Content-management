@@ -22,6 +22,9 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 // Two sibling buttons, not one inside the other (invalid HTML): the tile opens
 // the client and the pencil edits it. The pencil is always visible where
 // nothing can hover to reveal it.
+//
+// The tile's focus ring is solid brand, not the 30% tint the buttons draw: a
+// focus indicator needs 3:1, and at 30% it was 1.6:1 on the light page.
 export default function ClientFolder({ client, onEdit }: Props) {
   const navigate = useNavigate();
   const waiting = awaitingReview(client.content);
@@ -30,7 +33,7 @@ export default function ClientFolder({ client, onEdit }: Props) {
     <div className="group relative">
       <button
         onClick={() => navigate(`/client/${client.id}`)}
-        className="w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+        className="w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <FolderIcon color={client.color} size={88} label={client.name} imageUrl={client.imageUrl} />
         <span className="text-[13px] font-medium leading-snug text-ink dark:text-ink-dark line-clamp-2 break-words">

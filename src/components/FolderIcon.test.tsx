@@ -38,6 +38,25 @@ describe('FolderIcon', () => {
     expect(screen.getByText('M')).toBeInTheDocument();
   });
 
+  it('tries a corrected logo URL, but not the one that failed', () => {
+    // Fixing a broken logo is an edit, and an edit re-renders the folder rather
+    // than remounting it, so a failure has to belong to the URL that failed.
+    const { container, rerender } = render(
+      <FolderIcon label="Momoland" imageUrl="https://x.test/broken.png" size={88} />
+    );
+    fireEvent.error(container.querySelector('img')!);
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('M')).toBeInTheDocument();
+
+    // The same URL again, as when any edit re-renders the grid, is not retried.
+    rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/broken.png" size={88} />);
+    expect(container.querySelector('img')).toBeNull();
+
+    rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/fixed.png" size={88} />);
+    expect(container.querySelector('img')).toHaveAttribute('src', 'https://x.test/fixed.png');
+    expect(screen.queryByText('M')).not.toBeInTheDocument();
+  });
+
   it('keeps a logo off a folder too small to show it', () => {
     const { container } = render(
       <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={18} />

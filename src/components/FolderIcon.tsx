@@ -23,13 +23,15 @@ const EMBLEM_MIN = 40;
 //
 // The emblem is HTML over the SVG rather than SVG <image>, because an HTML
 // image reliably reports a failed load, and a failed logo falls back to the
-// letter.
+// letter. The failure is remembered against the URL that failed, not as a flag,
+// because editing a client re-renders its folder rather than remounting it: a
+// corrected URL has to get its turn without a reload.
 export default function FolderIcon({ color, size = 20, label, imageUrl, className = '' }: Props) {
-  const [logoFailed, setLogoFailed] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string>();
   const c = folderColor(color);
   const height = Math.round(size * 0.8125);
   const roomy = size >= EMBLEM_MIN;
-  const showLogo = roomy && !!imageUrl && !logoFailed;
+  const showLogo = roomy && !!imageUrl && imageUrl !== failedUrl;
   const initial = roomy ? label?.trim().charAt(0).toUpperCase() : undefined;
 
   return (
@@ -63,7 +65,7 @@ export default function FolderIcon({ color, size = 20, label, imageUrl, classNam
               src={imageUrl}
               alt=""
               draggable={false}
-              onError={() => setLogoFailed(true)}
+              onError={() => setFailedUrl(imageUrl)}
               className="rounded-[22%] object-cover ring-2 ring-white/70"
               style={{ width: Math.round(size * 0.36), height: Math.round(size * 0.36) }}
             />
