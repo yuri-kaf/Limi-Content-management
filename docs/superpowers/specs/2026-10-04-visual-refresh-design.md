@@ -39,7 +39,7 @@ gains a card pair per theme. Values were computed, not eyeballed (WCAG 2.1):
   every dark one.
 - Secondary text uses `ink-soft`, at least 5.4:1 on all eight tints.
 - The stage text colour is at least 5.7:1 in light and 6.5:1 in dark.
-- `ink-faint` measures 4.4:1 on the light tints, so it is **never used on a card**.
+- `ink-faint` measures 4.1 to 4.3:1 on the light tints, so it is **never used on a card**.
 
 The pairs are applied through CSS custom properties plus one Tailwind class
 string, the same technique as `folderColorVars`/`folderTint`, so a card follows

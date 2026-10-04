@@ -113,8 +113,8 @@ Append to `src/color.test.ts` (after the `stage pills meet WCAG AA` block):
 ```ts
 describe('stage cards meet WCAG AA', () => {
   // A card's title is ink, its secondary text ink-soft, its chips the stage
-  // text. ink-faint is never used on a card: it measures 4.4:1 on the light
-  // tints.
+  // text. ink-faint is never used on a card: it measures 4.1 to 4.3:1 on the
+  // light tints.
   it.each(STAGES)('$label card is readable in light mode', (stage) => {
     expect(contrastRatio(palette.ink.DEFAULT, stage.cardTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(palette.ink.soft, stage.cardTint)).toBeGreaterThanOrEqual(AA);
@@ -302,7 +302,7 @@ export function staggerStyle(index: number): CSSProperties {
   return { animationDelay: `${Math.min(Math.max(index, 0), CAP) * STEP_MS}ms` };
 }
 
-/** The entrance itself. Its fill mode is `both`, so an item stays hidden through its delay. */
+/** The entrance itself. Its fill mode is `backwards`, so an item stays hidden through its delay. */
 export const enter = 'animate-fade-up';
 ```
 
@@ -324,7 +324,9 @@ Replace the `borderRadius` and `boxShadow` blocks, from the `borderRadius: {` li
         card: 'none',
         lift: '0 4px 12px rgba(15,15,15,0.10), 0 1px 3px rgba(15,15,15,0.06)',
         // A card under the pointer: just enough to read as raised off the page.
-        hover: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
+        // Not named `hover`: a colour of that name exists, and shadow-hover
+        // would then also set the shadow's colour to it.
+        float: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
         // A card in the hand, mid-drag.
         drag: '0 18px 36px -10px rgba(15,15,15,0.25), 0 4px 10px rgba(15,15,15,0.08)',
         pill: 'none',
@@ -348,13 +350,15 @@ Replace the `borderRadius` and `boxShadow` blocks, from the `borderRadius: {` li
           to: { opacity: '1', transform: 'none' },
         },
       },
-      // `both` holds the first frame through any delay, which is what lets a
-      // staggered list item stay hidden until its turn.
+      // `backwards` holds the first frame through any delay, which is what lets
+      // a staggered list item stay hidden until its turn, and lets go once it
+      // has played, so an element's own hover and press transforms are never
+      // overridden by a finished entrance.
       animation: {
-        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) both',
-        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) both',
-        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) both',
-        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) both',
+        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) backwards',
+        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) backwards',
+        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) backwards',
+        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) backwards',
       },
 ```
 
@@ -376,7 +380,7 @@ with:
 // never leaves a card stuck in the air. Reduced motion is handled globally in
 // index.css.
 export const lift =
-  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-hover active:translate-y-0 active:scale-[.98]';
+  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float active:translate-y-0 active:scale-[.98]';
 
 // Clickable cards lift off the page, and their hairline firms up as they do.
 export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
@@ -406,6 +410,8 @@ export const sheetPanel =
 export const sheetPanelWide =
   'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden animate-sheet-up sm:animate-scale-in';
 ```
+
+In `src/index.css`, inside the `@media (prefers-reduced-motion: reduce)` rule, add `animation-delay: 0ms !important;` after the `animation-duration` line: zeroing the duration alone would still hold a staggered item hidden for its delay.
 
 In `segItem`, change `rounded-[3px]` to `rounded-[4px]`, so the inner segment stays concentric with the 6px strip.
 
