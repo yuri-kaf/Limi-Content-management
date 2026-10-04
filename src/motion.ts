@@ -12,5 +12,5 @@ export function staggerStyle(index: number): CSSProperties {
   return { animationDelay: `${Math.min(Math.max(index, 0), CAP) * STEP_MS}ms` };
 }
 
-/** The entrance itself. Its fill mode is `both`, so an item stays hidden through its delay. */
+/** The entrance itself. Its fill mode is `backwards`, so an item stays hidden through its delay. */
 export const enter = 'animate-fade-up';

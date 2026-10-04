@@ -62,7 +62,9 @@ export default {
         card: 'none',
         lift: '0 4px 12px rgba(15,15,15,0.10), 0 1px 3px rgba(15,15,15,0.06)',
         // A card under the pointer: just enough to read as raised off the page.
-        hover: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
+        // Not named `hover`: a colour of that name exists, and shadow-hover
+        // would then also set the shadow's colour to it.
+        float: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
         // A card in the hand, mid-drag.
         drag: '0 18px 36px -10px rgba(15,15,15,0.25), 0 4px 10px rgba(15,15,15,0.08)',
         pill: 'none',
@@ -86,13 +88,15 @@ export default {
           to: { opacity: '1', transform: 'none' },
         },
       },
-      // `both` holds the first frame through any delay, which is what lets a
-      // staggered list item stay hidden until its turn.
+      // `backwards` holds the first frame through any delay, which is what lets
+      // a staggered list item stay hidden until its turn, and lets go once it
+      // has played, so an element's own hover and press transforms are never
+      // overridden by a finished entrance.
       animation: {
-        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) both',
-        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) both',
-        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) both',
-        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) both',
+        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) backwards',
+        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) backwards',
+        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) backwards',
+        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) backwards',
       },
     },
   },

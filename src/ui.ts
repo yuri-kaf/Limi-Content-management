@@ -10,7 +10,7 @@ export const card =
 // never leaves a card stuck in the air. Reduced motion is handled globally in
 // index.css.
 export const lift =
-  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-hover active:translate-y-0 active:scale-[.98]';
+  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float active:translate-y-0 active:scale-[.98]';
 
 // Clickable cards lift off the page, and their hairline firms up as they do.
 export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
