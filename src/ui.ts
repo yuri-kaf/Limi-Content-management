@@ -338,10 +338,12 @@ export const workspaceTabRow =
 export const workspaceTabList =
   'flex items-stretch gap-1 h-full min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]';
 
-export function workspaceTab(active: boolean) {
+// `indicator` is true once WorkspaceTabs has measured the row and draws the
+// one sliding underline itself; until then the current tab draws its own.
+export function workspaceTab(active: boolean, indicator = false) {
   return `inline-flex items-center h-full px-2 border-b-2 text-[13px] font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark ${
     active
-      ? 'border-ink dark:border-ink-dark text-ink dark:text-ink-dark'
+      ? `${indicator ? 'border-transparent' : 'border-ink dark:border-ink-dark'} text-ink dark:text-ink-dark`
       : 'border-transparent text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark'
   }`;
 }

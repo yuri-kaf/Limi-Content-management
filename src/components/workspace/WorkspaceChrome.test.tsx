@@ -25,6 +25,33 @@ describe('WorkspaceTabs', () => {
     expect(within(nav).getAllByRole('button').map((t) => t.textContent))
       .toEqual(['Content', 'Calendar', 'Ideas']);
   });
+
+  it('slides one underline to the current place once the tabs can be measured', () => {
+    // jsdom lays nothing out, so give every tab an 80px box, side by side.
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(80);
+    const left = vi
+      .spyOn(HTMLElement.prototype, 'offsetLeft', 'get')
+      .mockImplementation(function (this: HTMLElement) {
+        const tabs = [...(this.parentElement?.querySelectorAll(':scope > button') ?? [])];
+        return tabs.indexOf(this) * 80;
+      });
+    try {
+      render(<WorkspaceTabs tabs={tabsFor('admin')} active="campaigns" onSelect={vi.fn()} />);
+      const index = tabsFor('admin').findIndex((t) => t.id === 'campaigns');
+      const bar = screen.getByTestId('tab-indicator');
+      expect(bar.style.width).toBe('80px');
+      expect(bar.style.left).toBe(`${index * 80}px`);
+    } finally {
+      width.mockRestore();
+      left.mockRestore();
+    }
+  });
+
+  it('keeps the underline on the tab itself where nothing can be measured', () => {
+    render(<WorkspaceTabs tabs={tabsFor('admin')} active="content" onSelect={vi.fn()} />);
+    expect(screen.queryByTestId('tab-indicator')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Content' }).className).toContain('border-ink');
+  });
 });
 
 describe('WorkspaceMenu', () => {
