@@ -72,14 +72,19 @@ export default function ClientModal({ client, onClose, onSave }: Props) {
               look, logo and all. */}
           <div>
             <span className={label}>Folder colour</span>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <FolderIcon
                 color={color}
                 size={56}
                 label={name}
                 imageUrl={imageUrl.trim() || undefined}
               />
-              <div className="flex-1 min-w-0">
+              {/* 172px is five 28px swatches and four 8px gaps, so the ten wrap
+                  five and five. Left to fill the row they wrapped nine and one,
+                  with the last swatch alone on its line. With the 56px folder
+                  and its 12px gap the row comes to 240px, which is all the
+                  modal has on a 320px phone. */}
+              <div className="flex-1 min-w-0 max-w-[172px]">
                 <ColorSwatchPicker value={color} onChange={setColor} label="Folder colour" />
               </div>
             </div>

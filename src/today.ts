@@ -3,9 +3,7 @@ import { AppUser, Client, ContentItem, FolderColor } from './types';
 export interface TodayEntry {
   clientId: string;
   clientName: string;
-  /** So a row can be identified by the client's own mark, not only its name. */
-  clientImageUrl?: string;
-  /** Tints the lettered avatar when there is no picture. */
+  /** The colour of the client's folder, which marks the row. */
   clientColor?: FolderColor;
   item: ContentItem;
 }
@@ -28,7 +26,6 @@ function entries(clients: Client[]): TodayEntry[] {
     (c.content ?? []).map((item) => ({
       clientId: c.id,
       clientName: c.name,
-      clientImageUrl: c.imageUrl,
       clientColor: c.color,
       item,
     }))

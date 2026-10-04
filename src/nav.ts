@@ -3,7 +3,6 @@ import { AppUser, Client, ContentItem, FolderColor } from './types';
 export interface NavClient {
   id: string;
   name: string;
-  imageUrl?: string;
   color?: FolderColor;
   /** Items sitting in Review that the client has not yet decided on. */
   attention: number;
@@ -34,7 +33,6 @@ export function buildNav(clients: Client[], user: AppUser | null): NavModel {
     clients: visible.map((c) => ({
       id: c.id,
       name: c.name,
-      imageUrl: c.imageUrl,
       color: c.color,
       attention: awaitingReview(c.content ?? []),
     })),

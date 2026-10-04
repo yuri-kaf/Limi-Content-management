@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import OverviewTab from './OverviewTab';
@@ -87,5 +87,17 @@ describe('OverviewTab', () => {
       el.getAttribute('data-folder-color')
     );
     expect(colours).toEqual(['orange', 'green']);
+  });
+
+  it("shows a business's logo on its folder, and its initial where it has none", () => {
+    const withLogo: Business = { ...BAKERY, logoUrl: 'https://x.test/bakery.png' };
+    renderOverview(client([withLogo, CAFE]));
+    const region = screen.getByRole('region', { name: 'Businesses' });
+    // Bakery's folder shows its logo and no B, and Cafe, which has none, shows C.
+    const logos = region.querySelectorAll('img');
+    expect(logos).toHaveLength(1);
+    expect(logos[0]).toHaveAttribute('src', 'https://x.test/bakery.png');
+    expect(within(region).queryByText('B')).not.toBeInTheDocument();
+    expect(within(region).getByText('C')).toBeInTheDocument();
   });
 });

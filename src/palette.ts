@@ -16,8 +16,7 @@ export interface PaletteItem {
   /** Extra words that should match without being displayed. */
   keywords?: string;
   clientId?: string;
-  imageUrl?: string;
-  /** The client's folder colour, so its avatar matches the sidebar's. */
+  /** The client's folder colour, so its folder matches the sidebar's. */
   color?: FolderColor;
 }
 
@@ -88,7 +87,6 @@ export function buildIndex(clients: Client[], user: AppUser | null): PaletteItem
       detail: 'Open board',
       path: `/client/${client.id}`,
       clientId: client.id,
-      imageUrl: client.imageUrl,
       color: client.color,
     });
     // A client cannot open work still in Editing, so it is not indexed for them.

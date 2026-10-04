@@ -81,7 +81,7 @@ describe('buildIndex', () => {
     expect(index.some((i) => i.label === 'Unfinished cut')).toBe(true);
   });
 
-  it('carries a client folder colour, so its avatar matches the sidebar', () => {
+  it('carries a client folder colour, so its folder matches the sidebar', () => {
     const index = buildIndex([{ ...client('a', 'Acme'), color: 'teal' }], user('admin'));
     expect(index.find((i) => i.id === 'client-a')?.color).toBe('teal');
   });

@@ -42,7 +42,6 @@ export default function OverviewTab({
     ? businesses.map((b) => ({
         ...client,
         name: b.name,
-        imageUrl: b.logoUrl,
         color: b.color,
         content: content.filter((i) => businessIdOf(i, businesses) === b.id),
       }))

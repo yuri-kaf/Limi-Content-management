@@ -73,4 +73,19 @@ describe('QueueGroup', () => {
     );
     expect(document.querySelector('[data-folder-color="green"]')).not.toBeNull();
   });
+
+  it('draws no folder where the rows leave out their client', () => {
+    render(
+      <ThemeProvider>
+        <QueueGroup
+          section={QUEUE_SECTIONS[0]}
+          entries={[entry('Menu reel')]}
+          now={NOW}
+          onOpen={vi.fn()}
+          showSource={false}
+        />
+      </ThemeProvider>
+    );
+    expect(document.querySelector('[data-folder-color]')).toBeNull();
+  });
 });
