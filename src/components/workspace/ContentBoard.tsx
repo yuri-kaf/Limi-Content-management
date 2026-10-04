@@ -10,6 +10,8 @@ import {
   closestCorners,
   DragOverlay,
   DragStartEvent,
+  DropAnimation,
+  defaultDropAnimationSideEffects,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
@@ -17,10 +19,10 @@ import { Business, Campaign, ContentItem, ContentStatus } from '../../types';
 import KanbanColumn from '../KanbanColumn';
 import CampaignOptions from '../CampaignOptions';
 import ContentCard from '../ContentCard';
-import StagePill from '../StagePill';
+import { stageCardVars, stageDot } from '../../stageColors';
 import StageTabs from '../StageTabs';
 import BoardFilters from '../BoardFilters';
-import { useIsDesktop } from '../../hooks/useMediaQuery';
+import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { STAGES } from '../../utils';
 import { NO_CAMPAIGN, scopeContent } from '../../campaigns';
 import { ContentFilters, NO_FILTERS, activeFilterCount, filterContent } from '../../filters';
@@ -77,8 +79,12 @@ function ReadOnlyColumn({
     <div className={single ? 'flex-1 min-h-0 flex flex-col' : boardColumn}>
       {!single && (
         <div className={columnHeader}>
-          <StagePill status={status} />
-          <span className={`text-[12px] font-medium truncate ${faintText}`}>{label}</span>
+          <span
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${stageDot}`}
+            style={stageCardVars(status)}
+            aria-hidden="true"
+          />
+          <span className="text-[13px] font-medium text-ink dark:text-ink-dark truncate">{label}</span>
           <span className={`${countChip} ml-auto`}>{items.length}</span>
         </div>
       )}
@@ -105,6 +111,20 @@ function ReadOnlyColumn({
     </div>
   );
 }
+
+// The dropped card settles into its slot instead of snapping, while the gap it
+// left stays faint until it lands. `settling` on the overlay lets ContentCard
+// straighten its tilt over the same moment. Off for anyone who asked for less
+// motion: dnd-kit animates in JavaScript, which the CSS rule in index.css
+// cannot reach.
+const DROP_ANIMATION: DropAnimation = {
+  duration: 220,
+  easing: 'cubic-bezier(.2,.8,.2,1)',
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: '0.25' } },
+    className: { dragOverlay: 'settling' },
+  }),
+};
 
 interface Props {
   /** Already scoped to the business or campaign being viewed. */
@@ -161,6 +181,7 @@ export default function ContentBoard({
   // rather than CSS because the two layouts cannot both be mounted: each
   // registers the same droppable and sortable ids.
   const isDesktop = useIsDesktop();
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -297,9 +318,15 @@ export default function ContentBoard({
           </>
         )}
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={reduceMotion ? null : DROP_ANIMATION}>
+          {/* A plain box around the card: dnd-kit measures the overlay's child,
+              transforms included, to place the drop. Measured on the tilted,
+              enlarged card it would land a few pixels off its slot and then
+              jump; measured on this box it lands exactly. */}
           {activeItem ? (
-            <ContentCard item={activeItem} campaign={campaignOf(activeItem)} isOverlay />
+            <div>
+              <ContentCard item={activeItem} campaign={campaignOf(activeItem)} isOverlay />
+            </div>
           ) : null}
         </DragOverlay>
       </DndContext>

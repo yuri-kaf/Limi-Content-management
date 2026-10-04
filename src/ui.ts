@@ -12,8 +12,10 @@ export const card =
 //
 // A `[@media(hover:hover)]:` rule compiles after all of Tailwind's own, so an
 // ordinary `active:` class loses to it however the class list is ordered, which
-// is why the press carries the same prefix. Overriding the lift takes another
-// `[@media(hover:hover)]:` class or a `!`.
+// is why the press carries the same prefix. Overriding the lift takes a `!`, or
+// a `[@media(hover:hover)]:` class whose own variant sorts after `hover:`, as
+// `active:` does here; a second `[@media(hover:hover)]:hover:` class wins or
+// loses by its name.
 export const lift =
   'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float [@media(hover:hover)]:active:translate-y-0 [@media(hover:hover)]:active:shadow-none active:scale-[.98]';
 
@@ -264,10 +266,13 @@ export const boardColumn = 'flex flex-col w-[280px] flex-shrink-0 h-full min-h-0
 // Pinned so you always know which stage you are looking at, however far down
 // the column you have scrolled.
 export const columnHeader =
-  'flex items-center gap-2 h-9 px-1 flex-shrink-0 sticky top-0 z-10 bg-canvas dark:bg-canvas-dark';
+  'flex items-center gap-2 h-9 px-1.5 flex-shrink-0 sticky top-0 z-10 bg-canvas dark:bg-canvas-dark';
 
+// The cards sit straight on the page, as in the Weihu reference: a column is a
+// lane, not a grey box. The padding is room for a lifted card's shadow, which
+// the scroll container would otherwise clip.
 export const columnBody =
-  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 p-2 rounded-card bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
+  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 p-1.5 rounded-card border border-transparent transition-colors';
 
 // A page toolbar: one row, everything on it, so the board keeps the height.
 export const pageToolbar =
@@ -279,11 +284,12 @@ export const pageToolbar =
 export const columnAdd =
   'w-7 h-7 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30';
 
-// The drop target while a card is over a column. A class rather than the inline
-// rgba() it replaces: a raw colour in a component is the drift the token file
-// exists to prevent, and an inline style cannot express a dark-mode variant.
+// The drop target while a card is over a column: a dashed outline and a faint
+// wash, so the lane shows itself only when it matters. The `!` is needed
+// because columnBody's border-transparent sets the same property, and Tailwind,
+// not the class list, decides which of two same-property utilities wins.
 export const columnBodyOver =
-  'bg-hover dark:bg-hover-dark border-dashed border-ink-faint/40 dark:border-ink-faintdark/40';
+  'border-dashed !border-ink-faint/40 dark:!border-ink-faintdark/40 bg-tint/70 dark:bg-tint-dark/70';
 
 // ---------------------------------------------------------------------------
 // Board — phone layout

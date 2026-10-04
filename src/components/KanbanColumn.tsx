@@ -7,7 +7,8 @@ import {
   countChip, faintText,
 } from '../ui';
 import ContentCard from './ContentCard';
-import StagePill from './StagePill';
+import { STAGES } from '../utils';
+import { stageCardVars, stageDot } from '../stageColors';
 
 // What each stage is actually for. An empty column that explains itself teaches
 // the workflow; one that says "Nothing here yet" teaches nothing.
@@ -57,12 +58,22 @@ export default function KanbanColumn({
 }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const single = layout === 'single';
+  const stage = STAGES.find((s) => s.id === id);
 
   return (
     <div className={single ? 'flex-1 min-h-0 flex flex-col' : boardColumn}>
       {!single && (
         <div className={columnHeader}>
-          <StagePill status={id} />
+          {/* A dot and the name, not a pill: on a board of tinted cards a
+              tinted label would be one more swatch of the same colour. */}
+          <span
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${stageDot}`}
+            style={stageCardVars(id)}
+            aria-hidden="true"
+          />
+          <span className="text-[13px] font-medium text-ink dark:text-ink-dark truncate">
+            {stage?.label ?? id}
+          </span>
           {/* A counter chip, not a bare grey number: "Editing 16" set in one
               colour at one size read as a single label. */}
           <span className={countChip}>{items.length}</span>
