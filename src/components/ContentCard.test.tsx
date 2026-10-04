@@ -50,6 +50,30 @@ describe('ContentCard', () => {
     expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
+  // A focus indicator needs 3:1. At 40% the ring was 1.9:1 on the light page.
+  it('draws a solid focus ring, whether or not the card can move', () => {
+    renderCard();
+    render(<ContentCard item={item({ id: 'i2', title: 'Static reel' })} draggable={false} />);
+    for (const title of ['Momo reel', 'Static reel']) {
+      expect(cardOf(title)).toHaveClass('focus:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-brand');
+      expect(cardOf(title).className).not.toMatch(/ring-brand\//);
+    }
+  });
+
+  it("rings the campaign label, so a campaign in the fill's own hue still shows", () => {
+    renderCard({ item: item({ status: 'editing' }), campaign: { name: 'Dashain sale', color: 'purple' } });
+    expect(screen.getByTitle('Dashain sale')).toHaveClass(
+      'max-w-[96px]', 'ring-1', 'ring-black/5', 'dark:ring-white/10'
+    );
+  });
+
+  it('turns Delete a lighter red under a hover in dark mode', () => {
+    renderCard({ onDelete: vi.fn() });
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
+      'hover:!text-brand', 'dark:hover:!text-red-400'
+    );
+  });
+
   it('lifts on hover where it sits on the board', () => {
     renderCard();
     expect(cardOf('Momo reel').className).toContain('hover:-translate-y-0.5');

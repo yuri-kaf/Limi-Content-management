@@ -62,8 +62,10 @@ const inHand =
 // ride along as custom properties, see stageColors.ts). flex-shrink-0 is not
 // cosmetic: the column body is a capped-height flex column, and flexbox
 // shrinks its children to fit before it will scroll — which clipped every
-// card's second title line.
-const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40`;
+// card's second title line. The focus ring is solid brand, 4.8:1 on the light
+// page and 3.6:1 on the dark one: at 40% it was 1.9:1 and 1.5:1, and less
+// against the fills, under the 3:1 a focus indicator needs.
+const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} focus:outline-none focus-visible:ring-2 focus-visible:ring-brand`;
 
 interface ShellProps {
   /** The card's stage, which picks the pastel it is filled with. */
@@ -321,11 +323,13 @@ export default function ContentCard({
                 <Pencil size={13} />
               </button>
             )}
+            {/* On the dark fills, under the button's hover wash, brand red is
+                only about 3.1:1 to 3.3:1, and red-400 is above 5:1. */}
             {onDelete && (
               <button
                 onPointerDown={stopDrag}
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className={`${iconBtn} hover:!text-brand`}
+                className={`${iconBtn} hover:!text-brand dark:hover:!text-red-400`}
                 aria-label="Delete"
               >
                 <Trash2 size={13} />
@@ -348,9 +352,15 @@ export default function ContentCard({
           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
             {/* Capped at 96px: in a 280px column beside a thumbnail, anything
                 wider pushes an "Approved" badge onto a second line. The full
-                name is on hover. */}
+                name is on hover. The hairline ring is for a campaign in its
+                card's own hue, purple on the Editing fill say, which would
+                otherwise disappear into it. */}
             {campaign && (
-              <ColorLabel color={campaign.color} className="max-w-[96px]" title={campaign.name}>
+              <ColorLabel
+                color={campaign.color}
+                className="max-w-[96px] ring-1 ring-black/5 dark:ring-white/10"
+                title={campaign.name}
+              >
                 {campaign.name}
               </ColorLabel>
             )}
