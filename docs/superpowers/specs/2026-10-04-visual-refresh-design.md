@@ -82,13 +82,20 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
   panel. Each `FOLDER_COLORS` entry gains an explicit `front` hex. Folders look
   the same in both themes, as in Finder.
 - **Emblem:**
-  - At 40px and up, the front carries the logo (falling back to the initial
-    if the image fails) or the initial, in the colour's `text` shade.
-  - Below 24px, the shape is simplified and there is no emblem.
+  - At 40px and up, the front carries the logo or the initial (the first letter
+    or digit of the name). A logo that fails to load falls back to the initial,
+    and a corrected logo URL is tried again.
+  - The initial uses the colour's own `emblem` shade, at least 3:1 on the front.
+    The colour's `text` shade would fall to 2.7:1 on red and pink.
+  - Below 64px the emblem takes a larger share of the folder, so it stays
+    readable at 40px.
+  - Below 40px there is no emblem. The same shape is drawn at every size.
 - **Accessibility:** always `aria-hidden`, because the name is always rendered
   beside it as text.
-- **Hover:** inside a `group`, the folder lifts and the front panel dips
-  slightly, as if opening.
+- **Hover:** inside an ancestor marked `group/folder` (a named Tailwind group),
+  the folder lifts and the front panel dips slightly, as if opening. Being
+  named means a card that lifts itself, such as a business card, does not lift
+  the folder a second time.
 
 Where it appears:
 
