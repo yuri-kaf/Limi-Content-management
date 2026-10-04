@@ -86,21 +86,59 @@ describe('FolderIcon', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
-  it('gives a small folder a bigger logo, as a share of its width', () => {
-    // At 40px the usual 36% is 14px, which is hard to read.
+  // A smaller folder gives its emblem a bigger share of its width, so the logo
+  // stays readable at 40px. The share falls on a straight line from 44% at 56px
+  // to 36% at 88px.
+  it.each([
+    [40, 18],
+    [56, 25],
+    [64, 27],
+    [88, 32],
+  ])('draws a logo on a %ipx folder at %ipx', (size, logo) => {
+    const { container } = render(
+      <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={size} />
+    );
+    expect(container.querySelector('img')!.style.width).toBe(`${logo}px`);
+  });
+
+  // The initial follows the same ramp, from 34% to 26%.
+  it.each([
+    [40, 14],
+    [56, 19],
+    [64, 20],
+    [88, 23],
+  ])('draws the initial on a %ipx folder at %ipx', (size, letter) => {
+    render(<FolderIcon label="Momoland" size={size} />);
+    expect(screen.getByText('M').style.fontSize).toBe(`${letter}px`);
+  });
+
+  it('never shrinks the logo as the folder grows', () => {
+    // The share used to step down at 64px, so a 64px folder carried a smaller
+    // logo (23px) than a 63px one (32px).
     const { container, rerender } = render(
       <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={40} />
     );
-    expect(container.querySelector('img')!.style.width).toBe('20px');
-    rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={88} />);
-    expect(container.querySelector('img')!.style.width).toBe('32px');
+    let previous = 0;
+    for (let size = 40; size <= 120; size++) {
+      rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={size} />);
+      const width = parseFloat(container.querySelector('img')!.style.width);
+      expect(width, `the logo at ${size}px`).toBeGreaterThanOrEqual(previous);
+      previous = width;
+    }
   });
 
-  it('gives a small folder a bigger initial too', () => {
-    const { rerender } = render(<FolderIcon label="Momoland" size={40} />);
-    expect(screen.getByText('M').style.fontSize).toBe('14px');
-    rerender(<FolderIcon label="Momoland" size={88} />);
-    expect(screen.getByText('M').style.fontSize).toBe('23px');
+  it('keeps a logo and its ring inside the front panel', () => {
+    // The front panel is 36/64 of the folder's width, and the logo's ring takes
+    // 2px on each side of it. At 40px the old 50% share left the logo and its
+    // ring 24px tall in a 22.5px panel.
+    const { container, rerender } = render(
+      <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={40} />
+    );
+    for (let size = 40; size <= 120; size++) {
+      rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={size} />);
+      const logo = parseFloat(container.querySelector('img')!.style.width);
+      expect(logo + 4, `the logo and ring at ${size}px`).toBeLessThanOrEqual((size * 36) / 64);
+    }
   });
 
   it('keeps the folder proportions', () => {

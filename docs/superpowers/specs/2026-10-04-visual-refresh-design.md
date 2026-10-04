@@ -87,8 +87,11 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
     and a corrected logo URL is tried again.
   - The initial uses the colour's own `emblem` shade, at least 3:1 on the front.
     The colour's `text` shade would fall to 2.7:1 on red and pink.
-  - Below 64px the emblem takes a larger share of the folder, so it stays
-    readable at 40px.
+  - A smaller folder gives its emblem a larger share, so it stays readable at
+    40px. The logo is 44% of the width and the initial 34% up to 56px. Both
+    fall on a straight line to 36% and 26% at 88px and stay there, so a wider
+    folder never carries a smaller logo. The emblem sits centred on the front
+    panel.
   - Below 40px there is no emblem. The same shape is drawn at every size.
 - **Accessibility:** always `aria-hidden`, because the name is always rendered
   beside it as text.

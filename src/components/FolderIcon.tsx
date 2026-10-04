@@ -21,10 +21,14 @@ interface Props {
 // Below this a letter or a logo is a smudge, so the folder is drawn plain.
 const EMBLEM_MIN = 40;
 
-// A folder narrower than this is a small one, and its emblem takes a bigger
-// share of it: at 40px the usual 36% logo is 14px and the 26% letter 10px,
-// which is hard to read.
-const SMALL_FOLDER = 64;
+// A small folder gives its emblem a bigger share of its width: at 40px the plain
+// 36% logo is 14px and the 26% letter 10px, which is hard to read. The share
+// holds at 44% for the logo and 34% for the letter up to RAMP_START, falls on a
+// straight line to the plain 36% and 26% at RAMP_END, and holds there. It is a
+// ramp and not a step, because a step makes a folder just past it carry a smaller
+// logo than a narrower one.
+const RAMP_START = 56;
+const RAMP_END = 88;
 
 // The first letter or digit, upper-cased, so "@momo" is M and not "@". Array.from
 // walks whole characters, so an emoji at the start is stepped over rather than
@@ -51,9 +55,10 @@ export default function FolderIcon({ color, size = 20, label, imageUrl, classNam
   const c = folderColor(color);
   const height = Math.round(size * 0.8125);
   const roomy = size >= EMBLEM_MIN;
-  const small = size < SMALL_FOLDER;
-  const logoSize = Math.round(size * (small ? 0.5 : 0.36));
-  const letterSize = Math.round(size * (small ? 0.34 : 0.26));
+  // How far along the ramp this folder is: 0 up to RAMP_START, 1 from RAMP_END.
+  const ramp = Math.min(Math.max((size - RAMP_START) / (RAMP_END - RAMP_START), 0), 1);
+  const logoSize = Math.round(size * (0.44 - 0.08 * ramp));
+  const letterSize = Math.round(size * (0.34 - 0.08 * ramp));
   const showLogo = roomy && !!imageUrl && imageUrl !== failedUrl;
   const initial = roomy ? initialOf(label) : undefined;
 
@@ -82,7 +87,11 @@ export default function FolderIcon({ color, size = 20, label, imageUrl, classNam
         />
       </svg>
       {(showLogo || initial) && (
-        <span className="absolute inset-x-0 bottom-0 top-[28%] flex items-center justify-center">
+        // Centred on the front panel, which runs from 14 to 50 of the SVG's 52
+        // units: 27% down from the top and 4% up from the bottom. Centred on the
+        // lower 72% of the folder instead, the emblem sat about 1px low at 40px,
+        // and its ring crossed the panel's bottom edge.
+        <span className="absolute inset-x-0 top-[27%] bottom-[4%] flex items-center justify-center">
           {showLogo ? (
             <img
               src={imageUrl}
