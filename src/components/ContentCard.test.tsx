@@ -11,16 +11,23 @@ function item(over: Partial<ContentItem> = {}): ContentItem {
   } as ContentItem;
 }
 
-// useSortable needs the contexts the board provides.
-function renderCard(props: Partial<React.ComponentProps<typeof ContentCard>> = {}) {
+type CardProps = Partial<React.ComponentProps<typeof ContentCard>>;
+
+// useSortable needs the contexts the board provides. The items array is a new
+// one on every call, as KanbanColumn's is on every render.
+function onBoard(props: CardProps = {}) {
   const it = props.item ?? item();
-  return render(
+  return (
     <DndContext>
       <SortableContext items={[it.id]}>
         <ContentCard {...props} item={it} />
       </SortableContext>
     </DndContext>
   );
+}
+
+function renderCard(props: CardProps = {}) {
+  return render(onBoard(props));
 }
 
 const cardOf = (title: string) => screen.getByText(title).closest('[data-stage]') as HTMLElement;
@@ -46,6 +53,14 @@ describe('ContentCard', () => {
   it('lifts on hover where it sits on the board', () => {
     renderCard();
     expect(cardOf('Momo reel').className).toContain('hover:-translate-y-0.5');
+  });
+
+  // useSortable answers every new items array with an instant transition,
+  // which as an inline style would beat the lift's own easing.
+  it("keeps the lift's easing when the board renders again", () => {
+    const view = renderCard();
+    view.rerender(onBoard());
+    expect(cardOf('Momo reel').style.transition).toBe('');
   });
 
   it('tilts the copy that follows the pointer during a drag, and straightens it as it settles', () => {

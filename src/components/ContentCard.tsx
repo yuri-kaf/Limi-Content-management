@@ -129,12 +129,18 @@ function SortableShell({
 
   // The cursor is an inline style because a grab cursor has to win over any
   // class, and dnd-kit's transform has to be inline anyway.
+  //
+  // dnd-kit's transition is kept only while it has a transform to animate.
+  // useSortable answers every new items array with an instant transition, and
+  // KanbanColumn passes a new one on every render, so a card at rest carried
+  // `transform 0ms linear` inline, which beat the lift's easing and made the
+  // hover rise snap.
   const style = isOverlay
     ? { ...stageCardVars(status), cursor: 'grabbing' as const }
     : {
         ...stageCardVars(status),
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: transform ? transition : undefined,
         opacity: isDragging ? 0.25 : 1,
         cursor: isDragging ? 'grabbing' : 'grab',
         // Recommended for dnd-kit's delay-based TouchSensor: keeps the page
