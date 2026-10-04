@@ -25,6 +25,15 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 //
 // The tile's focus ring is solid brand, not the 30% tint the buttons draw: a
 // focus indicator needs 3:1, and at 30% it was 1.6:1 on the light page.
+//
+// The outer `group` reveals the pencil. The tile alone is the `group/folder`
+// that lifts the folder, so hovering the pencil beside it does not.
+//
+// The name is capped at the tile's width with max-w-full: break-words alone does
+// not stop one long word, such as the handle "@thamel_momo_house_official", from
+// widening the centred name past the tile, because the word sets the minimum
+// width of a flex item. The title carries the whole name for one that the
+// two-line clamp cuts.
 export default function ClientFolder({ client, onEdit }: Props) {
   const navigate = useNavigate();
   const waiting = awaitingReview(client.content);
@@ -33,10 +42,13 @@ export default function ClientFolder({ client, onEdit }: Props) {
     <div className="group relative">
       <button
         onClick={() => navigate(`/client/${client.id}`)}
-        className="w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="group/folder w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <FolderIcon color={client.color} size={88} label={client.name} imageUrl={client.imageUrl} />
-        <span className="text-[13px] font-medium leading-snug text-ink dark:text-ink-dark line-clamp-2 break-words">
+        <span
+          title={client.name}
+          className="max-w-full text-[13px] font-medium leading-snug text-ink dark:text-ink-dark line-clamp-2 break-words"
+        >
           {client.name}
         </span>
         {waiting > 0 ? (

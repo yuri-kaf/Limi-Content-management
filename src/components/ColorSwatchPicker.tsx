@@ -11,7 +11,7 @@ interface Props {
 }
 
 // The tick sits on the swatch itself, so it takes whichever of white or ink
-// reads there: white all but disappears on yellow, green and teal.
+// reads there: white all but disappears on a light swatch, which takes ink.
 function tickClass(swatch: string): string {
   return swatchTick(swatch) === 'white' ? 'text-white' : 'text-ink';
 }

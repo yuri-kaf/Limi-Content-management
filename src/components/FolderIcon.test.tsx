@@ -26,6 +26,28 @@ describe('FolderIcon', () => {
     expect(screen.queryByText('M')).not.toBeInTheDocument();
   });
 
+  it('draws the emblem at 40px, and not at 39', () => {
+    const { rerender } = render(<FolderIcon label="momoland" size={40} />);
+    expect(screen.getByText('M')).toBeInTheDocument();
+    rerender(<FolderIcon label="momoland" size={39} />);
+    expect(screen.queryByText('M')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['@momo', 'M'],
+    ['🎉 momo', 'M'],
+    ['7 Eleven', '7'],
+  ])('takes the initial of %s from its first letter or digit', (label, initial) => {
+    // The first character would be "@", or half of an emoji.
+    render(<FolderIcon label={label} size={88} />);
+    expect(screen.getByText(initial)).toBeInTheDocument();
+  });
+
+  it('draws no emblem for a name with no letter or digit in it', () => {
+    const { container } = render(<FolderIcon label="🎉@#" size={88} />);
+    expect(container.textContent).toBe('');
+  });
+
   it('shows the logo, and the initial if the logo fails to load', () => {
     const { container } = render(
       <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={88} />
@@ -62,6 +84,23 @@ describe('FolderIcon', () => {
       <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={18} />
     );
     expect(container.querySelector('img')).toBeNull();
+  });
+
+  it('gives a small folder a bigger logo, as a share of its width', () => {
+    // At 40px the usual 36% is 14px, which is hard to read.
+    const { container, rerender } = render(
+      <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={40} />
+    );
+    expect(container.querySelector('img')!.style.width).toBe('20px');
+    rerender(<FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={88} />);
+    expect(container.querySelector('img')!.style.width).toBe('32px');
+  });
+
+  it('gives a small folder a bigger initial too', () => {
+    const { rerender } = render(<FolderIcon label="Momoland" size={40} />);
+    expect(screen.getByText('M').style.fontSize).toBe('14px');
+    rerender(<FolderIcon label="Momoland" size={88} />);
+    expect(screen.getByText('M').style.fontSize).toBe('23px');
   });
 
   it('keeps the folder proportions', () => {

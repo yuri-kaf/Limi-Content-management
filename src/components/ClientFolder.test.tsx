@@ -51,6 +51,17 @@ describe('ClientFolder', () => {
     expect(screen.getByText('2 items')).toBeInTheDocument();
   });
 
+  it('says "1 item", not "1 items"', () => {
+    setup(client([item({ id: 'a' })]));
+    expect(screen.getByText('1 item')).toBeInTheDocument();
+  });
+
+  it('carries the full name as a title, for a name the tile has to clamp', () => {
+    const long = '@thamel_momo_house_official';
+    setup({ ...client([]), name: long });
+    expect(screen.getByText(long)).toHaveAttribute('title', long);
+  });
+
   it('says so when there is no content', () => {
     setup(client([]));
     expect(screen.getByText('No content yet')).toBeInTheDocument();

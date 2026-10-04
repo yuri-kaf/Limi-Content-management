@@ -9,7 +9,11 @@ export interface FolderColorDef {
   swatch: string;
   /** The folder's front panel: the swatch lightened. The same in both themes, as in Finder. */
   front: string;
-  /** The letter embossed on the front. At least 3:1 on `front` (large text). */
+  /**
+   * The letter embossed on the front. At least 3:1 on `front`, the bar for a
+   * graphic, because it is decorative: the folder is `aria-hidden` and the name
+   * is always written beside it.
+   */
   emblem: string;
   /** Label background and text, light theme. */
   tint: string;
@@ -76,8 +80,9 @@ export const folderTint =
   'bg-[color:var(--fc-tint)] text-[color:var(--fc-text)] dark:bg-[color:var(--fc-tint-dark)] dark:text-[color:var(--fc-text-dark)]';
 
 /**
- * Which tick reads on a swatch: white all but disappears on yellow, green and
- * teal, so those take an ink tick. 3:1 is the bar for a graphic.
+ * Which tick reads on a swatch: white all but disappears on a light swatch, so
+ * one where white measures under 3:1 takes an ink tick. 3:1 is the bar for a
+ * graphic.
  */
 export function swatchTick(swatch: string): 'white' | 'ink' {
   return contrastRatio('#ffffff', swatch) >= 3 ? 'white' : 'ink';

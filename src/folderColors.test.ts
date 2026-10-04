@@ -2,8 +2,12 @@ import { contrastRatio } from './color';
 import {
   DEFAULT_FOLDER_COLOR, FOLDER_COLORS, folderColor, folderColorVars, folderTint, swatchTick,
 } from './folderColors';
+// @ts-expect-error -- tailwind.config.js is plain JS with no type declarations
+import twConfig from '../tailwind.config.js';
 
 const AA = 4.5;
+// What `text-ink` draws, which is the tick the swatch picker puts on a light swatch.
+const INK = (twConfig as any).theme.extend.colors.ink.DEFAULT as string;
 
 describe('folder colours', () => {
   it('offers the ten macOS-style colours, in picker order', () => {
@@ -21,14 +25,17 @@ describe('folder colours', () => {
   });
 
   it.each(FOLDER_COLORS)('$label folder emblem reads on its front panel', (c) => {
-    // The emblem is large text and decorative (the name is always beside the
-    // folder), so the large-text bar of 3:1 applies.
+    // The emblem is decorative: the folder is aria-hidden and the name is always
+    // written beside it. So it is held to 3:1, the bar for a graphic, and not
+    // to the 4.5:1 that text has to meet.
     expect(contrastRatio(c.emblem, c.front)).toBeGreaterThanOrEqual(3);
   });
 
-  it('puts a white tick on dark swatches and an ink tick on light ones', () => {
-    expect(swatchTick('#3b82f6')).toBe('white');
-    expect(swatchTick('#eab308')).toBe('ink');
+  it.each(FOLDER_COLORS)('$label swatch gets a tick that reads on it', (c) => {
+    // The picker draws the tick as text-white or text-ink, so those are the two
+    // colours swatchTick chooses between.
+    const tick = swatchTick(c.swatch) === 'white' ? '#ffffff' : INK;
+    expect(contrastRatio(tick, c.swatch)).toBeGreaterThanOrEqual(3);
   });
 
   it('falls back to blue for a missing or unknown value', () => {
