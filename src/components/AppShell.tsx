@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Menu, ArrowLeft, Search } from 'lucide-react';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
-import ClientAvatar from './ClientAvatar';
+import FolderIcon from './FolderIcon';
 import CommandPalette from './CommandPalette';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -164,12 +164,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </button>
           )}
 
-          {/* The client's own mark beside the back button. A board is the one
+          {/* The client's folder beside the back button. A board is the one
               place where which client you are looking at is the whole context,
               and a truncated name alone is the slowest way to convey it. */}
-          {activeClient && (
-            <ClientAvatar name={activeClient.name} imageUrl={activeClient.imageUrl} color={activeClient.color} size={22} />
-          )}
+          {activeClient && <FolderIcon color={activeClient.color} size={22} />}
           <span className={breadcrumbText}>{crumb}</span>
 
           <button

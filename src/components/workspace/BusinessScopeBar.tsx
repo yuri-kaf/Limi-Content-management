@@ -1,5 +1,5 @@
 import { Business } from '../../types';
-import { folderColor } from '../../folderColors';
+import FolderIcon from '../FolderIcon';
 import { scopeChip } from '../../ui';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 
 // With one business there is nothing to choose, so this renders nothing and a
 // single-business client looks exactly as it did before businesses existed.
-// The colour dot is never the only cue: every chip carries the business name.
+// The folder is never the only cue: every chip carries the business name.
 export default function BusinessScopeBar({ businesses, value, onChange }: Props) {
   if (businesses.length < 2) return null;
   return (
@@ -30,11 +30,7 @@ export default function BusinessScopeBar({ businesses, value, onChange }: Props)
           aria-pressed={value === b.id}
           className={scopeChip(value === b.id)}
         >
-          <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: folderColor(b.color).swatch }}
-            aria-hidden="true"
-          />
+          <FolderIcon color={b.color} size={14} />
           {b.name}
         </button>
       ))}

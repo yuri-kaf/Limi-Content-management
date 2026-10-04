@@ -79,4 +79,13 @@ describe('OverviewTab', () => {
     renderOverview(client([BAKERY]));
     expect(screen.getByText(/Nothing needs attention/)).toBeInTheDocument();
   });
+
+  it('shows each business as a folder in its colour', () => {
+    renderOverview(client([BAKERY, CAFE]));
+    const region = screen.getByRole('region', { name: 'Businesses' });
+    const colours = [...region.querySelectorAll('[data-folder-color]')].map((el) =>
+      el.getAttribute('data-folder-color')
+    );
+    expect(colours).toEqual(['orange', 'green']);
+  });
 });

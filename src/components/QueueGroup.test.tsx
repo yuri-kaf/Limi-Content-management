@@ -64,4 +64,13 @@ describe('QueueGroup', () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('marks a row with a folder in its client colour', () => {
+    render(
+      <ThemeProvider>
+        <QueueGroup section={QUEUE_SECTIONS[0]} entries={[entry('Menu reel')]} now={NOW} onOpen={vi.fn()} />
+      </ThemeProvider>
+    );
+    expect(document.querySelector('[data-folder-color="green"]')).not.toBeNull();
+  });
 });

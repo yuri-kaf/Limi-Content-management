@@ -4,7 +4,7 @@ import { AppUser, Client } from '../types';
 import {
   KIND_LABELS, PaletteItem, buildIndex, groupResults, searchIndex,
 } from '../palette';
-import ClientAvatar from './ClientAvatar';
+import FolderIcon from './FolderIcon';
 import { sectionLabel, faintText } from '../ui';
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
 
 function Leading({ item }: { item: PaletteItem }) {
   if (item.kind === 'client') {
-    return <ClientAvatar name={item.label} imageUrl={item.imageUrl} color={item.color} size={20} />;
+    return <FolderIcon color={item.color} size={20} />;
   }
   const icon =
     item.kind === 'page' ? <Home size={14} />

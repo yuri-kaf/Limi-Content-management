@@ -1,7 +1,7 @@
 import { Pencil } from 'lucide-react';
 import { Business } from '../../types';
 import { BusinessSummary } from '../../campaigns';
-import ClientAvatar from '../ClientAvatar';
+import FolderIcon from '../FolderIcon';
 import ColorLabel from '../ColorLabel';
 import { btnIcon, cardInteractive, faintText, heading } from '../../ui';
 
@@ -32,7 +32,7 @@ export default function BusinessCard({ business, summary, selected, canManage, o
         aria-pressed={selected}
         className="w-full text-left p-3.5 pr-12 flex items-start gap-3 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
       >
-        <ClientAvatar name={business.name} imageUrl={business.logoUrl} color={business.color} size={36} />
+        <FolderIcon color={business.color} size={40} label={business.name} imageUrl={business.logoUrl} />
         <span className="flex-1 min-w-0">
           <span className={`${heading} block text-[14px] truncate`}>{business.name}</span>
           <span className={`block text-[11px] mt-0.5 ${faintText}`}>

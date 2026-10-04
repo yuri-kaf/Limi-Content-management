@@ -63,4 +63,21 @@ describe('Sidebar', () => {
     setup({ collapsed: true });
     expect(screen.queryByText('Acme')).not.toBeInTheDocument();
   });
+
+  it('draws each client as a folder in its colour', () => {
+    setup({
+      nav: {
+        clients: [
+          { id: 'acme', name: 'Acme', color: 'green', attention: 0 },
+          { id: 'bolt', name: 'Bolt', attention: 0 },
+        ],
+        showTeam: false,
+      },
+    });
+    const colours = [...document.querySelectorAll('[data-folder-color]')].map((el) =>
+      el.getAttribute('data-folder-color')
+    );
+    // A client without a colour gets the default blue folder.
+    expect(colours).toEqual(['green', 'blue']);
+  });
 });

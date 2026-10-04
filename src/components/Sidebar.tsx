@@ -3,7 +3,7 @@ import {
   Columns3, Building2, Home,
 } from 'lucide-react';
 import { NavModel } from '../nav';
-import ClientAvatar from './ClientAvatar';
+import FolderIcon from './FolderIcon';
 import Logo from './Logo';
 import {
   sidebar, navItem, navGroupLabel, navBadge, btnIcon, heading, faintText,
@@ -81,7 +81,7 @@ export default function Sidebar({
               aria-label={label}
               title={label}
             >
-              <ClientAvatar name={c.name} imageUrl={c.imageUrl} color={c.color} size={18} />
+              <FolderIcon color={c.color} size={18} />
               {!collapsed && <span className="truncate">{c.name}</span>}
               {!collapsed && c.attention > 0 && <span className={navBadge}>{c.attention}</span>}
             </button>

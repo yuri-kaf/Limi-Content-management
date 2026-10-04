@@ -1,7 +1,7 @@
 import { Clock, RotateCcw, CalendarClock, CalendarPlus } from 'lucide-react';
 import { TodayEntry, TodayGroups, slotLabel } from '../today';
 import StagePill from './StagePill';
-import ClientAvatar from './ClientAvatar';
+import FolderIcon from './FolderIcon';
 import { faintText, rowList, queueRow, countChip, sectionLabel } from '../ui';
 import { STAGES } from '../utils';
 
@@ -44,7 +44,7 @@ export function QueueRow({
   now: number;
   onOpen: () => void;
   /**
-   * The avatar and name of the client (or business) the item belongs to. Off
+   * The folder and name of the client (or business) the item belongs to. Off
    * where every row would name the same one — a single client's own queue.
    */
   showSource?: boolean;
@@ -72,14 +72,7 @@ export function QueueRow({
       // left the button with no computed name in the accessibility tree.
       aria-label={name}
     >
-      {showSource && (
-        <ClientAvatar
-          name={entry.clientName}
-          imageUrl={entry.clientImageUrl}
-          color={entry.clientColor}
-          size={22}
-        />
-      )}
+      {showSource && <FolderIcon color={entry.clientColor} size={16} />}
 
       <span className="flex-1 min-w-0">
         <span className="block text-[13px] leading-snug text-ink dark:text-ink-dark truncate">

@@ -87,4 +87,12 @@ describe('BusinessScopeBar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bakery' }));
     expect(onChange).toHaveBeenCalledWith('b1');
   });
+
+  it('marks each business with a small folder in its colour', () => {
+    render(<BusinessScopeBar businesses={[BAKERY, CAFE]} value={undefined} onChange={vi.fn()} />);
+    const colours = [...document.querySelectorAll('[data-folder-color]')].map((el) =>
+      el.getAttribute('data-folder-color')
+    );
+    expect(colours).toEqual(['orange', 'green']);
+  });
 });
