@@ -64,6 +64,10 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
   curve.
 - The phone board (stage tabs over one column) and the campaign page's board
   reuse these components and change with them.
+- **Overview's pipeline tiles** take the same stage fills, so the four counts
+  read as the board's four columns. The dashboard's pipeline bars take the
+  board's own stage names and colours, replacing a private copy that had
+  drifted to "In Review" and "Ready to Post".
 
 ## 3. Folder icon
 
