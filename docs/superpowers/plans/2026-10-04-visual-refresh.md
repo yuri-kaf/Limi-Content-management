@@ -3474,8 +3474,16 @@ function Harness() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: 16 }}>
         {CLIENTS.map((c) => <ClientFolder key={c.id} client={c} onEdit={() => {}} />)}
       </div>
+      {/* Every size the app uses, plain and with a logo, plus the palest
+          colour at the smallest sizes. */}
       <div style={{ display: 'flex', alignItems: 'end', gap: 16 }}>
-        {[14, 18, 40, 88].map((s) => <FolderIcon key={s} size={s} color="teal" label="Teal" />)}
+        {[14, 16, 18, 22, 40, 56, 88].map((s) => <FolderIcon key={s} size={s} color="teal" label="Teal" />)}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'end', gap: 16 }}>
+        {[40, 56, 88].map((s) => (
+          <FolderIcon key={s} size={s} color="purple" label="Logo" imageUrl="https://www.google.com/favicon.ico" />
+        ))}
+        {[14, 18].map((s) => <FolderIcon key={`y${s}`} size={s} color="yellow" />)}
       </div>
     </div>
   );
