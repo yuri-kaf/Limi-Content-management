@@ -26,6 +26,11 @@ export default function Sidebar({
   nav, activeClientId, activePath, userEmail, theme, collapsed,
   onNavigate, onToggleTheme, onToggleCollapsed, onSignOut,
 }: Props) {
+  // In the rail only an icon shows, so a page button takes its name from a label
+  // and a tooltip, as the client rows do. Expanded, its written name does that
+  // job, and a tooltip would only repeat it.
+  const railName = (name: string) => (collapsed ? { 'aria-label': name, title: name } : {});
+
   return (
     <nav className={sidebar} aria-label="Main">
       {/* Brand + collapse */}
@@ -34,7 +39,9 @@ export default function Sidebar({
         {!collapsed && <span className={`${heading} text-[13px]`}>Limi</span>}
         <button
           onClick={onToggleCollapsed}
-          className={`${btnIcon} ml-auto w-7 h-7 flex-shrink-0`}
+          // The `!` because btnIcon's own w-9 h-9 come later in Tailwind's
+          // stylesheet than w-7 h-7, so a plain w-7 h-7 loses and the button is 36px.
+          className={`${btnIcon} ml-auto !w-7 !h-7 flex-shrink-0`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -46,6 +53,7 @@ export default function Sidebar({
           onClick={() => onNavigate('/')}
           className={navItem(activePath === '/')}
           aria-current={activePath === '/' ? 'page' : undefined}
+          {...railName('Today')}
         >
           <Home size={14} className="flex-shrink-0" />
           {!collapsed && <span className="truncate">Today</span>}
@@ -54,6 +62,7 @@ export default function Sidebar({
           onClick={() => onNavigate('/clients')}
           className={navItem(activePath === '/clients')}
           aria-current={activePath === '/clients' ? 'page' : undefined}
+          {...railName('Clients')}
         >
           <LayoutGrid size={14} className="flex-shrink-0" />
           {!collapsed && <span className="truncate">Clients</span>}
@@ -76,12 +85,23 @@ export default function Sidebar({
             <button
               key={c.id}
               onClick={() => onNavigate(`/client/${c.id}`)}
-              className={navItem(active)}
+              // The rail's 24px folder is wider than the 15px inside a row's
+              // padding, so the row centres it and it spills evenly onto both sides.
+              className={`${navItem(active)} ${collapsed ? 'justify-center' : ''}`}
               aria-current={active ? 'page' : undefined}
               aria-label={label}
               title={label}
             >
-              <FolderIcon color={c.color} size={18} />
+              {/* In the rail the name is hidden, and clients that never had a
+                  colour would all be the same blue folder. So there the folder is
+                  bigger and carries the initial, and the label and title above
+                  still name it. */}
+              <FolderIcon
+                color={c.color}
+                size={collapsed ? 24 : 18}
+                label={c.name}
+                forceInitial={collapsed}
+              />
               {!collapsed && <span className="truncate">{c.name}</span>}
               {!collapsed && c.attention > 0 && <span className={navBadge}>{c.attention}</span>}
             </button>
@@ -104,6 +124,7 @@ export default function Sidebar({
               onClick={() => onNavigate('/users')}
               className={navItem(activePath === '/users')}
               aria-current={activePath === '/users' ? 'page' : undefined}
+              {...railName('Team')}
             >
               <Users size={14} className="flex-shrink-0" />
               {!collapsed && <span className="truncate">Team</span>}

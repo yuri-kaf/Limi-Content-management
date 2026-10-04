@@ -8,6 +8,11 @@ interface Props {
   size?: number;
   /** Its first letter or digit is embossed on the front, from 40px up. */
   label?: string;
+  /**
+   * Show the initial even below 40px, where nothing beside the folder names it
+   * — the collapsed sidebar. A logo still needs 40px.
+   */
+  forceInitial?: boolean;
   /** A logo shown on the front instead of the letter, from 40px up. */
   imageUrl?: string;
   /**
@@ -18,8 +23,14 @@ interface Props {
   className?: string;
 }
 
-// Below this a letter or a logo is a smudge, so the folder is drawn plain.
+// Below this a letter or a logo is a smudge, so the folder is drawn plain. The
+// exception is a forced initial, which is drawn bigger to make up for it.
 const EMBLEM_MIN = 40;
+
+// The share of a small folder's width that a forced initial takes: 10px on the
+// 24px folder of the collapsed sidebar, where the 34% a roomy folder gives it
+// would be 8px.
+const FORCED_LETTER_SHARE = 0.42;
 
 // A small folder gives its emblem a bigger share of its width: at 40px the plain
 // 36% logo is 14px and the 26% letter 10px, which is hard to read. The share
@@ -39,8 +50,10 @@ function initialOf(label: string | undefined): string | undefined {
 
 // A macOS-style folder in one of the ten folder colours, chosen the way you
 // colour a folder in Finder or OneDrive. Always decorative: everywhere it
-// appears, the name is written beside it. Hovering an ancestor marked
-// `group/folder` lifts the folder and dips its front panel, as if it were
+// appears, the name is given beside it. Mostly that is the name written out. In
+// the collapsed sidebar, which has no room for names, it is the row's label and
+// title, and the folder carries the initial instead. Hovering an ancestor
+// marked `group/folder` lifts the folder and dips its front panel, as if it were
 // opening. The group is named because a card that lifts itself on hover, as a
 // business card does, is usually a `group` too, and the folder would then rise
 // a second time on top of the card's own lift.
@@ -50,7 +63,9 @@ function initialOf(label: string | undefined): string | undefined {
 // letter. The failure is remembered against the URL that failed, not as a flag,
 // because editing a client re-renders its folder rather than remounting it: a
 // corrected URL has to get its turn without a reload.
-export default function FolderIcon({ color, size = 20, label, imageUrl, className = '' }: Props) {
+export default function FolderIcon({
+  color, size = 20, label, forceInitial = false, imageUrl, className = '',
+}: Props) {
   const [failedUrl, setFailedUrl] = useState<string>();
   const c = folderColor(color);
   const height = Math.round(size * 0.8125);
@@ -58,9 +73,9 @@ export default function FolderIcon({ color, size = 20, label, imageUrl, classNam
   // How far along the ramp this folder is: 0 up to RAMP_START, 1 from RAMP_END.
   const ramp = Math.min(Math.max((size - RAMP_START) / (RAMP_END - RAMP_START), 0), 1);
   const logoSize = Math.round(size * (0.44 - 0.08 * ramp));
-  const letterSize = Math.round(size * (0.34 - 0.08 * ramp));
+  const letterSize = Math.round(size * (roomy ? 0.34 - 0.08 * ramp : FORCED_LETTER_SHARE));
   const showLogo = roomy && !!imageUrl && imageUrl !== failedUrl;
-  const initial = roomy ? initialOf(label) : undefined;
+  const initial = roomy || forceInitial ? initialOf(label) : undefined;
 
   return (
     <span

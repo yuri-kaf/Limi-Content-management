@@ -93,8 +93,12 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
     folder never carries a smaller logo. The emblem sits centred on the front
     panel.
   - Below 40px there is no emblem. The same shape is drawn at every size.
-- **Accessibility:** always `aria-hidden`, because the name is always rendered
-  beside it as text.
+- **Accessibility:** always `aria-hidden`. The name is written beside it,
+  except in the collapsed sidebar rail, where the row's label and tooltip name
+  it.
+- **The collapsed rail:** there the folder is 24px and carries the client's
+  initial (a `forceInitial` prop). Without it, clients that never had a colour
+  set would be identical blue folders.
 - **Hover:** inside an ancestor marked `group/folder` (a named Tailwind group),
   the folder lifts and the front panel dips slightly, as if opening. Being
   named means a card that lifts itself, such as a business card, does not lift
@@ -112,7 +116,8 @@ Where it appears:
     carry them.
 - **Small folders replace `ClientAvatar`** in these places, which leaves it
   unused, so it is deleted:
-  - the sidebar client rows (18px)
+  - the sidebar client rows (18px; 24px with the initial when the sidebar is
+    collapsed)
   - the client breadcrumb (22px)
   - Today's queue rows (16px)
   - search results

@@ -5,7 +5,7 @@ const fills = (container: HTMLElement) =>
   [...container.querySelectorAll('path, rect')].map((el) => el.getAttribute('fill'));
 
 describe('FolderIcon', () => {
-  it('is decorative, because the name is always written beside it', () => {
+  it('is decorative, because the name is always given beside it', () => {
     const { container } = render(<FolderIcon color="green" label="Momoland" size={88} />);
     expect(container.firstChild).toHaveAttribute('aria-hidden', 'true');
   });
@@ -110,6 +110,26 @@ describe('FolderIcon', () => {
   ])('draws the initial on a %ipx folder at %ipx', (size, letter) => {
     render(<FolderIcon label="Momoland" size={size} />);
     expect(screen.getByText('M').style.fontSize).toBe(`${letter}px`);
+  });
+
+  // The collapsed sidebar hides every name, so there the folder carries the
+  // initial even though it is only 24px wide. Below 40px the share is 42%.
+  it('draws the initial below 40px when forced', () => {
+    render(<FolderIcon label="Momoland" size={24} forceInitial />);
+    expect(screen.getByText('M').style.fontSize).toBe('10px');
+  });
+
+  it('still draws no logo below 40px when the initial is forced', () => {
+    const { container } = render(
+      <FolderIcon label="Momoland" imageUrl="https://x.test/logo.png" size={24} forceInitial />
+    );
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('M')).toBeInTheDocument();
+  });
+
+  it('sizes a forced initial from 40px up as it would be anyway', () => {
+    render(<FolderIcon label="Momoland" size={40} forceInitial />);
+    expect(screen.getByText('M').style.fontSize).toBe('14px');
   });
 
   it('never shrinks the logo as the folder grows', () => {
