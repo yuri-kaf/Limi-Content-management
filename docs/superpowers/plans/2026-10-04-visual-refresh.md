@@ -113,8 +113,8 @@ Append to `src/color.test.ts` (after the `stage pills meet WCAG AA` block):
 ```ts
 describe('stage cards meet WCAG AA', () => {
   // A card's title is ink, its secondary text ink-soft, its chips the stage
-  // text. ink-faint is never used on a card: it measures 4.1 to 4.3:1 on the
-  // light tints.
+  // text. ink-faint is never used on a card: it measures about 4.1 to 4.3:1 on
+  // the light tints, and ink-faintdark 3.8 to 4.3:1 on the dark ones.
   it.each(STAGES)('$label card is readable in light mode', (stage) => {
     expect(contrastRatio(palette.ink.DEFAULT, stage.cardTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(palette.ink.soft, stage.cardTint)).toBeGreaterThanOrEqual(AA);
@@ -248,8 +248,10 @@ MSG
 **Files:**
 - Modify: `tailwind.config.js` (the `borderRadius` and `boxShadow` blocks, about lines 54-71)
 - Modify: `src/ui.ts` (`cardInteractive`, `overlay`, `modalPanel`, `sheetOverlay`, `sheetPanel`, `sheetPanelWide`, `segItem`)
+- Modify: `src/index.css` (the reduced-motion rule)
 - Create: `src/motion.ts`
 - Create: `src/motion.test.ts`
+- Create: `src/tailwindConfig.test.ts` (guards: no shadow named after a colour, every entrance fills `backwards`, every animation's keyframes exist)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -335,20 +337,13 @@ Replace the `borderRadius` and `boxShadow` blocks, from the `borderRadius: {` li
       transitionTimingFunction: {
         'out-soft': 'cubic-bezier(.2,.8,.2,1)',
       },
+      // No `to`: each entrance ends on the element's own opacity and transform
+      // rather than jumping to 1 and none.
       keyframes: {
-        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
-        'fade-up': {
-          from: { opacity: '0', transform: 'translateY(6px)' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        'scale-in': {
-          from: { opacity: '0', transform: 'scale(.97)' },
-          to: { opacity: '1', transform: 'none' },
-        },
-        'sheet-up': {
-          from: { opacity: '0', transform: 'translateY(24px)' },
-          to: { opacity: '1', transform: 'none' },
-        },
+        'fade-in': { from: { opacity: '0' } },
+        'fade-up': { from: { opacity: '0', transform: 'translateY(6px)' } },
+        'scale-in': { from: { opacity: '0', transform: 'scale(.97)' } },
+        'sheet-up': { from: { opacity: '0', transform: 'translateY(24px)' } },
       },
       // `backwards` holds the first frame through any delay, which is what lets
       // a staggered list item stay hidden until its turn, and lets go once it
@@ -378,12 +373,14 @@ with:
 // Raised on hover and pressed in on click: the one motion every clickable card
 // shares. Hover applies only where the pointer can hover, so a tap on a phone
 // never leaves a card stuck in the air. Reduced motion is handled globally in
-// index.css.
+// index.css. `[@media(hover:hover)]:` rules compile after all of Tailwind's own,
+// so undoing the lift (as the press does) takes another such class or a `!`.
 export const lift =
-  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float active:translate-y-0 active:scale-[.98]';
+  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float [@media(hover:hover)]:active:translate-y-0 [@media(hover:hover)]:active:shadow-none active:scale-[.98]';
 
 // Clickable cards lift off the page, and their hairline firms up as they do.
-export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 cursor-pointer`;
+// A shadow barely shows on the dark canvas, so dark mode adds a tint as well.
+export const cardInteractive = `${card} ${lift} hover:border-ink-faint/30 dark:hover:border-ink-faintdark/30 dark:hover:bg-tint-dark cursor-pointer`;
 ```
 
 Give the four dialog recipes their entrances. Each keeps its existing string and gains a suffix:
@@ -413,7 +410,7 @@ export const sheetPanelWide =
 
 In `src/index.css`, inside the `@media (prefers-reduced-motion: reduce)` rule, add `animation-delay: 0ms !important;` after the `animation-duration` line: zeroing the duration alone would still hold a staggered item hidden for its delay.
 
-In `segItem`, change `rounded-[3px]` to `rounded-[4px]`, so the inner segment stays concentric with the 6px strip.
+Leave `segItem`'s inner radius at `rounded-[3px]`: the strip is 6px with a 1px border and 2px padding, so 3px is still concentric. Correct the two `ui.ts` comments that still describe a 4px system.
 
 - [ ] **Step 6: Run the tests and types**
 
@@ -424,7 +421,7 @@ Then `npx tsc --noEmit`, and expect no output.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add tailwind.config.js src/ui.ts src/motion.ts src/motion.test.ts
+git add tailwind.config.js src/ui.ts src/index.css src/motion.ts src/motion.test.ts src/tailwindConfig.test.ts
 git commit -q -F - <<'MSG'
 Add softer corners and the motion vocabulary
 
@@ -503,10 +500,11 @@ describe('ContentCard', () => {
     expect(cardOf('Momo reel').className).toContain('hover:-translate-y-0.5');
   });
 
-  it('tilts the copy that follows the pointer during a drag', () => {
+  it('tilts the copy that follows the pointer during a drag, and straightens it as it settles', () => {
     renderCard({ isOverlay: true });
     const card = cardOf('Momo reel');
     expect(card.className).toContain('rotate-[1.5deg]');
+    expect(card.className).toContain('[.settling_&]:rotate-0');
     expect(card.className).not.toContain('hover:-translate-y-0.5');
   });
 });
@@ -568,6 +566,12 @@ const chip = `bg-white/70 dark:bg-black/20 ${stageCardText}`;
 // The client's decision and an overdue date use colours measured against white,
 // so their chips are solid rather than translucent.
 const solidChip = 'bg-white dark:bg-black/30';
+
+// The copy in the hand: tilted and raised, as if picked up. While a drop
+// settles, ContentBoard's drop animation puts `settling` on the overlay, and
+// the card straightens as it lands instead of snapping flat at the end.
+const inHand =
+  'shadow-drag rotate-[1.5deg] scale-[1.02] transition-[transform,box-shadow] duration-200 ease-out-soft [.settling_&]:rotate-0 [.settling_&]:scale-100 [.settling_&]:shadow-lift';
 
 export default function ContentCard({ item, campaign, onCardClick, onEdit, onDelete, isOverlay }: Props) {
   const [imgError, setImgError] = useState(false);
@@ -656,7 +660,7 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
       // and raised, as if picked up; the card left behind on the board lifts
       // on hover instead.
       className={`group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} ${
-        isOverlay ? 'shadow-drag rotate-[1.5deg] scale-[1.02]' : lift
+        isOverlay ? inHand : lift
       } focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40`}
       onClick={handleClick}
       {...dragProps}
@@ -753,7 +757,7 @@ export default function ContentCard({ item, campaign, onCardClick, onEdit, onDel
             </div>
           </div>
 
-          {/* ink-soft, not ink-faint: faint measures 4.4:1 on the pastel fills. */}
+          {/* ink-soft, not ink-faint: faint falls below 4.5:1 on every fill, in both themes. */}
           {caption && (
             <p className="text-[11px] mt-0.5 line-clamp-1 leading-relaxed text-ink-soft dark:text-ink-softdark">
               {caption}
@@ -904,12 +908,17 @@ with:
 
 ```tsx
 // The dropped card settles into its slot instead of snapping, while the gap it
-// left stays faint until it lands. Off for anyone who asked for less motion:
-// dnd-kit animates in JavaScript, which the CSS rule in index.css cannot reach.
+// left stays faint until it lands. `settling` on the overlay lets ContentCard
+// straighten its tilt over the same moment. Off for anyone who asked for less
+// motion: dnd-kit animates in JavaScript, which the CSS rule in index.css
+// cannot reach.
 const DROP_ANIMATION: DropAnimation = {
   duration: 220,
   easing: 'cubic-bezier(.2,.8,.2,1)',
-  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.25' } } }),
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: '0.25' } },
+    className: { dragOverlay: 'settling' },
+  }),
 };
 ```
 
