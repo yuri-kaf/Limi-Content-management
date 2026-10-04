@@ -130,7 +130,7 @@ CSS only — no animation library. The global `prefers-reduced-motion` rule in
   positioned from the active tab's measured box. Where measuring is unavailable
   (jsdom), the active tab keeps its border.
 - **Lists:** the Clients grid, Today rows and Overview widgets fade up in a
-  stagger on first mount, 30ms apart and capped at the twelfth item. CSS
+  stagger on first mount, 30ms apart and capped after twelve steps. CSS
   animations run on mount only, so re-renders never replay them.
 
 ## 5. Geometry

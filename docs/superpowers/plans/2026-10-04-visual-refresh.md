@@ -267,7 +267,7 @@ describe('staggerStyle', () => {
     expect(staggerStyle(3).animationDelay).toBe('90ms');
   });
 
-  it('stops growing after the twelfth item, so a long list is never kept waiting', () => {
+  it('stops growing after twelve steps, so a long list is never kept waiting', () => {
     expect(staggerStyle(12).animationDelay).toBe('360ms');
     expect(staggerStyle(50).animationDelay).toBe('360ms');
   });
@@ -928,7 +928,32 @@ const DROP_ANIMATION: DropAnimation = {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 ```
 
-7. Change `<DragOverlay>` to `<DragOverlay dropAnimation={reduceMotion ? null : DROP_ANIMATION}>`.
+7. Replace the `<DragOverlay>` block with:
+
+```tsx
+        <DragOverlay dropAnimation={reduceMotion ? null : DROP_ANIMATION}>
+          {/* A plain box around the card: dnd-kit measures the overlay's child,
+              transforms included, to place the drop. Measured on the tilted,
+              enlarged card it would land a few pixels off its slot and then
+              jump; measured on this box it lands exactly. */}
+          {activeItem ? (
+            <div>
+              <ContentCard item={activeItem} campaign={campaignOf(activeItem)} isOverlay />
+            </div>
+          ) : null}
+        </DragOverlay>
+```
+
+8. In `src/ui.ts`, reword the last sentence of the `lift` comment, which is not quite right. Two `[@media(hover:hover)]:hover:` classes are ordered by class name, not by their order in the list. Replace "Overriding the lift takes another `[@media(hover:hover)]:` class or a `!`." with:
+
+```ts
+// is why the press carries the same prefix. Overriding the lift takes a `!`, or
+// a `[@media(hover:hover)]:` class whose own variant sorts after `hover:`, as
+// `active:` does here; a second `[@media(hover:hover)]:hover:` class wins or
+// loses by its name.
+```
+
+(The first line of that replacement repeats the existing line "is why the press carries the same prefix." Keep one copy.)
 
 `faintText` is still used by the read-only column's empty-state text, so its import stays.
 
