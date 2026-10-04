@@ -49,9 +49,12 @@ the theme without reading `ThemeContext`. A new `src/stageColors.ts` exports
 ## 2. Board
 
 - **Card** (`ContentCard`): stage fill, 12px corners, no border.
-  - Chips on the card (campaign, date, platforms, review state) become small
-    `white/70` (dark: `black/20`) pills, so they read as one layer above the fill.
-  - The overdue chip stays red.
+  - The date and platform chips become small `white/70` (dark: `black/20`)
+    pills in the stage's text colour, so they read as one layer above the fill.
+  - The campaign keeps its own colour label.
+  - The client's decision and an overdue date sit on solid white (dark:
+    `black/30`) chips, because their colours are measured against white. The
+    overdue chip stays red.
   - The no-preview type marker becomes a translucent white square.
   - The hover-revealed actions use a `white/60` hover.
 - **Column** (`KanbanColumn`): the grey box goes, so cards sit on the white page.
