@@ -94,8 +94,9 @@ export default function KanbanColumn({
 
       <div
         ref={setNodeRef}
-        // The drop target reads as a tint shift rather than a coloured outline —
-        // an outline on four columns at once is noise.
+        // The column under a carried card shows a dashed outline and a faint
+        // wash (columnBodyOver), and only that one: an outline on all four
+        // columns at once would be noise.
         className={`${single ? columnBodyPlain : columnBody} ${isOver && !single ? columnBodyOver : ''}`}
       >
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
