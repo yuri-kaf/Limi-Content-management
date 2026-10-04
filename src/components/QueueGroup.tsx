@@ -4,6 +4,7 @@ import StagePill from './StagePill';
 import FolderIcon from './FolderIcon';
 import { faintText, rowList, queueRow, countChip, sectionLabel } from '../ui';
 import { STAGES } from '../utils';
+import { enter, staggerStyle } from '../motion';
 
 export interface QueueSection {
   key: keyof TodayGroups;
@@ -38,7 +39,7 @@ export const QUEUE_SECTIONS: QueueSection[] = [
 // "Mortgage Superh…" repeated eleven times was the loudest thing on the page
 // and told you the least.
 export function QueueRow({
-  entry, now, onOpen, showSource = true,
+  entry, now, onOpen, showSource = true, index = 0,
 }: {
   entry: TodayEntry;
   now: number;
@@ -48,6 +49,8 @@ export function QueueRow({
    * where every row would name the same one — a single client's own queue.
    */
   showSource?: boolean;
+  /** Its place in the list, for the entrance stagger. */
+  index?: number;
 }) {
   const slot = slotLabel(entry.item.scheduledAt, now);
   // Something already posted cannot be late, however old its slot.
@@ -67,7 +70,8 @@ export function QueueRow({
   return (
     <button
       onClick={onOpen}
-      className={queueRow}
+      className={`${queueRow} ${enter}`}
+      style={staggerStyle(index)}
       // Spelled out because the row's text is split across nested spans, which
       // left the button with no computed name in the accessibility tree.
       aria-label={name}
@@ -140,10 +144,11 @@ export function QueueGroup({
         <span className={`hidden md:block text-[11px] truncate ${faintText}`}>{section.hint}</span>
       </div>
       <div className={rowList}>
-        {entries.map((e) => (
+        {entries.map((e, i) => (
           <QueueRow
             key={`${e.clientId}-${e.item.id}`}
             entry={e}
+            index={i}
             now={now}
             onOpen={() => onOpen(e)}
             showSource={showSource}

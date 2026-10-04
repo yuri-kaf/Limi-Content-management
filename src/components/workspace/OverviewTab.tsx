@@ -4,10 +4,11 @@ import { businessIdOf, businessSummary, sortCampaigns } from '../../campaigns';
 import { buildToday, todayTotal } from '../../today';
 import { STAGES } from '../../utils';
 import { QUEUE_SECTIONS, QueueGroup } from '../QueueGroup';
-import StagePill from '../StagePill';
+import { stageCardFill, stageCardText, stageCardVars } from '../../stageColors';
+import { enter, staggerStyle } from '../../motion';
 import BusinessCard from './BusinessCard';
 import CampaignCard from './CampaignCard';
-import { shellPad, heading, faintText, tile, sectionLabel, countChip } from '../../ui';
+import { shellPad, heading, faintText, sectionLabel, countChip } from '../../ui';
 
 interface Props {
   client: Client;
@@ -58,7 +59,7 @@ export default function OverviewTab({
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className={`${shellPad} max-w-[1100px] py-6 flex flex-col gap-7`}>
         {multi && (
-          <section aria-label="Businesses">
+          <section aria-label="Businesses" className={enter} style={staggerStyle(0)}>
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className={sectionLabel}>Businesses</span>
               <span className={countChip}>{businesses.length}</span>
@@ -89,18 +90,32 @@ export default function OverviewTab({
           </section>
         )}
 
-        <section aria-label="Pipeline" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* The four counts in the board's own colours, so they read as its
+            four columns. */}
+        <section
+          aria-label="Pipeline"
+          className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${enter}`}
+          style={staggerStyle(1)}
+        >
           {STAGES.map((s) => (
-            <div key={s.id} className={`${tile} p-3.5`}>
-              <StagePill status={s.id} />
-              <p className={`${heading} text-2xl mt-2 tabular-nums`}>
+            <div
+              key={s.id}
+              data-stage={s.id}
+              className={`rounded-card p-3.5 ${stageCardFill}`}
+              style={stageCardVars(s.id)}
+            >
+              <span className={`text-[12px] font-medium ${stageCardText}`}>{s.label}</span>
+              <p className={`${heading} text-2xl mt-1 tabular-nums`}>
                 {content.filter((i) => i.status === s.id).length}
               </p>
             </div>
           ))}
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-7 items-start">
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-7 items-start ${enter}`}
+          style={staggerStyle(2)}
+        >
           <div>
             {waiting === 0 ? (
               <p className={`px-1 text-[13px] ${faintText}`}>

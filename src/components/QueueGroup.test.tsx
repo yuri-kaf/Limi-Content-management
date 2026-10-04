@@ -88,4 +88,19 @@ describe('QueueGroup', () => {
     );
     expect(document.querySelector('[data-folder-color]')).toBeNull();
   });
+
+  it('brings its rows in one after another', () => {
+    render(
+      <ThemeProvider>
+        <QueueGroup
+          section={QUEUE_SECTIONS[0]}
+          entries={[entry('One'), entry('Two')]}
+          now={NOW}
+          onOpen={vi.fn()}
+        />
+      </ThemeProvider>
+    );
+    const rows = screen.getAllByRole('button');
+    expect(rows.map((r) => r.style.animationDelay)).toEqual(['0ms', '30ms']);
+  });
 });
