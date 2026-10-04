@@ -1,14 +1,19 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { DndContextProps } from '@dnd-kit/core';
+import type { DndContextProps, DragOverlayProps } from '@dnd-kit/core';
 import { ThemeProvider } from '../../contexts/ThemeContext';
+import { LG } from '../../hooks/useMediaQuery';
 import ContentBoard from './ContentBoard';
 import { Campaign, ContentItem } from '../../types';
 
 // A real pointer drag cannot happen in jsdom — every element measures zero —
 // so the board's DndContext is wrapped to keep hold of the handlers it was
-// given. The tests then call them the way dnd-kit would on a drop.
-const dnd = vi.hoisted(() => ({ props: null as DndContextProps | null }));
+// given. The tests then call them the way dnd-kit would on a drop. The
+// DragOverlay is wrapped too, to read how a drop is set to land.
+const dnd = vi.hoisted(() => ({
+  props: null as DndContextProps | null,
+  overlay: null as DragOverlayProps | null,
+}));
 
 vi.mock('@dnd-kit/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@dnd-kit/core')>();
@@ -18,14 +23,23 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
       dnd.props = props;
       return <actual.DndContext {...props} />;
     },
+    DragOverlay: (props: DragOverlayProps) => {
+      dnd.overlay = props;
+      return <actual.DragOverlay {...props} />;
+    },
   };
 });
 
-// jsdom has no matchMedia. `matches` is the answer to the board's one query,
-// "is this at least lg?" — true for the four-column desktop board.
-function stubMatchMedia(matches: boolean) {
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+
+// jsdom has no matchMedia. The board asks two things: whether it is at least
+// lg, true for the four-column desktop board, and whether the person has asked
+// for reduced motion, which turns the drop animation off. Each query gets its
+// own answer, so a desktop test is not also a reduced-motion one.
+function stubMatchMedia(desktop: boolean, reduceMotion = false) {
   window.matchMedia = ((query: string) => ({
-    matches, media: query, onchange: null,
+    matches: (query === LG && desktop) || (query === REDUCED_MOTION && reduceMotion),
+    media: query, onchange: null,
     addEventListener: () => {}, removeEventListener: () => {},
     addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
@@ -34,6 +48,7 @@ function stubMatchMedia(matches: boolean) {
 beforeEach(() => {
   localStorage.clear();
   stubMatchMedia(true);
+  dnd.overlay = null;
 });
 
 function item(over: Partial<ContentItem>): ContentItem {
@@ -202,6 +217,17 @@ describe('ContentBoard — moving cards', () => {
     const props = renderBoard({ isClientRole: true, content: [item({ id: 'a', status: 'review' })] });
     drop('a', 'posted');
     expect(props.onMove).not.toHaveBeenCalled();
+  });
+
+  it('settles a dropped card into its slot', () => {
+    renderBoard();
+    expect(dnd.overlay?.dropAnimation).toEqual(expect.objectContaining({ duration: 220 }));
+  });
+
+  it('puts a dropped card down without animating it for someone who asked for less motion', () => {
+    stubMatchMedia(true, true);
+    renderBoard();
+    expect(dnd.overlay?.dropAnimation).toBeNull();
   });
 });
 
