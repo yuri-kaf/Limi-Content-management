@@ -71,3 +71,20 @@ describe('stage pills meet WCAG AA', () => {
     expect(contrastRatio(stage.textDark, stage.tintDark)).toBeGreaterThanOrEqual(AA);
   });
 });
+
+describe('stage cards meet WCAG AA', () => {
+  // A card's title is ink, its secondary text ink-soft, its chips the stage
+  // text. ink-faint is never used on a card: it measures 4.4:1 on the light
+  // tints.
+  it.each(STAGES)('$label card is readable in light mode', (stage) => {
+    expect(contrastRatio(palette.ink.DEFAULT, stage.cardTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(palette.ink.soft, stage.cardTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(stage.cardText, stage.cardTint)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(STAGES)('$label card is readable in dark mode', (stage) => {
+    expect(contrastRatio(palette.ink.dark, stage.cardTintDark)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(palette.ink.softdark, stage.cardTintDark)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(stage.cardTextDark, stage.cardTintDark)).toBeGreaterThanOrEqual(AA);
+  });
+});

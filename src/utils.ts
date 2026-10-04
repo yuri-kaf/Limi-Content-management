@@ -273,6 +273,16 @@ export interface Stage {
   /** Pill background / text, dark theme. */
   tintDark: string;
   textDark: string;
+  /**
+   * A whole board card's fill, and the stage-coloured text on it (chips,
+   * metadata), light theme. Stronger than the pill tint, which is too faint to
+   * fill a card. A card's title stays in ink.
+   */
+  cardTint: string;
+  cardText: string;
+  /** The same pair, dark theme. */
+  cardTintDark: string;
+  cardTextDark: string;
 }
 
 // The pill pairs below are asserted against WCAG AA in src/color.test.ts. Note
@@ -284,11 +294,15 @@ export interface Stage {
 // separation band these hues sit in.
 export const STAGES: Stage[] = [
   { id: 'editing', label: 'Editing', color: '#6940a5',
-    tint: '#f4f0fb', text: '#6940a5', tintDark: '#2b2142', textDark: '#b592f0' },
+    tint: '#f4f0fb', text: '#6940a5', tintDark: '#2b2142', textDark: '#b592f0',
+    cardTint: '#ece5fa', cardText: '#5b3596', cardTintDark: '#2d2448', cardTextDark: '#c2a6f5' },
   { id: 'review', label: 'Review', color: '#0b6e99',
-    tint: '#e7f3f8', text: '#0b6e99', tintDark: '#15303d', textDark: '#77bddd' },
+    tint: '#e7f3f8', text: '#0b6e99', tintDark: '#15303d', textDark: '#77bddd',
+    cardTint: '#dcedf9', cardText: '#0a5f86', cardTintDark: '#16344a', cardTextDark: '#8cc8e6' },
   { id: 'to-post', label: 'To Post', color: '#8a6100',
-    tint: '#faf3dd', text: '#8a6100', tintDark: '#332711', textDark: '#dfab5f' },
+    tint: '#faf3dd', text: '#8a6100', tintDark: '#332711', textDark: '#dfab5f',
+    cardTint: '#faefcc', cardText: '#7a5600', cardTintDark: '#3a2c10', cardTextDark: '#e8b96c' },
   { id: 'posted', label: 'Posted', color: '#2f6e4a',
-    tint: '#eef3ed', text: '#2f6e4a', tintDark: '#1a2e23', textDark: '#71b391' },
+    tint: '#eef3ed', text: '#2f6e4a', tintDark: '#1a2e23', textDark: '#71b391',
+    cardTint: '#dcf0e1', cardText: '#2a6142', cardTintDark: '#1a3527', cardTextDark: '#86c4a2' },
 ];
