@@ -1,6 +1,6 @@
 import { contrastRatio } from './color';
 import {
-  DEFAULT_FOLDER_COLOR, FOLDER_COLORS, folderColor, folderColorVars, folderTint,
+  DEFAULT_FOLDER_COLOR, FOLDER_COLORS, folderColor, folderColorVars, folderTint, swatchTick,
 } from './folderColors';
 
 const AA = 4.5;
@@ -18,6 +18,17 @@ describe('folder colours', () => {
 
   it.each(FOLDER_COLORS)('$label label is readable in dark mode', (c) => {
     expect(contrastRatio(c.textDark, c.tintDark)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(FOLDER_COLORS)('$label folder emblem reads on its front panel', (c) => {
+    // The emblem is large text and decorative (the name is always beside the
+    // folder), so the large-text bar of 3:1 applies.
+    expect(contrastRatio(c.emblem, c.front)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('puts a white tick on dark swatches and an ink tick on light ones', () => {
+    expect(swatchTick('#3b82f6')).toBe('white');
+    expect(swatchTick('#eab308')).toBe('ink');
   });
 
   it('falls back to blue for a missing or unknown value', () => {

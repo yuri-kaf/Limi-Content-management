@@ -1,8 +1,7 @@
 import { useRef } from 'react';
 import { Check } from 'lucide-react';
 import { FolderColor } from '../types';
-import { FOLDER_COLORS } from '../folderColors';
-import { contrastRatio } from '../color';
+import { FOLDER_COLORS, swatchTick } from '../folderColors';
 
 interface Props {
   value: FolderColor;
@@ -14,7 +13,7 @@ interface Props {
 // The tick sits on the swatch itself, so it takes whichever of white or ink
 // reads there: white all but disappears on yellow, green and teal.
 function tickClass(swatch: string): string {
-  return contrastRatio('#ffffff', swatch) >= 3 ? 'text-white' : 'text-ink';
+  return swatchTick(swatch) === 'white' ? 'text-white' : 'text-ink';
 }
 
 // A radio group drawn as swatches, like choosing a folder colour in Finder or
