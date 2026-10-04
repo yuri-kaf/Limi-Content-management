@@ -306,3 +306,18 @@ export const STAGES: Stage[] = [
     tint: '#eef3ed', text: '#2f6e4a', tintDark: '#1a2e23', textDark: '#71b391',
     cardTint: '#dcf0e1', cardText: '#2a6142', cardTintDark: '#1a3527', cardTextDark: '#86c4a2' },
 ];
+
+// ─── Dates ───────────────────────────────────────────────────────────────────
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * A timestamp as an <input type="date"> value, in local time. Not
+ * toISOString(), which is UTC: east of Greenwich that turns an early-morning
+ * date into the day before.
+ */
+export function toDateInput(ms: number | undefined): string {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
