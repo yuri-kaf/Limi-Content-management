@@ -117,14 +117,28 @@ ${body}
   return new Response(html, { status, headers: HEADERS });
 }
 
+const LOOPBACK = ['localhost', '127.0.0.1', '[::1]'];
+
+/**
+ * Where signing in sends the person, named from the redirect itself. The
+ * client_name a client registers is its own claim, so the page never shows it.
+ */
+export function returnLabel(redirectUri: string): string {
+  try {
+    const url = new URL(redirectUri);
+    if (url.protocol === 'http:' && LOOPBACK.includes(url.hostname)) return 'Claude Code on this computer';
+    return url.hostname;
+  } catch {
+    return 'Claude';
+  }
+}
+
 export function renderSignInPage({
   fields,
-  clientName,
   email = '',
   error = '',
 }: {
   fields: SignInFields;
-  clientName: string;
   email?: string;
   error?: string;
 }): Response {
@@ -133,7 +147,7 @@ export function renderSignInPage({
     .join('\n');
   const body = `<h1>Connect Claude to Limi</h1>
 <p>Sign in with your Limi email and password. Claude will see the clients, posts, campaigns and ideas you can see, and, after asking you, can add posts, comments and ideas, move posts and record reviews. It never deletes anything.</p>
-<p class="small">Requested by ${escapeHtml(clientName)}</p>
+<p class="small">After you sign in, you’ll return to <strong>${escapeHtml(returnLabel(fields.redirect_uri))}</strong>.</p>
 ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ''}
 <form method="post" action="/oauth/authorize">
 ${hidden}

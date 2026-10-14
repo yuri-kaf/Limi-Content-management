@@ -57,6 +57,8 @@ export interface OAuthDeps {
   projectId: string;
   fetch: FetchLike;
   now: () => number;
+  /** https callbacks trusted besides Claude's own (MCP_EXTRA_REDIRECTS). */
+  extraRedirects?: string[];
 }
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
@@ -100,10 +102,19 @@ export function authorizationServerMetadata(req: Request): Response {
 // ─── Registration (RFC 7591) ─────────────────────────────────────────────────
 
 /**
- * Claude.ai returns to an https URL (https://claude.ai/api/mcp/auth_callback),
- * Claude Code to http://localhost:<port>/callback. Nothing else is accepted.
+ * Claude.ai returns to one of its own https callbacks, Claude Code to
+ * http://localhost:<port>/<path>. Any other https redirect is refused unless
+ * MCP_EXTRA_REDIRECTS lists it exactly: otherwise anyone could register their
+ * own site and use the genuine Limi sign-in page to collect a person's access.
  */
-export function isAllowedRedirect(uri: string): boolean {
+export const CLAUDE_REDIRECTS = [
+  'https://claude.ai/api/mcp/auth_callback',
+  'https://claude.com/api/mcp/auth_callback',
+];
+
+const LOOPBACK = ['localhost', '127.0.0.1', '[::1]'];
+
+export function isAllowedRedirect(uri: string, extras: readonly string[] = []): boolean {
   let url: URL;
   try {
     url = new URL(uri);
@@ -111,8 +122,16 @@ export function isAllowedRedirect(uri: string): boolean {
     return false;
   }
   if (url.hash || url.username || url.password) return false;
-  if (url.protocol === 'https:') return true;
-  return url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if (url.protocol === 'https:') return CLAUDE_REDIRECTS.includes(uri) || extras.includes(uri);
+  return url.protocol === 'http:' && LOOPBACK.includes(url.hostname);
+}
+
+/** MCP_EXTRA_REDIRECTS: comma-separated https callbacks to trust besides Claude's own. */
+export function parseExtraRedirects(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v.startsWith('https://'));
 }
 
 /** A client id is a sealed copy of what the client registered. */
@@ -121,7 +140,7 @@ interface ClientClaims {
   nm: string;
 }
 
-export function registerHandler({ key, now }: OAuthDeps): Handler {
+export function registerHandler({ key, now, extraRedirects = [] }: OAuthDeps): Handler {
   return async (req) => {
     if (req.method === 'OPTIONS') return preflight();
     if (req.method !== 'POST') return notAllowed('POST, OPTIONS');
@@ -134,9 +153,9 @@ export function registerHandler({ key, now }: OAuthDeps): Handler {
       !Array.isArray(uris) ||
       uris.length === 0 ||
       uris.length > 10 ||
-      !uris.every((u): u is string => typeof u === 'string' && isAllowedRedirect(u))
+      !uris.every((u): u is string => typeof u === 'string' && isAllowedRedirect(u, extraRedirects))
     ) {
-      return oauthError('invalid_redirect_uri', 'Redirect URIs must use https, or http on localhost.');
+      return oauthError('invalid_redirect_uri', "Redirect URIs must be Claude's own callback, or http on localhost.");
     }
     const name =
       typeof body.client_name === 'string' && body.client_name.trim()
@@ -182,7 +201,7 @@ function redirectTo(base: string, params: Record<string, string>): Response {
   return new Response(null, { status: 302, headers: { Location: url.toString(), 'Cache-Control': 'no-store' } });
 }
 
-type Checked = { ok: true; fields: SignInFields; clientName: string } | { ok: false; response: Response };
+type Checked = { ok: true; fields: SignInFields } | { ok: false; response: Response };
 
 async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<Checked> {
   const fields: SignInFields = {
@@ -226,7 +245,7 @@ async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<C
       }),
     };
   }
-  return { ok: true, fields, clientName: client.nm };
+  return { ok: true, fields };
 }
 
 /** GET shows the sign-in page; POST signs in and returns to Claude with a code. */
@@ -235,17 +254,17 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
     if (req.method === 'GET') {
       const checked = await checkRequest(key, new URL(req.url).searchParams);
       if (!checked.ok) return checked.response;
-      return renderSignInPage({ fields: checked.fields, clientName: checked.clientName });
+      return renderSignInPage({ fields: checked.fields });
     }
     if (req.method !== 'POST') return notAllowed('GET, POST');
 
     const form = new URLSearchParams(await req.text());
     const checked = await checkRequest(key, form);
     if (!checked.ok) return checked.response;
-    const { fields, clientName } = checked;
+    const { fields } = checked;
     const email = (form.get('email') ?? '').trim();
     const password = form.get('password') ?? '';
-    const again = (error: string) => renderSignInPage({ fields, clientName, email, error });
+    const again = (error: string) => renderSignInPage({ fields, email, error });
     if (!email || !password) return again('Enter your email and password.');
 
     let signedIn;
@@ -354,6 +373,11 @@ export function createOAuth(
     const off: Handler = async () => notConfigured(config.message);
     return { register: off, authorize: off, token: off };
   }
-  const deps: OAuthDeps = { ...config.env, fetch: options.fetch ?? fetch, now: options.now ?? Date.now };
+  const deps: OAuthDeps = {
+    ...config.env,
+    fetch: options.fetch ?? fetch,
+    now: options.now ?? Date.now,
+    extraRedirects: parseExtraRedirects((options.env ?? process.env).MCP_EXTRA_REDIRECTS),
+  };
   return { register: registerHandler(deps), authorize: authorizeHandler(deps), token: tokenHandler(deps) };
 }

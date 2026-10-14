@@ -1,6 +1,6 @@
 // @vitest-environment node
 import {
-  authorizationServerMetadata, authorizeHandler, createOAuth, isAllowedRedirect, pkceChallenge,
+  authorizationServerMetadata, authorizeHandler, createOAuth, isAllowedRedirect, parseExtraRedirects, pkceChallenge,
   protectedResourceMetadata, registerHandler, tokenHandler, type GrantClaims, type OAuthDeps,
 } from './oauth.js';
 import { unseal } from './seal.js';
@@ -94,14 +94,36 @@ describe('metadata', () => {
 });
 
 describe('isAllowedRedirect', () => {
-  it('allows https and http on localhost only', () => {
+  it("allows Claude's own https callbacks and http on loopback only", () => {
     expect(isAllowedRedirect(CLAUDE_AI)).toBe(true);
+    expect(isAllowedRedirect('https://claude.com/api/mcp/auth_callback')).toBe(true);
     expect(isAllowedRedirect('http://localhost:33418/callback')).toBe(true);
     expect(isAllowedRedirect('http://127.0.0.1:5000/callback')).toBe(true);
+    expect(isAllowedRedirect('http://[::1]:5000/anything/at/all')).toBe(true);
     expect(isAllowedRedirect('http://evil.example/callback')).toBe(false);
+    expect(isAllowedRedirect('https://evil.example/cb')).toBe(false);
+    expect(isAllowedRedirect('https://claude.ai/other')).toBe(false);
+    expect(isAllowedRedirect('https://claude.ai.evil.example/api/mcp/auth_callback')).toBe(false);
     expect(isAllowedRedirect('https://claude.ai/cb#frag')).toBe(false);
     expect(isAllowedRedirect('javascript:alert(1)')).toBe(false);
     expect(isAllowedRedirect('not a url')).toBe(false);
+  });
+
+  it('allows the extra https callbacks it is given, exactly', () => {
+    const extras = ['https://chat.example/oauth/callback'];
+    expect(isAllowedRedirect('https://chat.example/oauth/callback', extras)).toBe(true);
+    expect(isAllowedRedirect('https://chat.example/oauth/other', extras)).toBe(false);
+    expect(isAllowedRedirect('https://chat.example/oauth/callback')).toBe(false);
+  });
+});
+
+describe('parseExtraRedirects', () => {
+  it('reads a comma-separated list, ignoring blanks and anything not https', () => {
+    expect(parseExtraRedirects(' https://a.example/cb , ,https://b.example/cb,http://c.example/cb')).toEqual([
+      'https://a.example/cb',
+      'https://b.example/cb',
+    ]);
+    expect(parseExtraRedirects(undefined)).toEqual([]);
   });
 });
 
@@ -124,11 +146,42 @@ describe('register', () => {
     expect(res.status).toBe(201);
   });
 
+  it('accepts the claude.com callback', async () => {
+    const s = setup();
+    const res = await s.register(
+      jsonPost('/oauth/register', { redirect_uris: ['https://claude.com/api/mcp/auth_callback'] })
+    );
+    expect(res.status).toBe(201);
+  });
+
   it('refuses a redirect it would not trust', async () => {
     const s = setup();
-    const res = await s.register(jsonPost('/oauth/register', { redirect_uris: ['http://evil.example/cb'] }));
-    expect(res.status).toBe(400);
+    for (const uri of ['http://evil.example/cb', 'https://evil.example/cb']) {
+      const res = await s.register(jsonPost('/oauth/register', { redirect_uris: [uri] }));
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({ error: 'invalid_redirect_uri' });
+    }
+  });
+
+  it('refuses the whole registration when one redirect is untrusted', async () => {
+    const s = setup();
+    const res = await s.register(jsonPost('/oauth/register', { redirect_uris: [CLAUDE_AI, 'https://evil.example/cb'] }));
     expect(await res.json()).toMatchObject({ error: 'invalid_redirect_uri' });
+  });
+
+  it('accepts the extra callbacks set in MCP_EXTRA_REDIRECTS', async () => {
+    const oauth = createOAuth({
+      env: {
+        MCP_TOKEN_SECRET: Buffer.from(KEY).toString('base64'),
+        VITE_FIREBASE_API_KEY: 'k',
+        VITE_FIREBASE_PROJECT_ID: 'p',
+        MCP_EXTRA_REDIRECTS: 'https://chat.example/oauth/callback, https://other.example/cb',
+      },
+    });
+    const ok = await oauth.register(jsonPost('/oauth/register', { redirect_uris: ['https://other.example/cb'] }));
+    expect(ok.status).toBe(201);
+    const refused = await oauth.register(jsonPost('/oauth/register', { redirect_uris: ['https://evil.example/cb'] }));
+    expect(refused.status).toBe(400);
   });
 
   it('refuses a body that is not JSON', async () => {
@@ -147,6 +200,16 @@ describe('authorize', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Frame-Options')).toBe('DENY');
     expect(await res.text()).toContain('Connect Claude to Limi');
+  });
+
+  it('names where it returns to, not the name the client registered', async () => {
+    const s = setup();
+    const reg = await s.register(jsonPost('/oauth/register', { redirect_uris: [CLAUDE_AI], client_name: 'Your Bank' }));
+    const clientId = ((await reg.json()) as { client_id: string }).client_id;
+    const res = await s.authorize(new Request(`${ORIGIN}/oauth/authorize?${new URLSearchParams(authorizeFields(clientId))}`));
+    const html = await res.text();
+    expect(html).toContain('return to <strong>claude.ai</strong>');
+    expect(html).not.toContain('Your Bank');
   });
 
   it('refuses an unregistered redirect_uri without redirecting', async () => {

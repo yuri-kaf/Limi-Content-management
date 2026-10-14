@@ -18,7 +18,7 @@ describe('escapeHtml', () => {
 
 describe('renderSignInPage', () => {
   it('asks for the email and password and says what Claude can do', async () => {
-    const res = renderSignInPage({ fields: FIELDS, clientName: 'Claude' });
+    const res = renderSignInPage({ fields: FIELDS });
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(html).toContain('<h1>Connect Claude to Limi</h1>');
@@ -30,14 +30,14 @@ describe('renderSignInPage', () => {
   });
 
   it('carries the request through hidden fields, escaped', async () => {
-    const html = await renderSignInPage({ fields: FIELDS, clientName: 'Claude' }).text();
+    const html = await renderSignInPage({ fields: FIELDS }).text();
     expect(html).toContain('name="state" value="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"');
     expect(html).toContain('name="redirect_uri" value="https://claude.ai/api/mcp/auth_callback"');
   });
 
   it('runs no script and has no inline event handlers', async () => {
     const html = await renderSignInPage({
-      fields: FIELDS, clientName: '<img src=x onerror=alert(1)>', email: '"><b>', error: '<i>bad</i>',
+      fields: FIELDS, email: '"><b>', error: '<img src=x onerror=alert(1)><i>bad</i>',
     }).text();
     expect(html).not.toMatch(/<script/i);
     // No tag carries an on…= attribute; the escaped text above is not a tag.
@@ -47,13 +47,23 @@ describe('renderSignInPage', () => {
     expect(html).toContain('&lt;i&gt;bad&lt;/i&gt;');
   });
 
+  it('says where the person will return, and nothing the client claims about itself', async () => {
+    const html = await renderSignInPage({ fields: FIELDS }).text();
+    expect(html).toContain('return to <strong>claude.ai</strong>');
+    expect(html).not.toContain('Requested by');
+    const local = await renderSignInPage({
+      fields: { ...FIELDS, redirect_uri: 'http://localhost:33418/callback' },
+    }).text();
+    expect(local).toContain('return to <strong>Claude Code on this computer</strong>');
+  });
+
   it('shows an error when there is one', async () => {
-    const html = await renderSignInPage({ fields: FIELDS, clientName: 'Claude', error: 'Invalid email or password.' }).text();
+    const html = await renderSignInPage({ fields: FIELDS, error: 'Invalid email or password.' }).text();
     expect(html).toContain('<p class="error" role="alert">Invalid email or password.</p>');
   });
 
   it('can never be framed', () => {
-    const res = renderSignInPage({ fields: FIELDS, clientName: 'Claude' });
+    const res = renderSignInPage({ fields: FIELDS });
     expect(res.headers.get('X-Frame-Options')).toBe('DENY');
     expect(res.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
     expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
@@ -61,7 +71,7 @@ describe('renderSignInPage', () => {
   });
 
   it('uses the light and dark tokens', async () => {
-    const html = await renderSignInPage({ fields: FIELDS, clientName: 'Claude' }).text();
+    const html = await renderSignInPage({ fields: FIELDS }).text();
     expect(html).toContain('--brand: #dc2626');
     expect(html).toContain('@media (prefers-color-scheme: dark)');
     expect(html).toContain('--canvas: #191919');
