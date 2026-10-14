@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { ContentItem } from '../types';
+import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
+import { btnIcon, faintText, heading } from '../ui';
 
 interface Props {
   content: ContentItem[];
@@ -9,13 +11,6 @@ interface Props {
   onItemClick: (item: ContentItem) => void;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  editing: '#d97706',
-  review: '#2563eb',
-  'to-post': '#dc2626',
-  posted: '#059669',
-};
-
 function isSameDay(a: Date, b: Date) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -23,6 +18,8 @@ function isSameDay(a: Date, b: Date) {
     a.getDate() === b.getDate()
   );
 }
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ContentCalendar({ content, canAdd, onDayClick, onItemClick }: Props) {
   const today = new Date();
@@ -61,33 +58,27 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={prevMonth}
-          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#999] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
-        >
+        <button onClick={prevMonth} className={btnIcon} aria-label="Previous month">
           <ChevronLeft size={16} />
         </button>
-        <span className="text-sm font-semibold text-neutral-900 dark:text-white">{monthLabel}</span>
-        <button
-          onClick={nextMonth}
-          className="p-1.5 rounded-lg text-neutral-400 dark:text-[#555] hover:text-neutral-600 dark:hover:text-[#999] hover:bg-neutral-100 dark:hover:bg-[#1a1a1a] transition-colors"
-        >
+        <span className={`${heading} text-sm`}>{monthLabel}</span>
+        <button onClick={nextMonth} className={btnIcon} aria-label="Next month">
           <ChevronRight size={16} />
         </button>
       </div>
 
-      {/* Day headers */}
       <div className="grid grid-cols-7 gap-px">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d} className="text-center text-[10px] font-semibold text-neutral-400 dark:text-[#444] py-1 uppercase tracking-wider">
+        {WEEKDAYS.map((d) => (
+          <div
+            key={d}
+            className={`text-center text-[10px] font-semibold py-1 uppercase tracking-wider ${faintText}`}
+          >
             {d}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
         {cells.map((day, idx) => {
           if (!day) return <div key={`pad-${idx}`} />;
@@ -99,46 +90,41 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
             <div
               key={day}
               onClick={() => canAdd && onDayClick(d)}
-              className={`group min-h-[80px] rounded-xl p-1.5 flex flex-col gap-1 border transition-all duration-100 ${
+              className={`group min-h-[80px] rounded-tile p-1.5 flex flex-col gap-1 border transition-colors duration-100 ${
                 todayCell
-                  ? 'border-[#dc2626]/40 bg-[#dc2626]/5'
-                  : 'border-neutral-200 dark:border-[#1a1a1a] bg-neutral-50 dark:bg-[#0d0d0d] hover:border-neutral-300 dark:hover:border-[#2a2a2a]'
+                  ? 'border-brand/40 bg-brand-soft dark:bg-brand-softdark'
+                  : 'border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark hover:bg-tint dark:hover:bg-tint-dark'
               } ${canAdd ? 'cursor-pointer' : ''}`}
             >
-              {/* Day number */}
               <div className="flex items-center justify-between px-0.5">
                 <span
-                  className={`text-[11px] font-semibold leading-none ${
-                    todayCell ? 'text-[#dc2626]' : 'text-neutral-400 dark:text-[#555]'
-                  }`}
+                  className={`text-[11px] font-semibold leading-none ${todayCell ? 'text-brand' : faintText}`}
                 >
                   {day}
                 </span>
                 {canAdd && (
                   <Plus
                     size={10}
-                    className="text-neutral-300 dark:text-[#333] opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity ${faintText}`}
                   />
                 )}
               </div>
 
-              {/* Content chips */}
+              {/* Each post in its stage's card colours, as on the board: To Post
+                  used to be red here and amber everywhere else. */}
               {dayItems.slice(0, 3).map((item) => (
                 <button
                   key={item.id}
                   onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
-                  className="w-full text-left px-1.5 py-0.5 rounded-md text-[9px] font-medium truncate transition-opacity hover:opacity-80"
-                  style={{
-                    backgroundColor: `${STATUS_COLORS[item.status]}20`,
-                    color: STATUS_COLORS[item.status],
-                    border: `1px solid ${STATUS_COLORS[item.status]}30`,
-                  }}
+                  className={`w-full text-left px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium truncate transition-opacity hover:opacity-80 ${stageCardFill} ${stageCardText}`}
+                  style={stageCardVars(item.status)}
+                  title={item.title}
                 >
                   {item.title}
                 </button>
               ))}
               {dayItems.length > 3 && (
-                <span className="text-[9px] text-neutral-400 dark:text-[#444] px-1">+{dayItems.length - 3} more</span>
+                <span className={`text-[10px] px-1 ${faintText}`}>+{dayItems.length - 3} more</span>
               )}
             </div>
           );
