@@ -8,6 +8,8 @@ import twConfig from '../tailwind.config.js';
 const AA = 4.5;
 // What `text-ink` draws, which is the tick the swatch picker puts on a light swatch.
 const INK = (twConfig as any).theme.extend.colors.ink.DEFAULT as string;
+const CANVAS = (twConfig as any).theme.extend.colors.canvas.DEFAULT as string;
+const TINT = (twConfig as any).theme.extend.colors.tint.DEFAULT as string;
 
 describe('folder colours', () => {
   it('offers the ten macOS-style colours, in picker order', () => {
@@ -36,6 +38,16 @@ describe('folder colours', () => {
     // colours swatchTick chooses between.
     const tick = swatchTick(c.swatch) === 'white' ? '#ffffff' : INK;
     expect(contrastRatio(tick, c.swatch)).toBeGreaterThanOrEqual(3);
+  });
+
+  // A small folder (the sidebar's 18px and 24px) is all outline and no
+  // emblem. Its outline has to stand off the light page and the sidebar tint,
+  // or a yellow folder there is a faint smudge.
+  it.each(FOLDER_COLORS)('$label small folder stands off the light page', (c) => {
+    const outline = c.edge ?? c.swatch;
+    for (const ground of [CANVAS, TINT]) {
+      expect(contrastRatio(outline, ground)).toBeGreaterThanOrEqual(2);
+    }
   });
 
   it('falls back to blue for a missing or unknown value', () => {

@@ -15,6 +15,11 @@ export interface FolderColorDef {
    * is always written beside it.
    */
   emblem: string;
+  /**
+   * A darker outline for a small folder in light mode, for a colour too light
+   * to hold its shape on the light page without one. Only yellow needs it.
+   */
+  edge?: string;
   /** Label background and text, light theme. */
   tint: string;
   text: string;
@@ -36,7 +41,7 @@ export const FOLDER_COLORS: FolderColorDef[] = [
     tint: '#ddf6f2', text: '#115e59', tintDark: '#0f302c', textDark: '#5eead4' },
   { id: 'green', label: 'Green', swatch: '#22c55e', front: '#76db9b', emblem: '#11632f',
     tint: '#e3f8ea', text: '#166534', tintDark: '#12301d', textDark: '#86efac' },
-  { id: 'yellow', label: 'Yellow', swatch: '#eab308', front: '#f2d066', emblem: '#755a04',
+  { id: 'yellow', label: 'Yellow', swatch: '#eab308', front: '#f2d066', emblem: '#755a04', edge: '#a16207',
     tint: '#fdf6d8', text: '#854d0e', tintDark: '#33290c', textDark: '#fcd34d' },
   { id: 'orange', label: 'Orange', swatch: '#f97316', front: '#fba86f', emblem: '#7d3a0b',
     tint: '#feeedd', text: '#9a3412', tintDark: '#3a2213', textDark: '#fdba74' },

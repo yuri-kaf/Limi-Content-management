@@ -76,6 +76,11 @@ export default function FolderIcon({
   const letterSize = Math.round(size * (roomy ? 0.34 - 0.08 * ramp : FORCED_LETTER_SHARE));
   const showLogo = roomy && !!imageUrl && imageUrl !== failedUrl;
   const initial = roomy || forceInitial ? initialOf(label) : undefined;
+  // A 1px outline in the colour's edge tone, on a small folder only and in
+  // light mode only: on the dark canvas even yellow stands off at 8:1.
+  const edge = !roomy && c.edge
+    ? { stroke: c.edge, strokeWidth: 1, vectorEffect: 'non-scaling-stroke' as const }
+    : {};
 
   return (
     <span
@@ -89,6 +94,8 @@ export default function FolderIcon({
         <path
           d="M2 7a4 4 0 0 1 4-4h14.6a4 4 0 0 1 3.2 1.6L26.4 8H58a4 4 0 0 1 4 4v34a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"
           fill={c.swatch}
+          className="dark:[stroke:none]"
+          {...edge}
         />
         {/* The front panel, lighter, hinged at the bottom. */}
         <rect
@@ -98,7 +105,8 @@ export default function FolderIcon({
           height="36"
           rx="4"
           fill={c.front}
-          className="[transform-box:fill-box] origin-bottom transition-transform duration-150 ease-out-soft [@media(hover:hover)]:group-hover/folder:[transform:scaleY(.94)]"
+          {...edge}
+          className="dark:[stroke:none] [transform-box:fill-box] origin-bottom transition-transform duration-150 ease-out-soft [@media(hover:hover)]:group-hover/folder:[transform:scaleY(.94)]"
         />
       </svg>
       {(showLogo || initial) && (

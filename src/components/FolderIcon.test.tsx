@@ -19,6 +19,20 @@ describe('FolderIcon', () => {
     expect(fills(container)).toEqual(['#3b82f6', '#85b2f9']);
   });
 
+  // Yellow is the one colour too light to hold its shape on the light page at
+  // sidebar size, so there, in light mode only, it gets a darker edge.
+  it('edges a small yellow folder, and nothing else', () => {
+    const edged = (props: { color: string; size: number }) => {
+      const { container, unmount } = render(<FolderIcon {...props} />);
+      const strokes = [...container.querySelectorAll('path, rect')].map((el) => el.getAttribute('stroke'));
+      unmount();
+      return strokes;
+    };
+    expect(edged({ color: 'yellow', size: 18 })).toEqual(['#a16207', '#a16207']);
+    expect(edged({ color: 'yellow', size: 88 })).toEqual([null, null]);
+    expect(edged({ color: 'blue', size: 18 })).toEqual([null, null]);
+  });
+
   it('embosses the initial only where there is room for it', () => {
     const { rerender } = render(<FolderIcon label="momoland" size={88} />);
     expect(screen.getByText('M')).toBeInTheDocument();
