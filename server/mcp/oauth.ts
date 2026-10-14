@@ -247,7 +247,11 @@ function redirectTo(base: string, params: Record<string, string>): Response {
 
 type Checked = { ok: true; fields: SignInFields } | { ok: false; response: Response };
 
-async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<Checked> {
+async function checkRequest(
+  key: Uint8Array,
+  params: URLSearchParams,
+  extraRedirects: readonly string[]
+): Promise<Checked> {
   const fields: SignInFields = {
     client_id: params.get('client_id') ?? '',
     redirect_uri: params.get('redirect_uri') ?? '',
@@ -263,8 +267,10 @@ async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<C
       response: renderErrorPage(400, 'This sign-in link is not valid. Start connecting again from Claude.'),
     };
   }
-  // Never redirect anywhere the client did not register: show the error here.
-  if (!client.ru.includes(fields.redirect_uri)) {
+  // Never redirect anywhere the client did not register, nor anywhere the
+  // allowlist no longer trusts (a client sealed before it, or an
+  // MCP_EXTRA_REDIRECTS entry since removed): show the error here.
+  if (!client.ru.includes(fields.redirect_uri) || !isAllowedRedirect(fields.redirect_uri, extraRedirects)) {
     return {
       ok: false,
       response: renderErrorPage(
@@ -293,10 +299,12 @@ async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<C
 }
 
 /** GET shows the sign-in page; POST signs in and returns to Claude with a code. */
-export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }: OAuthDeps): Handler {
+export function authorizeHandler({
+  key, apiKey, projectId, fetch: fetchFn, now, extraRedirects = [],
+}: OAuthDeps): Handler {
   return async (req) => {
     if (req.method === 'GET') {
-      const checked = await checkRequest(key, new URL(req.url).searchParams);
+      const checked = await checkRequest(key, new URL(req.url).searchParams, extraRedirects);
       if (!checked.ok) return checked.response;
       return renderSignInPage({ fields: checked.fields });
     }
@@ -311,7 +319,7 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
     const text = await readBody(req);
     if (text === null) return renderErrorPage(413, 'That request was too large. Start connecting again from Claude.');
     const form = new URLSearchParams(text);
-    const checked = await checkRequest(key, form);
+    const checked = await checkRequest(key, form, extraRedirects);
     if (!checked.ok) return checked.response;
     const { fields } = checked;
     const email = (form.get('email') ?? '').trim();

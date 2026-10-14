@@ -4,7 +4,7 @@ import {
   protectedResourceMetadata, registerHandler, tokenHandler, type GrantClaims, type OAuthDeps,
 } from './oauth.js';
 import type { FetchLike } from './firebaseAuth.js';
-import { unseal } from './seal.js';
+import { seal, unseal } from './seal.js';
 import { limiGoogle, NOW } from './testData.js';
 
 const ORIGIN = 'https://limi.example';
@@ -252,6 +252,42 @@ describe('authorize', () => {
     const res = await s.authorize(new Request(`${ORIGIN}/oauth/authorize?${new URLSearchParams(fields)}`));
     expect(res.status).toBe(400);
     expect(res.headers.get('Location')).toBeNull();
+    expect(await res.text()).toContain('does not recognise');
+  });
+
+  it('refuses a client sealed before the allowlist, at GET and POST, without redirecting', async () => {
+    const s = setup();
+    const evil = 'https://evil.example/cb';
+    const clientId = await seal(KEY, 'client', { ru: [evil], nm: 'Claude' }, { now: NOW });
+    const fields = authorizeFields(clientId, { redirect_uri: evil });
+    const get = await s.authorize(new Request(`${ORIGIN}/oauth/authorize?${new URLSearchParams(fields)}`));
+    expect(get.status).toBe(400);
+    expect(get.headers.get('Location')).toBeNull();
+    expect(await get.text()).toContain('does not recognise');
+    const post = await s.authorize(
+      formPost('/oauth/authorize', { ...fields, email: 'sam@shopit.test', password: 'client-pw' })
+    );
+    expect(post.status).toBe(400);
+    expect(post.headers.get('Location')).toBeNull();
+    expect(await post.text()).toContain('does not recognise');
+  });
+
+  it('refuses a client whose MCP_EXTRA_REDIRECTS entry has since been removed', async () => {
+    const extra = 'https://chat.example/oauth/callback';
+    const env = {
+      MCP_TOKEN_SECRET: Buffer.from(KEY).toString('base64'),
+      VITE_FIREBASE_API_KEY: 'k',
+      VITE_FIREBASE_PROJECT_ID: 'p',
+    };
+    const before = createOAuth({ env: { ...env, MCP_EXTRA_REDIRECTS: extra } });
+    const reg = await before.register(jsonPost('/oauth/register', { redirect_uris: [extra] }));
+    const clientId = ((await reg.json()) as { client_id: string }).client_id;
+    const fields = authorizeFields(clientId, { redirect_uri: extra });
+    const url = `${ORIGIN}/oauth/authorize?${new URLSearchParams(fields)}`;
+    expect((await before.authorize(new Request(url))).status).toBe(200);
+    const after = createOAuth({ env });
+    const res = await after.authorize(new Request(url));
+    expect(res.status).toBe(400);
     expect(await res.text()).toContain('does not recognise');
   });
 
