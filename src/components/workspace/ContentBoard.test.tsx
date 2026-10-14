@@ -309,6 +309,23 @@ describe('ContentBoard — moving cards', () => {
     expect(columnOf('Launch reel')).toBe('posted');
   });
 
+  // The copy in the hand is the card that will land, so over another stage it
+  // takes that stage's fill. Otherwise the drop animation settles a copy in the
+  // old colour and the card changes colour the moment it lands.
+  it("draws the carried copy in the stage it is over", () => {
+    renderBoard({ content: [item({ id: 'a', status: 'editing' })] });
+    const overlayItem = () =>
+      ((dnd.overlay?.children as React.ReactElement | null)?.props as { children: React.ReactElement })
+        ?.children.props.item as ContentItem;
+    act(() => dnd.props?.onDragStart?.({ active: { id: 'a' } } as never));
+    expect(overlayItem().status).toBe('editing');
+    act(() => dnd.props?.onDragOver?.({ active: { id: 'a' }, over: { id: 'to-post' } } as never));
+    expect(overlayItem().status).toBe('to-post');
+    act(() => dnd.props?.onDragOver?.({ active: { id: 'a' }, over: null } as never));
+    expect(overlayItem().status).toBe('editing');
+    act(() => dnd.props?.onDragCancel?.({ active: { id: 'a' } } as never));
+  });
+
   it('settles a dropped card into its slot', () => {
     renderBoard();
     expect(dnd.overlay?.dropAnimation).toEqual(expect.objectContaining({ duration: 220 }));

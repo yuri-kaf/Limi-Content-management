@@ -3,6 +3,7 @@ import {
   Announcements,
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   Over,
   PointerSensor,
   TouchSensor,
@@ -182,6 +183,9 @@ export default function ContentBoard({
   // business in scope, or a teammate deleting the campaign.
   const [picked, setPicked] = useState('');
   const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  // The stage the carried card is over. The copy in the hand takes its fill,
+  // so the copy the drop animation settles is already the colour it lands in.
+  const [overStage, setOverStage] = useState<ContentStatus | null>(null);
   // Moves made on this board that `content` does not show yet, by item id. A
   // move reaches `content` only when the database echoes it back, a tick
   // after the drop, but the drop's own render is when dnd-kit measures where
@@ -265,6 +269,16 @@ export default function ContentBoard({
     if (item) setActiveItem(item);
   }
 
+  function handleDragOver(event: DragOverEvent) {
+    if (!canMove) return;
+    setOverStage(event.over ? resolveDropStatus(event.over.id as string) : null);
+  }
+
+  function endDrag() {
+    setActiveItem(null);
+    setOverStage(null);
+  }
+
   // The drop target is either a column or one of the cards inside it, since
   // collision detection reports whichever is closest.
   function resolveDropStatus(overId: string): ContentStatus | null {
@@ -286,7 +300,7 @@ export default function ContentBoard({
   // committed again. The move belongs on drop; the hover highlight comes from
   // useDroppable's own isOver and needs no state write.
   function handleDragEnd(event: DragEndEvent) {
-    setActiveItem(null);
+    endDrag();
     if (!canMove) return;
     const item = itemWithId(event.active.id);
     const target = item && destination(item, event.over);
@@ -430,8 +444,9 @@ export default function ContentBoard({
         accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveItem(null)}
+        onDragCancel={endDrag}
       >
         {isDesktop ? (
           <div className={boardScroller}>
@@ -452,7 +467,7 @@ export default function ContentBoard({
           {activeItem ? (
             <div>
               <ContentCard
-                item={activeItem}
+                item={overStage ? { ...activeItem, status: overStage } : activeItem}
                 campaign={campaignOf(activeItem)}
                 // The card's own actions, as handlers that do nothing: the
                 // title then wraps at the card's width, so the copy is the
