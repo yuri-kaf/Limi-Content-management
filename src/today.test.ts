@@ -1,4 +1,4 @@
-import { buildToday, isLate, slotLabel, todaySources, todayTotal } from './today';
+import { buildToday, isDueWithin, isLate, slotLabel, todaySources, todayTotal } from './today';
 import { AppUser, Client, ContentItem } from './types';
 
 const NOW = new Date('2026-08-20T12:00:00Z').getTime();
@@ -149,3 +149,29 @@ describe('isLate', () => {
     expect(isLate(post(undefined), noon)).toBe(false);
   });
 });
+
+describe('isDueWithin', () => {
+  const noon = new Date(2026, 7, 20, 12, 0, 0).getTime();
+  const at = (days: number, hour: number) => new Date(2026, 7, 20 + days, hour, 0, 0).getTime();
+  const post = (scheduledAt: number | undefined, status: ContentItem['status'] = 'to-post') =>
+    ({ scheduledAt, status }) as Pick<ContentItem, 'scheduledAt' | 'status'>;
+
+  // A slot earlier today is not late (isLate), so it has to be due, or it
+  // would fall between Overdue and Next 7 days and vanish from both.
+  it('counts an unposted slot from earlier today, which is not late', () => {
+    expect(isLate(post(at(0, 9)), noon)).toBe(false);
+    expect(isDueWithin(post(at(0, 9)), noon, 7)).toBe(true);
+  });
+
+  it('runs from the start of today for the given number of days', () => {
+    expect(isDueWithin(post(at(6, 23)), noon, 7)).toBe(true);
+    expect(isDueWithin(post(at(7, 0)), noon, 7)).toBe(false);
+    expect(isDueWithin(post(at(-1, 23)), noon, 7)).toBe(false);
+  });
+
+  it('never counts something posted, or with no slot', () => {
+    expect(isDueWithin(post(at(1, 9), 'posted'), noon, 7)).toBe(false);
+    expect(isDueWithin(post(undefined), noon, 7)).toBe(false);
+  });
+});
+

@@ -35,6 +35,14 @@ describe('filterContent — date window', () => {
     expect(filterContent(all, f({ date: 'next7' }), NOW).map((i) => i.id)).toEqual(['soon']);
   });
 
+  // Built from local parts, so "9am today" is today in any time zone.
+  it('puts an unposted slot from earlier today in next7, not overdue', () => {
+    const noon = new Date(2026, 7, 20, 12, 0, 0).getTime();
+    const morning = item({ id: 'morning', scheduledAt: new Date(2026, 7, 20, 9, 0, 0).getTime() });
+    expect(filterContent([morning], f({ date: 'overdue' }), noon)).toEqual([]);
+    expect(filterContent([morning], f({ date: 'next7' }), noon).map((i) => i.id)).toEqual(['morning']);
+  });
+
   it('month reaches 31 days out', () => {
     expect(filterContent(all, f({ date: 'month' }), NOW).map((i) => i.id)).toEqual(['soon', 'later']);
   });

@@ -1,6 +1,6 @@
 import { ContentItem, MediaType, Platform } from './types';
 import { mediaTypeOf } from './utils';
-import { isLate } from './today';
+import { isDueWithin, isLate } from './today';
 
 export type DateWindow = 'all' | 'overdue' | 'next7' | 'month' | 'unscheduled';
 
@@ -21,13 +21,10 @@ export const DATE_WINDOWS: { id: DateWindow; label: string }[] = [
   { id: 'unscheduled', label: 'Unscheduled' },
 ];
 
-const DAY = 86_400_000;
-
 // `now` is a parameter rather than a Date.now() call so the behaviour is
 // testable and a filtered view cannot shift under you mid-render.
 function matchesDate(item: ContentItem, window: DateWindow, now: number): boolean {
-  const at = item.scheduledAt ?? 0;
-  const scheduled = at > 0;
+  const scheduled = (item.scheduledAt ?? 0) > 0;
 
   switch (window) {
     case 'all':
@@ -37,10 +34,12 @@ function matchesDate(item: ContentItem, window: DateWindow, now: number): boolea
     // The queue's rule: an earlier day, and not yet posted.
     case 'overdue':
       return isLate(item, now);
+    // From the start of today, so a slot earlier today, not yet late, still
+    // shows; isLate and isDueWithin between them cover every unposted slot.
     case 'next7':
-      return scheduled && at >= now && at <= now + 7 * DAY;
+      return isDueWithin(item, now, 7);
     case 'month':
-      return scheduled && at >= now && at <= now + 31 * DAY;
+      return isDueWithin(item, now, 31);
   }
 }
 

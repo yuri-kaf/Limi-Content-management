@@ -1,10 +1,8 @@
 import { Client, ContentItem, ContentStatus, UserRole } from '../types';
 import { STAGES } from '../utils';
-import { isLate } from '../today';
+import { isDueWithin, isLate } from '../today';
 import { stageCardVars, stageDot } from '../stageColors';
 import { tile, heading, faintText, bodyText } from '../ui';
-
-const DAY = 86_400_000;
 
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
@@ -107,9 +105,7 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
   const declined = decided.filter((i) => i.clientReview === 'declined').length;
   const declineRate = decided.length ? Math.round((declined / decided.length) * 100) : 0;
 
-  const dueThisWeek = all.filter(
-    (i) => i.scheduledAt && i.scheduledAt >= now && i.scheduledAt <= now + 7 * DAY
-  ).length;
+  const dueThisWeek = all.filter((i) => isDueWithin(i, now, 7)).length;
   const overdue = all.filter((i) => isLate(i, now)).length;
 
   const volume = clients

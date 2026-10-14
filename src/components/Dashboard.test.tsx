@@ -44,4 +44,29 @@ describe('Dashboard', () => {
     expect(tile('Scheduled next 7 days')).toHaveTextContent(/^Scheduled next 7 days3$/);
     expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
   });
+
+  // A slot earlier today is not overdue, so it must count as due instead;
+  // something already posted is neither.
+  it('counts a slot from earlier today as due, and a posted one as neither', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 20, 12, 0, 0));
+    try {
+      const morning = new Date(2026, 7, 20, 9, 0, 0).getTime();
+      const tomorrow = new Date(2026, 7, 21, 9, 0, 0).getTime();
+      render(<Dashboard role="admin" clients={[{
+        ...clients[0],
+        content: [
+          item({ id: '1', status: 'to-post', scheduledAt: morning }),
+          item({ id: '2', status: 'posted', scheduledAt: tomorrow }),
+          item({ id: '3', status: 'posted', scheduledAt: tomorrow }),
+        ],
+      }]} />);
+      const tile = (label: string) => screen.getByText(label).parentElement!.parentElement!;
+      expect(tile('Due in 7 days')).toHaveTextContent(/^Due in 7 days1/);
+      expect(tile('Overdue')).toHaveTextContent(/^Overdue0/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+

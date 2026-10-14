@@ -148,3 +148,19 @@ export function isLate(
   return item.status !== 'posted' && !!slotLabel(item.scheduledAt, now)?.late;
 }
 
+/**
+ * Whether an unposted post's slot falls in the `days` days starting today:
+ * from the start of today, so a slot earlier today, which isLate does not call
+ * late, is due rather than falling between Overdue and Next 7 days.
+ */
+export function isDueWithin(
+  item: Pick<ContentItem, 'scheduledAt' | 'status'>,
+  now: number,
+  days: number
+): boolean {
+  if (item.status === 'posted' || !item.scheduledAt || item.scheduledAt <= 0) return false;
+  const start = new Date(startOfDay(now));
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days).getTime();
+  return item.scheduledAt >= start.getTime() && item.scheduledAt < end;
+}
+
