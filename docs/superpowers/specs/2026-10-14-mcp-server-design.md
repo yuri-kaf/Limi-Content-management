@@ -39,11 +39,12 @@ Vercel functions (Node 20)
   /.well-known/oauth-protected-resource      metadata
   /.well-known/oauth-authorization-server    metadata
   /oauth/register    stateless DCR: client_id is a signed blob of redirect_uris
+                     (allowlisted only: see Redirect URIs below)
   /oauth/authorize   GET: Limi sign-in page. POST: email + password
                      → Firebase Auth REST signInWithPassword
                      → users/{uid} profile must exist
                      → code = sealed {firebaseRefreshToken, uid, client_id,
-                       redirect_uri, code_challenge}, valid 5 minutes
+                       redirect_uri, code_challenge}, valid 60 seconds
   /oauth/token       authorization_code (PKCE S256) | refresh_token grants
                      → access token: sealed {firebaseRefreshToken, uid}, 1 hour
                      → refresh token: the same, 90 days
@@ -58,11 +59,26 @@ Vercel functions (Node 20)
   `MCP_TOKEN_SECRET` environment variable, which holds 32 random bytes in
   base64. There is no token database; everything the server needs travels
   inside the sealed token.
+- **Redirect URIs:** registration accepts only Claude's own callbacks
+  (`https://claude.ai/api/mcp/auth_callback`,
+  `https://claude.com/api/mcp/auth_callback`), any exact https URL listed in
+  the optional comma-separated `MCP_EXTRA_REDIRECTS`, and `http` on loopback
+  (`localhost`, `127.0.0.1`, `[::1]`, any port and path) for Claude Code. Any
+  other https redirect would let a stranger register their own site and use
+  the genuine sign-in page to collect someone's access. At most ten URIs of at
+  most 512 characters; OAuth bodies over 16 KiB are refused.
+- **Codes:** stateless, so not single-use; a code can be replayed until it
+  expires. Only the holder of the PKCE verifier can redeem it, and the 60-second
+  lifetime keeps that window short.
 - **Revocation comes for free:**
   - Removing someone on the Team page deletes their profile, so the rules deny
     everything they try.
   - Changing a password revokes their Firebase refresh tokens, so the next
     exchange fails and Claude asks them to sign in again.
+  - A refresh also rereads the profile, so a removed person stops getting tokens.
+  - A Google outage (network, 5xx, 429) is not a revocation: the token endpoint
+    answers 503 `temporarily_unavailable` and `/mcp` answers 503, never the 401
+    that would send Claude back to sign in.
 - **Libraries:** `mcp-handler` (Vercel's adapter over
   `@modelcontextprotocol/sdk`) for `/mcp`, and `jose`. Firebase is called over
   plain REST with `fetch`; there is no `firebase-admin`.
@@ -131,6 +147,10 @@ ideas.
   throttling rate-limits attempts.
 - The page is never framed (`X-Frame-Options: DENY`). The `redirect_uri` must
   match the one registered.
+- It says where the person will return ("claude.ai", or "Claude Code on this
+  computer" for a loopback redirect) and never shows the `client_name` a client
+  registers, which is only the client's own claim.
+- The POST is refused when it carries an `Origin` other than this deployment.
 
 ## Setup (done by Claude, except where marked)
 
