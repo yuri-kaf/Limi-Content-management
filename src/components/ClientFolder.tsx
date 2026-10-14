@@ -4,7 +4,7 @@ import { Client } from '../types';
 import { awaitingReview } from '../nav';
 import FolderIcon from './FolderIcon';
 import ColorLabel from './ColorLabel';
-import { btnIcon, faintText } from '../ui';
+import { btnIcon, faintText, focusRing } from '../ui';
 
 interface Props {
   client: Client;
@@ -42,7 +42,7 @@ export default function ClientFolder({ client, onEdit }: Props) {
     <div className="group relative">
       <button
         onClick={() => navigate(`/client/${client.id}`)}
-        className="group/folder w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className={`group/folder w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] ${focusRing}`}
       >
         <FolderIcon color={client.color} size={88} label={client.name} imageUrl={client.imageUrl} />
         <span

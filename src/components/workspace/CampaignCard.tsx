@@ -6,7 +6,7 @@ import {
 import { folderColor } from '../../folderColors';
 import ColorLabel from '../ColorLabel';
 import ProgressBar from '../ProgressBar';
-import { cardInteractive, faintText, heading } from '../../ui';
+import { cardInteractive, faintText, heading, focusRing } from '../../ui';
 
 interface Props {
   campaign: Campaign;
@@ -27,7 +27,7 @@ export default function CampaignCard({ campaign, content, businessName, onOpen }
   return (
     <button
       onClick={onOpen}
-      className={`${cardInteractive} w-full text-left overflow-hidden flex focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30`}
+      className={`${cardInteractive} w-full text-left overflow-hidden flex ${focusRing}`}
     >
       {/* The campaign's colour as a spine, the way a coloured tab marks a binder. */}
       <span

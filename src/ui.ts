@@ -2,6 +2,18 @@
 // import from here instead of each re-inventing its own border/padding recipe,
 // which is how the old UI drifted.
 
+// Keyboard focus, one recipe everywhere. A solid 2px ring in the `focus`
+// colour on a 2px canvas-coloured offset, so it reads at 3:1 or better whatever
+// the control's own fill (color.test.ts asserts it), and only for keyboard focus:
+// a mouse click does not leave a ring behind.
+export const focusRing =
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-dark';
+
+// The same ring drawn inside the element, for rows and tabs that sit edge to
+// edge in a clipped container, where an outer ring would be cut off.
+export const focusRingInset =
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus dark:focus-visible:ring-focus-dark';
+
 export const card =
   'bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark rounded-card';
 
@@ -37,32 +49,32 @@ export const label =
   'block text-[11px] font-semibold text-ink-faint dark:text-ink-faintdark mb-1.5 uppercase tracking-wider';
 
 export const input =
-  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all';
+  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark transition-all';
 
 // A compact primary for inline banners, where a 44px button would outweigh the
 // message. Full height again where there is no pointer to aim with.
 export const btnPrimarySm =
-  'inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/40';
+  `inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 // min-h-11 keeps primary actions at the 44px touch target.
 export const btnPrimary =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-brand hover:bg-brand-hover text-white text-sm font-semibold shadow-pill transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/40';
+  `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-brand hover:bg-brand-hover text-white text-sm font-semibold shadow-pill transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;
 
 export const btnGhost =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile border border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark text-sm font-medium hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile border border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark text-sm font-medium hover:bg-raised dark:hover:bg-raised-dark transition-colors ${focusRing}`;
 
 // rounded-tile, not rounded-full: a circular icon button was the last
 // consumer-app radius left in a system of 6px controls and 12px cards, and a
 // header holding one of each reads as two designs.
 export const btnIcon =
-  'inline-flex items-center justify-center w-9 h-9 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `inline-flex items-center justify-center w-9 h-9 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors ${focusRing}`;
 
 // Segmented pill navigation, as in the reference dashboards.
 export const pillGroup =
   'inline-flex items-center gap-1 p-1 rounded-full bg-raised dark:bg-raised-dark border border-hairline dark:border-hairline-dark';
 
 export function pill(active: boolean) {
-  return `inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-xs font-semibold transition-colors ${
+  return `inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-xs font-semibold transition-colors ${focusRing} ${
     active
       ? 'bg-ink dark:bg-ink-dark text-white dark:text-canvas-dark shadow-pill'
       : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
@@ -76,7 +88,7 @@ export const badge =
 // options sit side by side. Selected reads as a brand tint rather than a fill,
 // so a row of them doesn't compete with the primary action.
 export function chip(active: boolean) {
-  return `inline-flex items-center justify-center gap-2 px-3 min-h-9 rounded-tile text-xs font-semibold border transition-colors ${
+  return `inline-flex items-center justify-center gap-2 px-3 min-h-9 rounded-tile text-xs font-semibold border transition-colors ${focusRing} ${
     active
       ? 'bg-brand-soft dark:bg-brand-softdark border-brand/40 text-brand-text dark:text-brand-textdark'
       : 'bg-raised dark:bg-raised-dark border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
@@ -86,15 +98,15 @@ export function chip(active: boolean) {
 // Approve / decline and other semantic actions. Tinted rather than filled —
 // the filled treatment stays reserved for the one primary action on a surface.
 export const btnSuccess =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-success/30 dark:border-success-textdark/30 bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark hover:bg-success-softhover dark:hover:bg-success-softhoverdark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-success/30 dark:border-success-textdark/30 bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark hover:bg-success-softhover dark:hover:bg-success-softhoverdark transition-colors ${focusRing}`;
 
 // The filled form, for the one surface where approving *is* the primary action:
 // the public review page a client acts on without signing in.
 export const btnSuccessSolid =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-success hover:bg-success-hover text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-success hover:bg-success-hover text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 export const btnDanger =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark hover:bg-brand-softhover dark:hover:bg-brand-softhoverdark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark hover:bg-brand-softhover dark:hover:bg-brand-softhoverdark transition-colors ${focusRing}`;
 
 // A ghost button that turns destructive on hover — for delete affordances that
 // shouldn't shout until they're aimed at.
@@ -184,7 +196,7 @@ export const segmented =
   'inline-flex items-center gap-0.5 p-0.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark';
 
 export function segItem(active: boolean) {
-  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[3px] text-[12px] font-medium whitespace-nowrap transition-colors ${
+  return `inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[3px] text-[12px] font-medium whitespace-nowrap transition-colors ${focusRingInset} ${
     active
       ? 'bg-canvas dark:bg-hover-dark text-ink dark:text-ink-dark shadow-[0_1px_2px_rgba(15,15,15,0.07)]'
       : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
@@ -208,7 +220,7 @@ export const rowList = `${card} divide-y divide-hairline dark:divide-hairline-da
 // 52px: two lines of text at the 44px touch minimum plus breathing room. The
 // title owns the width; the client and the reason sit under it.
 export const queueRow =
-  'w-full flex items-center gap-3 px-3 py-2 min-h-[52px] text-left transition-colors hover:bg-hover dark:hover:bg-hover-dark focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark';
+  `w-full flex items-center gap-3 px-3 py-2 min-h-[52px] text-left transition-colors hover:bg-hover dark:hover:bg-hover-dark focus-visible:bg-hover dark:focus-visible:bg-hover-dark ${focusRingInset}`;
 
 // ---------------------------------------------------------------------------
 // Shell
@@ -223,7 +235,7 @@ export const SIDEBAR_WIDTH = 248;
 export const SIDEBAR_RAIL = 48;
 
 export function navItem(active: boolean) {
-  return `w-full flex items-center gap-2 h-7 px-2 rounded-tile text-[13px] font-medium text-left transition-colors ${
+  return `w-full flex items-center gap-2 h-7 px-2 rounded-tile text-[13px] font-medium text-left transition-colors ${focusRingInset} ${
     active
       ? 'bg-hover dark:bg-hover-dark text-ink dark:text-ink-dark'
       : 'text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark'
@@ -231,7 +243,7 @@ export function navItem(active: boolean) {
 }
 
 export const navSubItem =
-  'w-full flex items-center gap-2 h-7 pl-8 pr-2 rounded-tile text-[13px] text-left transition-colors text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark';
+  `w-full flex items-center gap-2 h-7 pl-8 pr-2 rounded-tile text-[13px] text-left transition-colors text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark ${focusRingInset}`;
 
 export const navGroupLabel =
   'px-2 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint dark:text-ink-faintdark';
@@ -292,7 +304,7 @@ export const pageToolbar =
 // the page. 28px, not 24: a 24px target fails the touch minimum by a mile and
 // this one is reachable on a phone.
 export const columnAdd =
-  'w-7 h-7 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30';
+  `w-7 h-7 rounded-tile inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`;
 
 // The drop target while a card is over a column: a dashed outline and a faint
 // wash, so the lane shows itself only when it matters. The `!` is needed
@@ -316,7 +328,7 @@ export const stageTabRow =
 // the stage's own colour — so the colour vocabulary already used by the pills
 // carries the selection rather than a second, unrelated highlight.
 export function stageTab(active: boolean) {
-  return `flex-1 min-w-0 flex flex-col items-center justify-center h-11 gap-0.5 border-b-2 -mb-px transition-colors focus:outline-none ${
+  return `flex-1 min-w-0 flex flex-col items-center justify-center h-11 gap-0.5 border-b-2 -mb-px transition-colors ${focusRingInset} ${
     active
       ? 'text-ink dark:text-ink-dark'
       : 'border-transparent text-ink-faint dark:text-ink-faintdark hover:text-ink-soft dark:hover:text-ink-softdark'
@@ -351,7 +363,7 @@ export const workspaceTabList =
 // `indicator` is true once WorkspaceTabs has measured the row and draws the
 // one sliding underline itself; until then the current tab draws its own.
 export function workspaceTab(active: boolean, indicator = false) {
-  return `inline-flex items-center h-full px-2 border-b-2 text-[13px] font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark ${
+  return `inline-flex items-center h-full px-2 border-b-2 text-[13px] font-medium whitespace-nowrap transition-colors ${focusRingInset} ${
     active
       ? `${indicator ? 'border-transparent' : 'border-ink dark:border-ink-dark'} text-ink dark:text-ink-dark`
       : 'border-transparent text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark'
@@ -360,7 +372,7 @@ export function workspaceTab(active: boolean, indicator = false) {
 
 // Business scope chips: quiet until chosen, like a nav row.
 export function scopeChip(active: boolean) {
-  return `inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile text-[12px] font-medium whitespace-nowrap border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
+  return `inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile text-[12px] font-medium whitespace-nowrap border transition-colors ${focusRing} ${
     active
       ? 'bg-hover dark:bg-hover-dark border-hairline dark:border-hairline-dark text-ink dark:text-ink-dark'
       : 'border-transparent text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark'
@@ -371,4 +383,4 @@ export function scopeChip(active: boolean) {
 // their h-9 overrides lose to btnPrimary's own min-h-11 (Tailwind orders
 // same-property utilities itself), so the toolbar's real height is 44px.
 export const toolbarSelect =
-  'h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark focus:outline-none focus:ring-2 focus:ring-brand/30';
+  `h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark ${focusRing}`;

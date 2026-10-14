@@ -46,6 +46,9 @@ export default {
           text: '#b91c1c',
           textdark: '#f87171',
         },
+        // Keyboard focus. The brand red in light; a lighter red in dark, where
+        // the brand red is under the 3:1 a focus indicator needs.
+        focus: { DEFAULT: '#dc2626', dark: '#f87171' },
         // Semantic tones, shaped like brand: DEFAULT/hover are fills under
         // white text, soft/softhover the tinted washes, text/textdark the words.
         // src/color.test.ts asserts every pair against AA.

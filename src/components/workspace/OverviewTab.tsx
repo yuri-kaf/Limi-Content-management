@@ -8,7 +8,7 @@ import { stageCardFill, stageCardText, stageCardVars } from '../../stageColors';
 import { enter, staggerStyle } from '../../motion';
 import BusinessCard from './BusinessCard';
 import CampaignCard from './CampaignCard';
-import { shellPad, heading, faintText, sectionLabel, countChip } from '../../ui';
+import { shellPad, heading, faintText, sectionLabel, countChip, focusRing } from '../../ui';
 
 interface Props {
   client: Client;
@@ -80,7 +80,7 @@ export default function OverviewTab({
               {canManage && (
                 <button
                   onClick={onAddBusiness}
-                  className="min-h-[76px] rounded-card border border-dashed border-hairline dark:border-hairline-dark inline-flex items-center justify-center gap-2 text-[13px] font-medium text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-tint dark:hover:bg-tint-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                  className={`min-h-[76px] rounded-card border border-dashed border-hairline dark:border-hairline-dark inline-flex items-center justify-center gap-2 text-[13px] font-medium text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-tint dark:hover:bg-tint-dark transition-colors ${focusRing}`}
                 >
                   <Plus size={15} />
                   Add business

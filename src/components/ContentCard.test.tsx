@@ -61,8 +61,11 @@ describe('ContentCard', () => {
     renderCard();
     render(<ContentCard item={item({ id: 'i2', title: 'Static reel' })} draggable={false} />);
     for (const title of ['Momo reel', 'Static reel']) {
-      expect(cardOf(title)).toHaveClass('focus:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-brand');
-      expect(cardOf(title).className).not.toMatch(/ring-brand\//);
+      expect(cardOf(title)).toHaveClass(
+        'focus:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-focus',
+        'dark:focus-visible:ring-focus-dark'
+      );
+      expect(cardOf(title).className).not.toMatch(/ring-(?:brand|focus)\//);
     }
   });
 

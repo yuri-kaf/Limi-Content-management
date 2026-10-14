@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Campaign, ContentItem, ContentStatus } from '../types';
 import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
 import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
-import { lift } from '../ui';
+import { lift, focusRing } from '../ui';
 import ColorLabel from './ColorLabel';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar, AlertCircle,
@@ -65,7 +65,7 @@ const inHand =
 // card's second title line. The focus ring is solid brand, 4.8:1 on the light
 // page and 3.6:1 on the dark one: at 40% it was 1.9:1 and 1.5:1, and less
 // against the fills, under the 3:1 a focus indicator needs.
-const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} focus:outline-none focus-visible:ring-2 focus-visible:ring-brand`;
+const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} ${focusRing}`;
 
 interface ShellProps {
   /** The card's stage, which picks the pastel it is filled with. */

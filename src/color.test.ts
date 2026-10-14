@@ -135,6 +135,25 @@ describe('info tokens meet WCAG AA', () => {
   });
 });
 
+// WCAG 1.4.11: a focus indicator needs 3:1 against what it sits on. The ring
+// is drawn on a canvas-coloured offset, and on tint and hover where it is
+// inset, so it has to clear all three in each theme.
+describe('focus ring meets WCAG non-text contrast', () => {
+  const NON_TEXT = 3;
+
+  it('clears 3:1 on canvas, tint and hover in light mode', () => {
+    for (const ground of [palette.canvas.DEFAULT, palette.tint.DEFAULT, palette.hover.DEFAULT]) {
+      expect(contrastRatio(palette.focus.DEFAULT, ground)).toBeGreaterThanOrEqual(NON_TEXT);
+    }
+  });
+
+  it('clears 3:1 on canvas, tint and hover in dark mode', () => {
+    for (const ground of [palette.canvas.dark, palette.tint.dark, palette.hover.dark]) {
+      expect(contrastRatio(palette.focus.dark, ground)).toBeGreaterThanOrEqual(NON_TEXT);
+    }
+  });
+});
+
 describe('stage pills meet WCAG AA', () => {
   it('covers all four stages', () => {
     expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted']);

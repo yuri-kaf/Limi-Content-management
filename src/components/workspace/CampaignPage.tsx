@@ -12,7 +12,7 @@ import StagePill from '../StagePill';
 import ContentBoard from './ContentBoard';
 import {
   shellPad, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
-  btnGhost, toolbarSelect,
+  btnGhost, toolbarSelect, focusRing,
 } from '../../ui';
 
 interface Props {
@@ -40,7 +40,7 @@ function ItemChip({ item, onOpen }: { item: ContentItem; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="inline-flex items-center gap-1.5 h-7 max-w-[260px] pl-0.5 pr-2 rounded-tile border border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark hover:bg-hover dark:hover:bg-hover-dark text-[12px] text-ink dark:text-ink-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+      className={`inline-flex items-center gap-1.5 h-7 max-w-[260px] pl-0.5 pr-2 rounded-tile border border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark hover:bg-hover dark:hover:bg-hover-dark text-[12px] text-ink dark:text-ink-dark transition-colors ${focusRing}`}
     >
       <StagePill status={item.status} />
       <span className="truncate">{item.title}</span>
@@ -88,7 +88,7 @@ function DeliverableRow({
             <button
               onClick={onAdd}
               aria-label={`Add to ${deliverable.label}`}
-              className="inline-flex items-center gap-1 h-7 px-2 rounded-tile border border-dashed border-hairline dark:border-hairline-dark text-[12px] text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+              className={`inline-flex items-center gap-1 h-7 px-2 rounded-tile border border-dashed border-hairline dark:border-hairline-dark text-[12px] text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
             >
               <Plus size={12} />
               Add

@@ -9,7 +9,7 @@ import ColorLabel from './ColorLabel';
 import {
   overlay, modalPanel, modalTitle, btnIcon, btnPrimary, btnGhost, label, labelAside, hint,
   input, textarea, card, heading, bodyText, faintText, readout,
-  emptyState, emptyTitle, emptyBody,
+  emptyState, emptyTitle, emptyBody, focusRing,
 } from '../ui';
 
 // Each status as a tinted label in one of the folder colours, which are
@@ -22,7 +22,7 @@ const STATUS_META: Record<IdeaStatus, { label: string; color: FolderColor }> = {
 
 // A small icon action on an idea. Each one colours itself on hover by what it does.
 const ideaAction =
-  'w-8 h-8 inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30';
+  `w-8 h-8 inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark transition-colors ${focusRing}`;
 
 function IdeaForm({
   onClose,

@@ -64,7 +64,7 @@ export default function ColorSwatchPicker({ value, onChange, label }: Props) {
             onKeyDown={(e) => onKeyDown(e, i)}
             // Focus is drawn as an outline and the choice as a ring, so on the
             // chosen swatch — where focus usually is — neither hides the other.
-            className={`w-7 h-7 rounded-full inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 motion-reduce:transition-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand ${
+            className={`w-7 h-7 rounded-full inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 motion-reduce:transition-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus dark:focus-visible:outline-focus-dark ${
               on
                 ? 'ring-2 ring-offset-2 ring-ink dark:ring-ink-dark ring-offset-canvas dark:ring-offset-canvas-dark'
                 : ''

@@ -3,7 +3,7 @@ import { Business } from '../../types';
 import { BusinessSummary } from '../../campaigns';
 import FolderIcon from '../FolderIcon';
 import ColorLabel from '../ColorLabel';
-import { btnIcon, cardInteractive, faintText, heading } from '../../ui';
+import { btnIcon, cardInteractive, faintText, heading, focusRing } from '../../ui';
 
 interface Props {
   business: Business;
@@ -30,7 +30,7 @@ export default function BusinessCard({ business, summary, selected, canManage, o
       <button
         onClick={onSelect}
         aria-pressed={selected}
-        className="w-full text-left p-3.5 pr-12 flex items-start gap-3 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+        className={`w-full text-left p-3.5 pr-12 flex items-start gap-3 rounded-card ${focusRing}`}
       >
         <FolderIcon color={business.color} size={40} label={business.name} imageUrl={business.logoUrl} />
         <span className="flex-1 min-w-0">
