@@ -69,6 +69,10 @@ export const btnGhost =
 export const btnIcon =
   `inline-flex items-center justify-center w-9 h-9 rounded-tile text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-raised dark:hover:bg-raised-dark transition-colors ${focusRing}`;
 
+// An icon button that turns destructive on hover. The `!` is needed: btnIcon's
+// own hover colours would otherwise win by stylesheet order.
+export const btnIconDanger = `${btnIcon} hover:!text-brand-text dark:hover:!text-brand-textdark hover:!bg-brand-soft dark:hover:!bg-brand-softdark`;
+
 // Segmented pill navigation, as in the reference dashboards.
 export const pillGroup =
   'inline-flex items-center gap-1 p-1 rounded-full bg-raised dark:bg-raised-dark border border-hairline dark:border-hairline-dark';

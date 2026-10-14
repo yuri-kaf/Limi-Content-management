@@ -10,7 +10,7 @@ import { runWrite } from '../utils';
 import Logo from '../components/Logo';
 import {
   page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint,
-  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon,
+  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger,
 } from '../ui';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -397,7 +397,7 @@ export default function UserManagementPage() {
                       {!isMe && (
                         <button
                           onClick={() => handleDelete(user)}
-                          className={`${btnIcon} hover:text-brand-text dark:hover:text-brand-textdark hover:bg-brand-soft dark:hover:bg-brand-softdark`}
+                          className={btnIconDanger}
                           aria-label={`Remove ${user.name}`}
                         >
                           <Trash2 size={14} />
