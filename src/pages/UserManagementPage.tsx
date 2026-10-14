@@ -19,20 +19,21 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'client', label: 'Client' },
 ];
 
-// Role tints. Admin borrows the brand red; the other two reuse stage hues that
-// are already validated for contrast, and every chip carries its text label.
+// Role tints, all from contrast-tested tokens: admin in the brand red, the
+// manager in info blue, the client in success green. Every chip carries its
+// text label, so the colour is never the only cue.
 const ROLE_TONE: Record<UserRole, { chip: string; avatar: string }> = {
   admin: {
     chip: 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark',
     avatar: 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark',
   },
   'social-media-manager': {
-    chip: 'bg-sky-50 dark:bg-sky-950/40 text-stage-review dark:text-sky-400',
-    avatar: 'bg-sky-50 dark:bg-sky-950/40 text-stage-review dark:text-sky-400',
+    chip: 'bg-info-soft dark:bg-info-softdark text-info-text dark:text-info-textdark',
+    avatar: 'bg-info-soft dark:bg-info-softdark text-info-text dark:text-info-textdark',
   },
   client: {
-    chip: 'bg-emerald-50 dark:bg-emerald-950/40 text-stage-posted dark:text-emerald-400',
-    avatar: 'bg-emerald-50 dark:bg-emerald-950/40 text-stage-posted dark:text-emerald-400',
+    chip: 'bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark',
+    avatar: 'bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark',
   },
 };
 

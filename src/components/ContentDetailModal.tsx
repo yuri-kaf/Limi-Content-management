@@ -118,7 +118,7 @@ export default function ContentDetailModal({
   const reviewStatusEl = (() => {
     if (item.clientReview === 'approved') {
       return (
-        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+        <div className="flex items-center gap-1.5 text-success-text dark:text-success-textdark">
           <CheckCircle size={13} />
           <span className="text-xs font-semibold">Client Approved</span>
         </div>
@@ -320,7 +320,7 @@ export default function ContentDetailModal({
                   <div className="flex items-center gap-3">
                     <button onClick={() => handleCopy('caption', caption)} className={inlineAction}>
                       {copied === 'caption'
-                        ? <Check size={11} className="text-emerald-500" />
+                        ? <Check size={11} className="text-success-text dark:text-success-textdark" />
                         : <Copy size={11} />}
                       <span>{copied === 'caption' ? 'Copied!' : 'Copy'}</span>
                     </button>
@@ -330,7 +330,7 @@ export default function ContentDetailModal({
                         className={inlineAction}
                       >
                         {copied === 'both'
-                          ? <Check size={11} className="text-emerald-500" />
+                          ? <Check size={11} className="text-success-text dark:text-success-textdark" />
                           : <Copy size={11} />}
                         <span>{copied === 'both' ? 'Copied!' : '+ tags'}</span>
                       </button>
@@ -349,7 +349,7 @@ export default function ContentDetailModal({
                   <span className={sectionLabel}>Hashtags</span>
                   <button onClick={() => handleCopy('hashtags', hashtags)} className={inlineAction}>
                     {copied === 'hashtags'
-                      ? <Check size={11} className="text-emerald-500" />
+                      ? <Check size={11} className="text-success-text dark:text-success-textdark" />
                       : <Copy size={11} />}
                     <span>{copied === 'hashtags' ? 'Copied!' : 'Copy'}</span>
                   </button>
@@ -361,10 +361,10 @@ export default function ContentDetailModal({
             {/* Internal notes — never shown to the client */}
             {!isClientRole && teamNotes && (
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-500/80">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-warning-text dark:text-warning-textdark">
                   Team Notes
                 </span>
-                <p className="mt-2 max-h-[7.25rem] overflow-y-auto overscroll-contain rounded-tile border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm leading-relaxed whitespace-pre-wrap text-ink-soft dark:text-ink-softdark">
+                <p className="mt-2 max-h-[7.25rem] overflow-y-auto overscroll-contain rounded-tile border border-warning/30 dark:border-warning-textdark/25 bg-warning-soft dark:bg-warning-softdark p-3 text-sm leading-relaxed whitespace-pre-wrap text-ink-soft dark:text-ink-softdark">
                   {teamNotes}
                 </p>
               </div>
@@ -418,7 +418,7 @@ export default function ContentDetailModal({
             {isClientRole && onReview && (
               <div>
                 {item.clientReview === 'approved' ? (
-                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
+                  <div className="flex items-center gap-2 text-success-text dark:text-success-textdark text-sm font-semibold">
                     <CheckCircle size={15} />
                     You approved this content
                   </div>
@@ -501,7 +501,7 @@ export default function ContentDetailModal({
                         deployed origin before sending review links.
                       </p>
                     ) : (
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-500/70">
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-warning-text dark:text-warning-textdark">
                         Anyone with this link can view and review this item without
                         signing in. Send it only to people who should see it.
                       </p>

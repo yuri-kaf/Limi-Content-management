@@ -91,7 +91,7 @@ export function QueueRow({
               {showSource && <span className="mx-1.5 opacity-50 flex-shrink-0">·</span>}
               {/* "2 months late" says what a red date only implied. */}
               <span
-                className={`flex-shrink-0 ${late ? 'text-brand dark:text-red-400 font-medium' : ''}`}
+                className={`flex-shrink-0 ${late ? 'text-brand-text dark:text-brand-textdark font-medium' : ''}`}
               >
                 {slot.text}
               </span>
@@ -106,7 +106,7 @@ export function QueueRow({
       {when && (
         <span
           className={`hidden sm:block text-[11px] font-medium tabular-nums flex-shrink-0 ${
-            late ? 'text-brand dark:text-red-400' : faintText
+            late ? 'text-brand-text dark:text-brand-textdark' : faintText
           }`}
         >
           {when}

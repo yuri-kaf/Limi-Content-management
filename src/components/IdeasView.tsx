@@ -241,7 +241,7 @@ export default function IdeasView({
                       {idea.status !== 'accepted' && (
                         <button
                           onClick={() => handleDecision(idea, 'accepted')}
-                          className={`${ideaAction} hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40`}
+                          className={`${ideaAction} hover:text-success-text dark:hover:text-success-textdark hover:bg-success-soft dark:hover:bg-success-softdark`}
                           aria-label="Accept"
                         >
                           <Check size={14} />

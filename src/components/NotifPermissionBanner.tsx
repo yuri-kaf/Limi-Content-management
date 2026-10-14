@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Bell, X, Check } from 'lucide-react';
 import { requestNotificationPermission } from '../hooks/useNotifications';
-import { card, heading, faintText, btnIcon } from '../ui';
+import { card, heading, faintText, btnIcon, btnPrimarySm } from '../ui';
 
 const DISMISSED_KEY = 'limi_notif_banner_dismissed';
-
-// btnPrimary's 44px minimum cannot be overridden by a smaller height (Tailwind,
-// not the class list, orders the two), so the banner's compact button is its own.
-const enableBtn =
-  'inline-flex items-center h-8 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40';
 
 export default function NotifPermissionBanner() {
   const [permission, setPermission] = useState<NotificationPermission | null>(null);
@@ -50,12 +45,12 @@ export default function NotifPermissionBanner() {
     return (
       <div
         role="status"
-        className="mb-5 rounded-card border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 flex items-center gap-3"
+        className="mb-5 rounded-card border border-success/30 dark:border-success-textdark/30 bg-success-soft dark:bg-success-softdark px-4 py-3 flex items-center gap-3"
       >
-        <div className="w-7 h-7 rounded-tile bg-white dark:bg-emerald-950/60 flex items-center justify-center flex-shrink-0">
-          <Check size={14} className="text-emerald-700 dark:text-emerald-400" />
+        <div className="w-7 h-7 rounded-tile bg-surface dark:bg-success-softhoverdark flex items-center justify-center flex-shrink-0">
+          <Check size={14} className="text-success-text dark:text-success-textdark" />
         </div>
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+        <p className="text-sm font-medium text-success-text dark:text-success-textdark">
           Reminders enabled — you'll be notified when it's time to post.
         </p>
       </div>
@@ -74,7 +69,7 @@ export default function NotifPermissionBanner() {
         </p>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button onClick={handleEnable} disabled={enabling} className={enableBtn}>
+        <button onClick={handleEnable} disabled={enabling} className={btnPrimarySm}>
           {enabling ? 'Enabling…' : 'Enable'}
         </button>
         <button onClick={handleDismiss} className={btnIcon} aria-label="Dismiss">

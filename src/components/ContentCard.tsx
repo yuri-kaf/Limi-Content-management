@@ -50,7 +50,7 @@ const chip = `bg-white/70 dark:bg-black/20 ${stageCardText}`;
 
 // The client's decision and an overdue date use colours measured against white,
 // so their chips are solid rather than translucent.
-const solidChip = 'bg-white dark:bg-black/30';
+const solidChip = 'bg-surface dark:bg-black/30';
 
 // The copy in the hand: tilted and raised, as if picked up. While a drop
 // settles, ContentBoard's drop animation puts `settling` on the overlay, and
@@ -234,7 +234,7 @@ export default function ContentCard({
     item.clientReview === 'declined'
       ? { text: 'Declined', className: 'text-brand-text dark:text-brand-textdark' }
       : item.clientReview === 'approved'
-        ? { text: 'Approved', className: 'text-emerald-700 dark:text-emerald-400' }
+        ? { text: 'Approved', className: 'text-success-text dark:text-success-textdark' }
         : null;
 
   const face = (

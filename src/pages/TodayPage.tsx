@@ -70,7 +70,7 @@ export default function TodayPage() {
           {!loading && total === 0 ? (
             <div className={emptyState}>
               <div className="w-11 h-11 rounded-tile bg-tint dark:bg-tint-dark flex items-center justify-center">
-                <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400" />
+                <CheckCircle2 size={20} className="text-success-text dark:text-success-textdark" />
               </div>
               <p className={emptyTitle}>All clear</p>
               <p className={emptyBody}>

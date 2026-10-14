@@ -4,12 +4,10 @@ import { CheckCircle, XCircle, ExternalLink, Download, Film, Image as ImageIcon 
 import { useShare } from '../store';
 import { getMediaInfo, runWrite } from '../utils';
 import Logo from '../components/Logo';
-import { card, heading, bodyText, faintText, readout, textarea, btnGhost, btnGhostDanger, btnPrimary } from '../ui';
-
-// The one page a reviewer outside the app acts on, so approving is a solid
-// button. Emerald 700, not 600: white on 600 measures 3.8:1 and fails AA.
-const approveBtn =
-  'flex-1 inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40';
+import {
+  card, heading, bodyText, faintText, readout, textarea, btnGhost, btnGhostDanger, btnPrimary,
+  btnSuccessSolid,
+} from '../ui';
 
 export default function PublicReviewPage() {
   const { token } = useParams<{ token: string }>();
@@ -128,7 +126,7 @@ export default function PublicReviewPage() {
               <div
                 className={`flex items-center gap-2 rounded-tile p-3.5 ${
                   approved
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+                    ? 'bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark'
                     : 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark'
                 }`}
               >
@@ -172,7 +170,7 @@ export default function PublicReviewPage() {
                   <XCircle size={14} />
                   Request changes
                 </button>
-                <button onClick={() => decide('approved')} disabled={submitting} className={approveBtn}>
+                <button onClick={() => decide('approved')} disabled={submitting} className={`${btnSuccessSolid} flex-1`}>
                   <CheckCircle size={14} />
                   {submitting ? 'Sending…' : 'Approve'}
                 </button>

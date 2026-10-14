@@ -75,8 +75,8 @@ export default function ClientsPage() {
 
   const totalContent = visibleClients.reduce((sum, c) => sum + c.content.length, 0);
 
-  const banner = 'mb-5 rounded-card border border-amber-300 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-4';
-  const bannerBtn = 'mt-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-tile transition-colors';
+  const banner = 'mb-5 rounded-card border border-warning/30 dark:border-warning-textdark/25 bg-warning-soft dark:bg-warning-softdark p-4';
+  const bannerBtn = 'mt-3 inline-flex items-center h-8 [@media(hover:none)]:h-11 px-4 rounded-tile bg-warning hover:bg-warning-hover disabled:opacity-50 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
   return (
     // The shell no longer scrolls, so this page owns its scroll region.
@@ -86,10 +86,10 @@ export default function ClientsPage() {
 
       {isAdmin && pendingMigration.length === 0 && pendingCaptionMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
             Captions need moving
           </h2>
-          <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             {pendingCaptionMigration.length} item
             {pendingCaptionMigration.length === 1 ? '' : 's'} still keep their caption in the
             old notes field. Moving them frees up Team Notes for internal remarks the client
@@ -103,10 +103,10 @@ export default function ClientsPage() {
 
       {isAdmin && pendingMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
             Content needs migrating
           </h2>
-          <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             {pendingMigration.length} client{pendingMigration.length === 1 ? '' : 's'} still
             store content in the old format. Move it to the new structure to enable comments,
             versions and per-item permissions. Your existing data is copied, not deleted, so
@@ -123,10 +123,10 @@ export default function ClientsPage() {
           not hold it back for everyone else. */}
       {isAdmin && pendingBusinessMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
             Set up businesses
           </h2>
-          <p className="text-xs text-amber-800/80 dark:text-amber-200/60 mt-1 leading-relaxed">
+          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             A client can now run more than one business, each with its own content and
             campaigns. {pendingBusinessMigration.length} client
             {pendingBusinessMigration.length === 1 ? ' needs' : 's need'} a first business, named
