@@ -39,6 +39,11 @@ export const label =
 export const input =
   'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all';
 
+// A compact primary for inline banners, where a 44px button would outweigh the
+// message. Full height again where there is no pointer to aim with.
+export const btnPrimarySm =
+  'inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/40';
+
 // min-h-11 keeps primary actions at the 44px touch target.
 export const btnPrimary =
   'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-brand hover:bg-brand-hover text-white text-sm font-semibold shadow-pill transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/40';
@@ -81,7 +86,12 @@ export function chip(active: boolean) {
 // Approve / decline and other semantic actions. Tinted rather than filled —
 // the filled treatment stays reserved for the one primary action on a surface.
 export const btnSuccess =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30';
+  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-success/30 dark:border-success-textdark/30 bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark hover:bg-success-softhover dark:hover:bg-success-softhoverdark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+
+// The filled form, for the one surface where approving *is* the primary action:
+// the public review page a client acts on without signing in.
+export const btnSuccessSolid =
+  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-success hover:bg-success-hover text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand/30';
 
 export const btnDanger =
   'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark hover:bg-brand-softhover dark:hover:bg-brand-softhoverdark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';

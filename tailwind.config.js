@@ -46,6 +46,37 @@ export default {
           text: '#b91c1c',
           textdark: '#f87171',
         },
+        // Semantic tones, shaped like brand: DEFAULT/hover are fills under
+        // white text, soft/softhover the tinted washes, text/textdark the words.
+        // src/color.test.ts asserts every pair against AA.
+        success: {
+          DEFAULT: '#047857',
+          hover: '#065f46',
+          soft: '#ecfdf5',
+          softdark: '#13271d',
+          softhover: '#d1fae5',
+          softhoverdark: '#1a3527',
+          text: '#047857',
+          textdark: '#34d399',
+        },
+        warning: {
+          DEFAULT: '#b45309',
+          hover: '#92400e',
+          soft: '#fffbeb',
+          softdark: '#2a2210',
+          softhover: '#fef3c7',
+          softhoverdark: '#3a2c10',
+          text: '#92400e',
+          textdark: '#fbbf24',
+        },
+        // A neutral role tint (the Social Media Manager chip). The Review
+        // stage's pill pair, so the app keeps one blue.
+        info: {
+          soft: '#e7f3f8',
+          softdark: '#15303d',
+          text: '#0b6e99',
+          textdark: '#77bddd',
+        },
         // Stage text colours. The tint/text pairs used by the pills live in
         // STAGES in src/utils.ts, because they are applied as inline styles.
         stage: {

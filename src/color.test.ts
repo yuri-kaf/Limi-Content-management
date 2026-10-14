@@ -89,6 +89,52 @@ describe('brand red as text meets WCAG AA', () => {
   });
 });
 
+// Success (approved, done), warning (caution, needs attention) and info (a
+// neutral role tint). Each is a fill with white text, a soft tint, and a text
+// colour that has to read on the page, the tint and its own soft wash.
+describe.each(['success', 'warning'])('%s tokens meet WCAG AA', (name) => {
+  const tone = () => palette[name];
+
+  it('keeps white text readable on the fill and its hover', () => {
+    expect(contrastRatio('#ffffff', tone().DEFAULT)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio('#ffffff', tone().hover)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it('has light text that reads on canvas, surface, tint and its soft washes', () => {
+    for (const ground of [
+      palette.canvas.DEFAULT, palette.surface.DEFAULT, palette.tint.DEFAULT,
+      tone().soft, tone().softhover,
+    ]) {
+      expect(contrastRatio(tone().text, ground)).toBeGreaterThanOrEqual(AA);
+    }
+  });
+
+  it('has dark text that reads on canvas, surface, tint and its soft washes', () => {
+    for (const ground of [
+      palette.canvas.dark, palette.surface.dark, palette.tint.dark,
+      tone().softdark, tone().softhoverdark,
+    ]) {
+      expect(contrastRatio(tone().textdark, ground)).toBeGreaterThanOrEqual(AA);
+    }
+  });
+
+  it('keeps body ink readable on its soft wash', () => {
+    expect(contrastRatio(palette.ink.soft, tone().soft)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(palette.ink.softdark, tone().softdark)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+describe('info tokens meet WCAG AA', () => {
+  it('reads on canvas, tint and its soft wash in both themes', () => {
+    for (const ground of [palette.canvas.DEFAULT, palette.tint.DEFAULT, palette.info.soft]) {
+      expect(contrastRatio(palette.info.text, ground)).toBeGreaterThanOrEqual(AA);
+    }
+    for (const ground of [palette.canvas.dark, palette.tint.dark, palette.info.softdark]) {
+      expect(contrastRatio(palette.info.textdark, ground)).toBeGreaterThanOrEqual(AA);
+    }
+  });
+});
+
 describe('stage pills meet WCAG AA', () => {
   it('covers all four stages', () => {
     expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted']);
