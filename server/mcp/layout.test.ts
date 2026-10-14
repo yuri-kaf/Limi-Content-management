@@ -44,9 +44,10 @@ describe('vercel.json', () => {
     expect(destinationOf('/.well-known/oauth-authorization-server')).toBe('/api/well-known/oauth-authorization-server');
   });
 
-  it('sends everything else to the app, except api/', () => {
+  it('sends everything else to the app, except api/ and .well-known/', () => {
     expect(destinationOf('/content')).toBe('/index.html');
     expect(destinationOf('/api/unknown')).toBeUndefined();
+    expect(destinationOf('/.well-known/openid-configuration')).toBeUndefined();
   });
 
   it('points every rewrite at a function that exists', () => {
