@@ -24,8 +24,11 @@ export default function PublicReviewPage() {
     setDeclining(false);
   }
 
+  // A tinted page under a canvas-coloured card, in both themes. On a dark
+  // canvas page the card was the page's own colour, and with the lift shadow
+  // invisible on dark only a 1px hairline told the two apart.
   const shell = (children: React.ReactNode) => (
-    <div className="min-h-screen min-h-dvh bg-tint dark:bg-canvas-dark flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-dvh bg-tint dark:bg-tint-dark flex items-center justify-center p-4">
       <div className="w-full max-w-lg">{children}</div>
     </div>
   );
