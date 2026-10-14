@@ -99,6 +99,15 @@ describe('the MCP endpoint', () => {
     expect(tools.find((t) => t.name === 'move_content')!.annotations.readOnlyHint).toBe(false);
   });
 
+  it('marks the tools that overwrite existing data as destructive', async () => {
+    const { handle } = setup();
+    const { body } = await rpc(handle, await accessToken('admin1'), 'tools/list');
+    const tools = body.result.tools as { name: string; annotations: { destructiveHint: boolean } }[];
+    const destructive = (name: string) => tools.find((t) => t.name === name)!.annotations.destructiveHint;
+    for (const name of ['update_content', 'move_content', 'review_content']) expect(destructive(name)).toBe(true);
+    for (const name of ['create_content', 'add_comment', 'add_idea']) expect(destructive(name)).toBe(false);
+  });
+
   it('runs a tool as the signed-in person', async () => {
     const { handle } = setup();
     const { body } = await rpc(handle, await accessToken('cli1'), 'tools/call', { name: 'whoami', arguments: {} });

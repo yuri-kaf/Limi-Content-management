@@ -23,6 +23,8 @@ export interface LimiTool {
   description: string;
   input: z.ZodObject;
   readOnly: boolean;
+  /** Overwrites what is already there (a stage, a field, a review), so clients may confirm first. */
+  destructive?: boolean;
   run(session: Session, args: never): Promise<unknown>;
 }
 
@@ -402,6 +404,7 @@ const updateContentTool = defineTool({
     'Changes any of title, schedule, caption, hashtags, platforms, notes and link. A new link keeps the ' +
     `old one as a version and notes "uploaded vN" on the thread. Pass scheduled "" to unschedule. ${DATES} ${WRITES}`,
   readOnly: false,
+  destructive: true,
   input: z.object({
     id: postId,
     title: z.string().min(1).max(200).optional(),
@@ -440,6 +443,7 @@ const moveContentTool = defineTool({
   title: 'Move a post to another stage',
   description: `Moves a post to Editing, Review, To Post or Posted, and notes the move on its thread. ${WRITES}`,
   readOnly: false,
+  destructive: true,
   input: z.object({ id: postId, stage }),
   async run(session, args) {
     const { client, item } = findContent(await loadWorkspace(session), args.id);
@@ -454,6 +458,7 @@ const reviewContentTool = defineTool({
   title: 'Record a review decision',
   description: `Approves or declines a post (or resets it to pending), with an optional note to the team. ${WRITES}`,
   readOnly: false,
+  destructive: true,
   input: z.object({
     id: postId,
     decision: z.enum(['approved', 'declined', 'pending']),

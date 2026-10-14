@@ -83,7 +83,7 @@ export function createMcpEndpoint(
             annotations: {
               title: tool.title,
               readOnlyHint: tool.readOnly,
-              destructiveHint: false,
+              destructiveHint: tool.destructive ?? false,
               idempotentHint: tool.readOnly,
               openWorldHint: false,
             },
