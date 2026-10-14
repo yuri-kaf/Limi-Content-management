@@ -47,6 +47,26 @@ describe('WorkspaceTabs', () => {
     }
   });
 
+  it('re-measures when a tab itself changes size, not only the row', () => {
+    // A late web font widens the labels without resizing the flex-1 row, so
+    // each tab has to be watched as well.
+    const watched: Element[] = [];
+    const original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      observe(el: Element) { watched.push(el); }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      render(<WorkspaceTabs tabs={tabsFor('client')} active="content" onSelect={vi.fn()} />);
+      const nav = screen.getByRole('navigation', { name: 'Client workspace' });
+      expect(watched).toContain(nav);
+      for (const tab of within(nav).getAllByRole('button')) expect(watched).toContain(tab);
+    } finally {
+      globalThis.ResizeObserver = original;
+    }
+  });
+
   it('keeps the underline on the tab itself where nothing can be measured', () => {
     render(<WorkspaceTabs tabs={tabsFor('admin')} active="content" onSelect={vi.fn()} />);
     expect(screen.queryByTestId('tab-indicator')).not.toBeInTheDocument();

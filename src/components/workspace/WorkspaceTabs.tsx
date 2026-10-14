@@ -48,6 +48,9 @@ export default function WorkspaceTabs({ tabs, active, onSelect, actions }: Props
     if (!list || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
     observer.observe(list);
+    // The row is flex-1, so a late web font widens the labels without resizing
+    // it. Watch the tabs too, or the underline keeps the fallback font's width.
+    tabRefs.current.forEach((tab) => observer.observe(tab));
     return () => observer.disconnect();
   }, [active, tabKey]);
 
