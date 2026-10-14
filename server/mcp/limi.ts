@@ -1,9 +1,11 @@
 import './env.js';
 import type {
-  AppUser, Business, Campaign, Client, Comment, ContentItem, Idea,
+  AppUser, Business, Campaign, Client, ClientReview, Comment, ContentItem, ContentStatus, Idea, MediaType,
+  Platform, Version,
 } from '../../src/types.js';
 import { firstBusinessFirst } from '../../src/campaigns.js';
 import { todaySources } from '../../src/today.js';
+import { extractDriveFileId, generateId, getMediaInfo, STAGES } from '../../src/utils.js';
 import { FirestoreError, type FirestoreClient } from './firestore.js';
 
 // The data layer, mirroring src/store.ts over Firestore REST. Every read and
@@ -207,4 +209,195 @@ export function parseWhen(input: string): number {
   const date = new Date(y, mo - 1, d, h, mi);
   if (date.getMonth() !== mo - 1 || date.getDate() !== d || h > 23 || mi > 59) throw fail();
   return date.getTime();
+}
+
+// ─── Writes ──────────────────────────────────────────────────────────────────
+
+export function stageLabel(status: ContentStatus): string {
+  return STAGES.find((s) => s.id === status)?.label ?? status;
+}
+
+/** Stored for Drive links only, as the app's form does. */
+function driveFileIdOf(link: string): string {
+  return getMediaInfo(link).provider === 'drive' ? extractDriveFileId(link.trim()) ?? '' : '';
+}
+
+/** An image link is a graphic; anything else a video, the app's default. */
+export function mediaTypeFor(link: string): MediaType {
+  return getMediaInfo(link).provider === 'image' ? 'graphic' : 'video';
+}
+
+const contentPath = (clientId: string, contentId: string) => `clients/${clientId}/content/${contentId}`;
+
+// System entries double as the activity trail. As in the app, a failure here
+// never fails the change the person asked for.
+export async function writeSystemComment(session: Session, clientId: string, contentId: string, body: string) {
+  try {
+    const actor = actorOf(session);
+    const id = generateId();
+    const entry: Comment = {
+      id, kind: 'system', body, authorEmail: actor.email, authorName: actor.name, createdAt: session.now(),
+    };
+    await session.fs.create(`${contentPath(clientId, contentId)}/comments`, id, { ...entry });
+  } catch (err) {
+    console.error('[limi-mcp] could not write activity entry', err);
+  }
+}
+
+export interface NewContent {
+  title: string;
+  driveLink: string;
+  mediaType: MediaType;
+  caption?: string;
+  hashtags?: string;
+  platforms?: Platform[];
+  notes?: string;
+  status: ContentStatus;
+  scheduledAt?: number;
+  businessId: string;
+  campaignId?: string;
+  deliverableId?: string;
+}
+
+/** Mirrors addContent. */
+export async function createContent(session: Session, clientId: string, data: NewContent): Promise<ContentItem> {
+  const id = generateId();
+  const item: ContentItem = {
+    id,
+    title: data.title,
+    driveLink: data.driveLink,
+    driveFileId: driveFileIdOf(data.driveLink),
+    mediaType: data.mediaType,
+    caption: data.caption || '',
+    hashtags: data.hashtags || '',
+    platforms: data.platforms ?? [],
+    notes: data.notes || '',
+    status: data.status,
+    createdAt: session.now(),
+    scheduledAt: data.scheduledAt || 0,
+    uploadedByEmail: actorOf(session).email,
+    clientReview: 'pending',
+    reviewNote: '',
+    businessId: data.businessId,
+    campaignId: data.campaignId,
+    deliverableId: data.deliverableId,
+  };
+  // encodeFields drops the unset filing fields, as defined() does in the app.
+  await session.fs.create(`clients/${clientId}/content`, id, { ...item });
+  return item;
+}
+
+export interface ContentChanges {
+  title?: string;
+  /** 0 takes the post off the schedule. */
+  scheduledAt?: number;
+  caption?: string;
+  hashtags?: string;
+  platforms?: Platform[];
+  notes?: string;
+  driveLink?: string;
+  mediaType?: MediaType;
+}
+
+/**
+ * Mirrors updateContent: only the given fields are written. A changed link is
+ * a new cut, not a correction, so the old one is appended to `versions`
+ * atomically and the thread says "uploaded vN".
+ */
+export async function updateContent(
+  session: Session,
+  clientId: string,
+  previous: ContentItem,
+  changes: ContentChanges
+): Promise<{ changed: string[]; version?: number }> {
+  const data: Record<string, unknown> = {};
+  for (const key of ['title', 'scheduledAt', 'caption', 'hashtags', 'platforms', 'notes', 'mediaType'] as const) {
+    if (changes[key] !== undefined) data[key] = changes[key];
+  }
+  const link = changes.driveLink?.trim();
+  const linkChanged = link !== undefined && link !== previous.driveLink;
+  let append: Record<string, unknown[]> | undefined;
+  if (linkChanged) {
+    data.driveLink = link;
+    data.driveFileId = driveFileIdOf(link);
+    const old: Version = {
+      link: previous.driveLink,
+      mediaType: previous.mediaType ?? 'video',
+      replacedAt: session.now(),
+      replacedByEmail: actorOf(session).email,
+    };
+    append = { versions: [{ ...old }] };
+  }
+  const changed = Object.keys(data);
+  if (changed.length === 0) throw new LimiError('Nothing to change: every value given is already on the post.');
+
+  await session.fs.update(contentPath(clientId, previous.id), data, append);
+  if (!linkChanged) return { changed };
+  const version = (previous.versions?.length ?? 0) + 2;
+  await writeSystemComment(session, clientId, previous.id, `uploaded v${version}`);
+  return { changed, version };
+}
+
+/** Mirrors updateContentStatus: the status, then the activity entry. */
+export async function moveContent(session: Session, clientId: string, contentId: string, status: ContentStatus) {
+  await session.fs.update(contentPath(clientId, contentId), { status });
+  await writeSystemComment(session, clientId, contentId, `moved this to ${stageLabel(status)}`);
+}
+
+/** Mirrors updateClientReview: exactly the two fields a client may touch. */
+export async function reviewContent(
+  session: Session,
+  clientId: string,
+  contentId: string,
+  review: ClientReview,
+  note?: string
+) {
+  await session.fs.update(contentPath(clientId, contentId), { clientReview: review, reviewNote: note || '' });
+  await writeSystemComment(session, clientId, contentId, note ? `${review} this — "${note}"` : `${review} this`);
+}
+
+/** Mirrors addComment. */
+export async function addComment(
+  session: Session,
+  clientId: string,
+  contentId: string,
+  body: string,
+  atSeconds?: number
+): Promise<Comment> {
+  const actor = actorOf(session);
+  const id = generateId();
+  const comment: Comment = {
+    id,
+    kind: 'user',
+    body,
+    authorEmail: actor.email,
+    authorName: actor.name,
+    createdAt: session.now(),
+    ...(atSeconds !== undefined ? { atSeconds } : {}),
+  };
+  await session.fs.create(`${contentPath(clientId, contentId)}/comments`, id, { ...comment });
+  return comment;
+}
+
+/** Mirrors addIdea. */
+export async function addIdea(
+  session: Session,
+  clientId: string,
+  data: { title: string; description: string; links: string[]; businessId?: string }
+): Promise<Idea> {
+  const actor = actorOf(session);
+  const id = generateId();
+  const idea: Idea = {
+    id,
+    title: data.title,
+    description: data.description,
+    links: data.links,
+    ...(data.businessId ? { businessId: data.businessId } : {}),
+    status: 'new',
+    createdByEmail: actor.email,
+    createdByName: actor.name,
+    createdAt: session.now(),
+  };
+  await session.fs.create(`clients/${clientId}/ideas`, id, { ...idea });
+  return idea;
 }
