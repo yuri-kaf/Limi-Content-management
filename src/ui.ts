@@ -348,12 +348,14 @@ export function stageTab(active: boolean) {
 // On a phone there is only one column, so nothing needs distinguishing from
 // anything: the tinted, bordered box that separates four columns on the desktop
 // board is pure frame here, and it costs 22px of card width per side.
+// The padding is inside the scroll region, so a lifted card's shadow and a
+// focus ring at the edge are not clipped by it.
 export const columnBodyPlain =
-  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 pb-2';
+  'flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2 px-3 pt-2 pb-5';
 
 // One column, full width, its own scroll region. The desktop board keeps the
 // fixed 280px columns; this is the same column body at a different width.
-export const boardSingle = 'flex-1 min-h-0 flex flex-col px-3 pb-3 pt-2';
+export const boardSingle = 'flex-1 min-h-0 flex flex-col';
 
 // ---------------------------------------------------------------------------
 // Client workspace

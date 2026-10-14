@@ -326,6 +326,17 @@ describe('ContentBoard — moving cards', () => {
     act(() => dnd.props?.onDragCancel?.({ active: { id: 'a' } } as never));
   });
 
+  // The padding sits inside the phone column's scroll region, not around it,
+  // so a lifted card's shadow and a focus ring have room instead of being cut
+  // off at the region's edge.
+  it('pads the phone column inside its scroll region', () => {
+    stubMatchMedia(false);
+    renderBoard({ content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })] });
+    const region = card('Launch reel').closest('.overflow-y-auto') as HTMLElement;
+    expect(region).toHaveClass('px-3', 'pt-2');
+    expect(region.parentElement!.parentElement).not.toHaveClass('px-3');
+  });
+
   it('settles a dropped card into its slot', () => {
     renderBoard();
     expect(dnd.overlay?.dropAnimation).toEqual(expect.objectContaining({ duration: 220 }));
