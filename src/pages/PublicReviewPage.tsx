@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, ExternalLink, Download, Film, Image as ImageIcon 
 import { useShare } from '../store';
 import { getMediaInfo, runWrite } from '../utils';
 import Logo from '../components/Logo';
-import { card, heading, bodyText, faintText, readout, textarea, btnGhost, btnPrimary } from '../ui';
+import { card, heading, bodyText, faintText, readout, textarea, btnGhost, btnGhostDanger, btnPrimary } from '../ui';
 
 // The one page a reviewer outside the app acts on, so approving is a solid
 // button. Emerald 700, not 600: white on 600 measures 3.8:1 and fails AA.
@@ -167,7 +167,7 @@ export default function PublicReviewPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setDeclining(true)}
-                  className={`${btnGhost} flex-1 hover:!text-brand hover:!border-brand/40`}
+                  className={`${btnGhostDanger} flex-1`}
                 >
                   <XCircle size={14} />
                   Request changes
