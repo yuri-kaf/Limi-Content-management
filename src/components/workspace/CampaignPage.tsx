@@ -12,8 +12,9 @@ import StagePill from '../StagePill';
 import ContentBoard from './ContentBoard';
 import {
   shellPad, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
-  btnGhost, toolbarSelect, focusRing,
+  btnGhost, focusRing,
 } from '../../ui';
+import ToolbarSelect from '../ToolbarSelect';
 
 interface Props {
   campaign: Campaign;
@@ -147,16 +148,15 @@ export default function CampaignPage({
           </div>
           <div className="flex items-center gap-2 ml-auto">
           {canManage ? (
-            <select
+            <ToolbarSelect
               aria-label="Status"
               value={campaign.status}
               onChange={(e) => onSetStatus(e.target.value as CampaignStatus)}
-              className={toolbarSelect}
             >
               {CAMPAIGN_STATUSES.map((s) => (
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
-            </select>
+            </ToolbarSelect>
           ) : (
             <ColorLabel color={status.color}>{status.label}</ColorLabel>
           )}

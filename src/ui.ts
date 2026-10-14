@@ -427,7 +427,14 @@ export function scopeChip(active: boolean) {
   }`;
 }
 
-// A compact native select for toolbars, the height of the compact buttons
-// beside it: 36px under a pointer, 44px where there is none.
+// A compact native select for toolbars (see ToolbarSelect), drawn like
+// btnGhostSm beside it: same height, radius, hairline, hover and focus. The OS
+// chevron is removed and a lucide one drawn in the right padding instead.
+export const toolbarSelectWrap =
+  'relative inline-flex min-w-0 max-w-[140px] sm:max-w-[200px]';
+
 export const toolbarSelect =
-  `h-9 [@media(hover:none)]:h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark ${focusRing}`;
+  `appearance-none w-full h-9 [@media(hover:none)]:h-11 pl-3 pr-8 truncate bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile text-[12px] font-medium text-ink-soft dark:text-ink-softdark hover:bg-raised dark:hover:bg-raised-dark transition-colors cursor-pointer ${focusRing}`;
+
+export const toolbarSelectChevron =
+  'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint dark:text-ink-faintdark';

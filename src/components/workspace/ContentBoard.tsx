@@ -32,8 +32,9 @@ import { NO_CAMPAIGN, scopeContent } from '../../campaigns';
 import { ContentFilters, NO_FILTERS, activeFilterCount, filterContent } from '../../filters';
 import {
   boardScroller, boardRow, boardColumn, boardSingle, columnHeader, columnBody, columnBodyPlain,
-  countChip, pageToolbar, faintText, toolbarSelect, btnPrimarySm,
+  countChip, pageToolbar, faintText, btnPrimarySm,
 } from '../../ui';
+import ToolbarSelect from '../ToolbarSelect';
 
 // `tab` is the short form for the phone tab strip, where four labels share the
 // width. The long label is what the column header shows.
@@ -421,16 +422,15 @@ export default function ContentBoard({
       <div className={pageToolbar}>
         <div className="ml-auto flex items-center gap-1.5 min-w-0">
           {showCampaignFilter && (
-            <select
+            <ToolbarSelect
               aria-label="Campaign"
               value={campaignId}
               onChange={(e) => setPicked(e.target.value)}
-              className={toolbarSelect}
             >
               <option value="">All campaigns</option>
               <option value={NO_CAMPAIGN}>No campaign</option>
               <CampaignOptions campaigns={campaigns} businesses={businesses} />
-            </select>
+            </ToolbarSelect>
           )}
           <BoardFilters value={filters} onChange={setFilters} />
         </div>
