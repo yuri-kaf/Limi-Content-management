@@ -92,8 +92,14 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 } ${canAdd ? 'cursor-pointer hover:bg-hover dark:hover:bg-hover-dark' : ''}`}
               >
                 <div className="flex items-center justify-between">
+                  {/* The number is drawing; the date is read out in full. */}
+                  <span className="sr-only">
+                    {isToday ? 'Today, ' : ''}
+                    {d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </span>
                   {/* Today is its number in a filled circle and nothing more. */}
                   <span
+                    aria-hidden="true"
                     className={
                       isToday
                         ? todayMark

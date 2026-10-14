@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContentCalendar from './ContentCalendar';
 import { ContentItem } from '../types';
-import { STAGES } from '../utils';
+import { STAGES, toDateInput } from '../utils';
 import { focusRingInset, todayMark } from '../ui';
 
 function item(over: Partial<ContentItem>): ContentItem {
@@ -96,4 +96,21 @@ describe('ContentCalendar', () => {
     expect(container.querySelectorAll('[aria-current="date"]')).toHaveLength(1);
     expect(today.className).not.toMatch(/brand/);
   });
+
+  // The number alone would read as "14"; each day names its full date, and
+  // today says so, which is what aria-current="date" is announced alongside.
+  it('names each day in full for a screen reader', () => {
+    const { container } = render(
+      <ContentCalendar content={[]} canAdd={false} onDayClick={vi.fn()} onItemClick={vi.fn()} />
+    );
+    const full = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const today = container.querySelector<HTMLElement>('[aria-current="date"]')!;
+    expect(today.querySelector('.sr-only')).toHaveTextContent(`Today, ${full(now)}`);
+    const twelfth = container.querySelector<HTMLElement>(`[data-date="${toDateInput(thisMonth(12))}"]`)!;
+    if (now.getDate() !== 12) {
+      expect(twelfth.querySelector('.sr-only')).toHaveTextContent(full(new Date(thisMonth(12))));
+    }
+    expect(twelfth.querySelector('[aria-hidden="true"]')).toHaveTextContent('12');
+  });
 });
+
