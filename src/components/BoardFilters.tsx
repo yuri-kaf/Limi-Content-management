@@ -5,7 +5,7 @@ import { PLATFORM_LABELS } from '../utils';
 import {
   ContentFilters, DATE_WINDOWS, DateWindow, NO_FILTERS, activeFilterCount,
 } from '../filters';
-import { btnGhost, card, sectionLabel, faintText, navBadge, focusRing, focusRingInset } from '../ui';
+import { card, sectionLabel, faintText, navBadge, focusRing, focusRingInset, btnGhostSm } from '../ui';
 
 const TYPES: { id: MediaType | 'all'; label: string }[] = [
   { id: 'all', label: 'Any type' },
@@ -64,7 +64,7 @@ export default function BoardFilters({ value, onChange }: Props) {
     <div ref={wrap} className="relative flex items-center gap-1.5 flex-shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`${btnGhost} h-9 min-h-0 px-2.5 text-[12px]`}
+        className={`${btnGhostSm}`}
         aria-expanded={open}
         aria-label="Filters"
       >

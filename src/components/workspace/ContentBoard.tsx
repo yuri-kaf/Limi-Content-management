@@ -31,8 +31,8 @@ import { STAGES } from '../../utils';
 import { NO_CAMPAIGN, scopeContent } from '../../campaigns';
 import { ContentFilters, NO_FILTERS, activeFilterCount, filterContent } from '../../filters';
 import {
-  boardScroller, boardRow, boardColumn, boardSingle, columnHeader, columnBody,
-  columnBodyPlain, countChip, pageToolbar, faintText, btnPrimary, toolbarSelect,
+  boardScroller, boardRow, boardColumn, boardSingle, columnHeader, columnBody, columnBodyPlain,
+  countChip, pageToolbar, faintText, toolbarSelect, btnPrimarySm,
 } from '../../ui';
 
 // `tab` is the short form for the phone tab strip, where four labels share the
@@ -437,7 +437,7 @@ export default function ContentBoard({
         {canAdd && (
           <button
             onClick={() => onAdd(isDesktop ? 'editing' : currentStage, filedCampaign)}
-            className={`${btnPrimary} h-9 min-h-0 px-3 text-[12px] flex-shrink-0`}
+            className={`${btnPrimarySm} flex-shrink-0`}
           >
             <Plus size={14} />
             New

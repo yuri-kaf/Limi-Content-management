@@ -3,8 +3,8 @@ import { Business, Campaign, ContentItem } from '../../types';
 import { CAMPAIGN_GROUP_ORDER, campaignStatusMeta, sortCampaigns } from '../../campaigns';
 import CampaignCard from './CampaignCard';
 import {
-  shellPad, heading, faintText, card, btnPrimary, sectionLabel, countChip,
-  emptyState, emptyTitle, emptyBody,
+  shellPad, heading, faintText, card, sectionLabel, countChip, emptyState, emptyTitle, emptyBody,
+  btnPrimarySm,
 } from '../../ui';
 
 interface Props {
@@ -43,7 +43,7 @@ export default function CampaignsTab({
             </p>
           </div>
           {canManage && (
-            <button onClick={onNew} className={`${btnPrimary} h-9 min-h-0 px-3 text-[12px] flex-shrink-0`}>
+            <button onClick={onNew} className={`${btnPrimarySm} flex-shrink-0`}>
               <Plus size={14} />
               New campaign
             </button>

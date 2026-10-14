@@ -9,8 +9,9 @@ import { AppUser, UserRole } from '../types';
 import { runWrite } from '../utils';
 import Logo from '../components/Logo';
 import {
-  page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint,
-  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger, focusRing,
+  page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint, input,
+  overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger, focusRing,
+  btnGhostSm,
 } from '../ui';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -286,7 +287,7 @@ export default function UserManagementPage() {
             <button onClick={toggleTheme} className={btnIcon} aria-label="Toggle theme">
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             </button>
-            <button onClick={() => navigate('/')} className={`${btnGhost} h-9 min-h-0 px-3.5 text-xs`}>
+            <button onClick={() => navigate('/')} className={`${btnGhostSm}`}>
               Home
             </button>
           </div>
@@ -382,7 +383,7 @@ export default function UserManagementPage() {
                       <button
                         onClick={() => handleSendReset(user)}
                         disabled={resetSentTo === user.id}
-                        className={`${btnGhost} h-9 min-h-0 px-3 text-xs disabled:opacity-60`}
+                        className={`${btnGhostSm}`}
                       >
                         <KeyRound size={12} />
                         {resetSentTo === user.id ? 'Reset sent' : 'Send reset'}

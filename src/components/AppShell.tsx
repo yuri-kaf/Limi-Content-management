@@ -149,7 +149,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           {insideBoard ? (
             <button
               onClick={() => navigate('/')}
-              className={`${btnIcon} w-9 h-9 -ml-1.5 lg:hidden`}
+              className={`${btnIcon} -ml-1.5 lg:hidden`}
               aria-label="Back to Today"
             >
               <ArrowLeft size={17} />
@@ -157,7 +157,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           ) : (
             <button
               onClick={() => setDrawerOpen(true)}
-              className={`${btnIcon} w-9 h-9 -ml-1.5 lg:hidden`}
+              className={`${btnIcon} -ml-1.5 lg:hidden`}
               aria-label="Open navigation"
             >
               <Menu size={17} />
@@ -172,7 +172,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
           <button
             onClick={() => setPaletteOpen(true)}
-            className={`${btnIcon} w-9 h-9 ml-auto flex-shrink-0`}
+            className={`${btnIcon} ml-auto flex-shrink-0`}
             aria-label="Search"
             title="Search (Ctrl K)"
           >

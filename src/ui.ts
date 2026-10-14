@@ -55,15 +55,23 @@ export const label =
 export const input =
   'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark aria-[invalid=true]:!border-brand-text dark:aria-[invalid=true]:!border-brand-textdark aria-[invalid=true]:ring-1 aria-[invalid=true]:!ring-brand-text dark:aria-[invalid=true]:!ring-brand-textdark aria-[invalid=true]:focus-visible:!ring-2 aria-[invalid=true]:focus-visible:!ring-focus dark:aria-[invalid=true]:focus-visible:!ring-focus-dark aria-[invalid=true]:focus-visible:ring-offset-2 aria-[invalid=true]:focus-visible:ring-offset-canvas dark:aria-[invalid=true]:focus-visible:ring-offset-canvas-dark transition-all';
 
-// A compact primary for inline banners, where a 44px button would outweigh the
-// message. Full height again where there is no pointer to aim with.
-export const btnPrimarySm =
-  `inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+// The compact size, for toolbars and inline banners where a 44px button would
+// outweigh what is around it: 36px under a pointer, 44px where there is none,
+// as Notion's toolbars do. A size is a recipe, not an override: stacked on
+// btnPrimary, an h-9 loses to its min-h-11 (recipeOverrides.test.ts).
+const btnSm =
+  'inline-flex items-center justify-center gap-1.5 h-9 [@media(hover:none)]:h-11 px-3 rounded-tile text-[12px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
-// The same compact button in the warning fill, for the action inside a
-// warning banner (a pending data migration).
+export const btnPrimarySm =
+  `${btnSm} bg-brand hover:bg-brand-hover text-white font-semibold ${focusRing}`;
+
+export const btnGhostSm =
+  `${btnSm} border border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark font-medium hover:bg-raised dark:hover:bg-raised-dark ${focusRing}`;
+
+// In the warning fill, for the action inside a warning banner (a pending data
+// migration).
 export const btnWarningSm =
-  `inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-4 rounded-tile bg-warning hover:bg-warning-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+  `${btnSm} bg-warning hover:bg-warning-hover text-white font-semibold ${focusRing}`;
 
 // min-h-11 keeps primary actions at the 44px touch target.
 export const btnPrimary =
@@ -408,8 +416,7 @@ export function scopeChip(active: boolean) {
   }`;
 }
 
-// A compact native select for toolbars. 44px tall, like the buttons beside it:
-// their h-9 overrides lose to btnPrimary's own min-h-11 (Tailwind orders
-// same-property utilities itself), so the toolbar's real height is 44px.
+// A compact native select for toolbars, the height of the compact buttons
+// beside it: 36px under a pointer, 44px where there is none.
 export const toolbarSelect =
-  `h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark ${focusRing}`;
+  `h-9 [@media(hover:none)]:h-11 min-w-0 max-w-[140px] sm:max-w-[200px] bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-2 text-[12px] font-medium text-ink-soft dark:text-ink-softdark ${focusRing}`;

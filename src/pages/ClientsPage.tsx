@@ -11,7 +11,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import Dashboard from '../components/Dashboard';
 import { runWrite } from '../utils';
 import {
-  shell, heading, faintText, btnPrimary, card, emptyState, emptyTitle, emptyBody, btnWarningSm,
+  shell, heading, faintText, card, emptyState, emptyTitle, emptyBody, btnWarningSm, btnPrimarySm,
 } from '../ui';
 
 // The brand, theme toggle, Team link and sign-out all live in AppShell's
@@ -162,7 +162,7 @@ export default function ClientsPage() {
           )}
         </div>
         {canAddClient && (
-          <button onClick={() => setShowModal(true)} className={`${btnPrimary} h-9 min-h-0`}>
+          <button onClick={() => setShowModal(true)} className={btnPrimarySm}>
             <Plus size={14} />
             <span className="hidden sm:inline">New client</span>
             <span className="sm:hidden">New</span>
@@ -189,7 +189,7 @@ export default function ClientsPage() {
               : 'A client is a board of content with its own review loop. Add your first one to start scheduling posts.'}
           </p>
           {canAddClient && (
-            <button onClick={() => setShowModal(true)} className={`${btnPrimary} mt-2 h-9 min-h-0`}>
+            <button onClick={() => setShowModal(true)} className={`${btnPrimarySm} mt-2`}>
               <Plus size={14} />
               Add client
             </button>
