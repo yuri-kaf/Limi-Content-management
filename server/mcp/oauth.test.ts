@@ -371,6 +371,31 @@ describe('authorize', () => {
     expect(own.status).toBe(302);
   });
 
+  it('refuses a sign-in posted from an opaque origin (Origin: null)', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const res = await s.authorize(
+      new Request(`${ORIGIN}/oauth/authorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'null' },
+        body: new URLSearchParams({ ...authorizeFields(clientId), email: 'sam@shopit.test', password: 'client-pw' }).toString(),
+      })
+    );
+    expect(res.status).toBe(403);
+    expect(res.headers.get('Location')).toBeNull();
+    expect(await res.text()).toContain('did not come from the Limi sign-in page');
+  });
+
+  it('allows a sign-in posted with no Origin header', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const req = formPost('/oauth/authorize', { ...authorizeFields(clientId), email: 'sam@shopit.test', password: 'client-pw' });
+    expect(req.headers.get('Origin')).toBeNull();
+    const res = await s.authorize(req);
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get('Location')!).searchParams.get('code')).toBeTruthy();
+  });
+
   it('returns to Claude with a code and the state', async () => {
     const s = setup();
     const clientId = await registerClient(s);
