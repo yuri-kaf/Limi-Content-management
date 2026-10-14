@@ -119,7 +119,8 @@ ${body}
   return new Response(html, { status, headers: HEADERS });
 }
 
-const LOOPBACK = ['localhost', '127.0.0.1', '[::1]'];
+/** Hosts an http redirect may use: Claude Code listens on this computer. */
+export const LOOPBACK_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '[::1]'];
 
 /**
  * Where signing in sends the person, named from the redirect itself. The
@@ -128,7 +129,7 @@ const LOOPBACK = ['localhost', '127.0.0.1', '[::1]'];
 export function returnLabel(redirectUri: string): string {
   try {
     const url = new URL(redirectUri);
-    if (url.protocol === 'http:' && LOOPBACK.includes(url.hostname)) return 'Claude Code on this computer';
+    if (url.protocol === 'http:' && LOOPBACK_HOSTS.includes(url.hostname)) return 'Claude Code on this computer';
     return url.hostname;
   } catch {
     return 'Claude';

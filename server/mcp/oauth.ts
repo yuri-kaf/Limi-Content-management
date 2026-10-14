@@ -7,7 +7,7 @@ import {
 } from './firebaseAuth.js';
 import { createFirestore } from './firestore.js';
 import { getProfile } from './limi.js';
-import { renderErrorPage, renderSignInPage, type SignInFields } from './signInPage.js';
+import { LOOPBACK_HOSTS, renderErrorPage, renderSignInPage, type SignInFields } from './signInPage.js';
 
 // OAuth 2.1 for the MCP connector, per the MCP authorization spec (2025-06-18):
 // RFC 9728 protected-resource metadata, RFC 8414 server metadata, RFC 7591
@@ -144,8 +144,6 @@ export const CLAUDE_REDIRECTS = [
   'https://claude.com/api/mcp/auth_callback',
 ];
 
-const LOOPBACK = ['localhost', '127.0.0.1', '[::1]'];
-
 export function isAllowedRedirect(uri: string, extras: readonly string[] = []): boolean {
   let url: URL;
   try {
@@ -155,7 +153,7 @@ export function isAllowedRedirect(uri: string, extras: readonly string[] = []): 
   }
   if (url.hash || url.username || url.password) return false;
   if (url.protocol === 'https:') return CLAUDE_REDIRECTS.includes(uri) || extras.includes(uri);
-  return url.protocol === 'http:' && LOOPBACK.includes(url.hostname);
+  return url.protocol === 'http:' && LOOPBACK_HOSTS.includes(url.hostname);
 }
 
 /** MCP_EXTRA_REDIRECTS: comma-separated https callbacks to trust besides Claude's own. */
