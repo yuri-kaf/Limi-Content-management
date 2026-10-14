@@ -289,6 +289,27 @@ describe('authorize', () => {
     expect(html).not.toContain('no access');
   });
 
+  it('refuses a sign-in posted from another site', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const fields = { ...authorizeFields(clientId), email: 'sam@shopit.test', password: 'client-pw' };
+    const post = (origin: string) =>
+      s.authorize(
+        new Request(`${ORIGIN}/oauth/authorize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: origin },
+          body: new URLSearchParams(fields).toString(),
+        })
+      );
+    const foreign = await post('https://evil.example');
+    expect(foreign.status).toBe(403);
+    expect(foreign.headers.get('Location')).toBeNull();
+    const opaque = await post('null');
+    expect(opaque.status).toBe(403);
+    const own = await post(ORIGIN);
+    expect(own.status).toBe(302);
+  });
+
   it('returns to Claude with a code and the state', async () => {
     const s = setup();
     const clientId = await registerClient(s);

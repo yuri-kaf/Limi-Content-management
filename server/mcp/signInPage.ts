@@ -38,7 +38,9 @@ const HEADERS = {
   'X-Frame-Options': 'DENY',
   'Content-Security-Policy': CSP,
   'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
+  // same-origin, not no-referrer: with no-referrer the form POST carries
+  // Origin: null, which /oauth/authorize refuses.
+  'Referrer-Policy': 'same-origin',
 };
 
 // Tokens from tailwind.config.js: canvas, tint, hairline, ink, brand, focus.

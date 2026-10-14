@@ -267,6 +267,12 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
       return renderSignInPage({ fields: checked.fields });
     }
     if (req.method !== 'POST') return notAllowed('GET, POST');
+    // The sign-in form posts from this origin. A browser posting from anywhere
+    // else (or from an opaque origin, "null") is another site driving the form.
+    const origin = req.headers.get('Origin');
+    if (origin !== null && origin !== publicOrigin(req)) {
+      return renderErrorPage(403, 'This sign-in did not come from the Limi sign-in page. Start connecting again from Claude.');
+    }
 
     const form = new URLSearchParams(await req.text());
     const checked = await checkRequest(key, form);

@@ -70,6 +70,12 @@ describe('renderSignInPage', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('lets its own form POST carry a real Origin, and no referrer leaves the site', () => {
+    // With no-referrer, browsers send Origin: null on the form POST, which the
+    // authorize endpoint refuses.
+    expect(renderSignInPage({ fields: FIELDS }).headers.get('Referrer-Policy')).toBe('same-origin');
+  });
+
   it('uses the light and dark tokens', async () => {
     const html = await renderSignInPage({ fields: FIELDS }).text();
     expect(html).toContain('--brand: #dc2626');
