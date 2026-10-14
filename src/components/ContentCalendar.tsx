@@ -123,7 +123,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 <button
                   key={item.id}
                   onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
-                  className={`w-full text-left px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium truncate transition-opacity hover:opacity-80 ${stageCardFill} ${stageCardText}`}
+                  className={`w-full text-left px-1.5 py-0.5 rounded-chip text-[11px] font-medium truncate transition-[filter] duration-100 hover:brightness-95 dark:hover:brightness-110 ${stageCardFill} ${stageCardText}`}
                   style={stageCardVars(item.status)}
                   title={item.title}
                 >
@@ -131,7 +131,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 </button>
               ))}
               {dayItems.length > 3 && (
-                <span className={`text-[10px] px-1 ${faintText}`}>+{dayItems.length - 3} more</span>
+                <span className={`text-[11px] px-1 ${faintText}`}>+{dayItems.length - 3} more</span>
               )}
             </div>
           );

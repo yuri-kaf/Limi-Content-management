@@ -13,7 +13,7 @@ import AppShell from './components/AppShell';
 import Logo from './components/Logo';
 import { page, card, heading, bodyText, faintText, inset } from './ui';
 
-const codeInline = 'bg-tint dark:bg-tint-dark px-1 rounded-[4px] text-ink-soft dark:text-ink-softdark';
+const codeInline = 'bg-tint dark:bg-tint-dark px-1 rounded-chip text-ink-soft dark:text-ink-softdark';
 
 function FirebaseSetupGuide() {
   return (

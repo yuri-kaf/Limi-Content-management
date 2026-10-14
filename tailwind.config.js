@@ -88,9 +88,11 @@ export default {
       },
       borderRadius: {
         // Softer than the Notion register's 4/6px, to sit with the pastel
-        // cards: 12px for cards, panels and dialogs, 6px for controls.
+        // cards: 12px for cards, panels and dialogs, 6px for controls, 4px for
+        // the chips inside them.
         card: '12px',
         tile: '6px',
+        chip: '4px',
       },
       boxShadow: {
         // Static surfaces are defined by a hairline, not a shadow. `shadow-card`

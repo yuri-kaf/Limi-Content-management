@@ -366,14 +366,14 @@ export default function ContentCard({
             )}
             {reviewBadge && (
               <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] ${solidChip} ${reviewBadge.className}`}
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-chip ${solidChip} ${reviewBadge.className}`}
               >
                 {reviewBadge.text}
               </span>
             )}
             {scheduledLabel && (
               <span
-                className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] ${
+                className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-chip ${
                   overdue ? `${solidChip} text-brand-text dark:text-brand-textdark` : chip
                 }`}
                 title={overdue ? 'This slot has passed and it has not been posted' : undefined}
@@ -385,7 +385,7 @@ export default function ContentCard({
             {platforms.map((p) => (
               <span
                 key={p}
-                className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[4px] ${chip}`}
+                className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-chip ${chip}`}
               >
                 {PLATFORM_LABELS[p]}
               </span>
