@@ -196,3 +196,29 @@ describe('stage cards meet WCAG AA', () => {
     expect(contrastRatio(stage.cardTextDark, stage.cardTintDark)).toBeGreaterThanOrEqual(AA);
   });
 });
+
+// In dark mode a board card brightens to 110% under the pointer
+// (`dark:hover:brightness-110` in ContentCard). The filter scales the whole
+// card, text included, so both sides of each pair are brightened here, by
+// scaling the sRGB channels, which is what brightness() does, clamped at 255.
+function brighten(hex: string, by: number): string {
+  const h = hex.replace('#', '');
+  return '#' + [0, 2, 4]
+    .map((i) => Math.min(255, Math.round(parseInt(h.slice(i, i + 2), 16) * by)))
+    .map((v) => v.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+describe('stage cards stay AA under the dark hover', () => {
+  it('brightens by scaling each channel', () => {
+    expect(brighten('#102030', 1.1)).toBe('#122335');
+    expect(brighten('#f0f0f0', 1.1)).toBe('#ffffff');
+  });
+
+  it.each(STAGES)('$label card is readable brightened 110%', (stage) => {
+    const tint = brighten(stage.cardTintDark, 1.1);
+    for (const text of [palette.ink.dark, palette.ink.softdark, stage.cardTextDark]) {
+      expect(contrastRatio(brighten(text, 1.1), tint)).toBeGreaterThanOrEqual(AA);
+    }
+  });
+});
