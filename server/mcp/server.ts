@@ -15,6 +15,21 @@ const INSTRUCTIONS = [
   'tell the person exactly what will change and wait for them to confirm. Nothing can be deleted here.',
 ].join(' ');
 
+/**
+ * A browser-based client sends a preflight before its first POST, without the
+ * bearer token, so it is answered here, ahead of the auth check.
+ */
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'Authorization, Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID',
+  'Access-Control-Expose-Headers': 'WWW-Authenticate, Mcp-Session-Id, MCP-Protocol-Version',
+  'Access-Control-Max-Age': '86400',
+};
+
+const preflight = () => new Response(null, { status: 204, headers: CORS });
+
 /** What a verified access token leaves on the request for the tools. */
 interface LimiAuth {
   uid: string;
@@ -105,6 +120,7 @@ export function createMcpEndpoint(
 
   const authed = withMcpAuth(mcp, verifyToken, { required: true, resourceMetadataPath: PROTECTED_RESOURCE_PATH });
   return async (req) => {
+    if (req.method === 'OPTIONS') return preflight();
     const res = await authed(req);
     if (res.status === 401 && outage.has(req)) {
       return new Response('Limi could not reach Google just now. Try again in a moment.', {

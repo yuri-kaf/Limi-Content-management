@@ -54,6 +54,29 @@ describe('the MCP endpoint', () => {
     expect(res.status).toBe(503);
   });
 
+  it('answers a CORS preflight before asking for sign-in', async () => {
+    const { handle } = setup();
+    const res = await handle(
+      new Request(MCP, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://claude.ai',
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'authorization, content-type, mcp-protocol-version',
+        },
+      })
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+    const allowed = res.headers.get('Access-Control-Allow-Headers')!.toLowerCase();
+    for (const h of ['authorization', 'content-type', 'mcp-protocol-version', 'mcp-session-id']) {
+      expect(allowed).toContain(h);
+    }
+    expect(res.headers.get('Access-Control-Expose-Headers')).toContain('WWW-Authenticate');
+    expect(res.headers.get('WWW-Authenticate')).toBeNull();
+  });
+
   it('asks for sign-in without a token', async () => {
     const { handle } = setup();
     const { res } = await rpc(handle, null, 'tools/list');
