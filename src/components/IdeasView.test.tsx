@@ -68,3 +68,25 @@ describe('IdeasView — business scope', () => {
     expect('businessId' in data).toBe(false);
   });
 });
+
+describe('IdeasView — controls', () => {
+  it('says whether the discussion is open', async () => {
+    ideasApi.ideas = [idea('a', 'Old idea')];
+    render(<IdeasView clientId="acme" businesses={[BAKERY]} canTriage onConvert={vi.fn()} />);
+    const toggle = screen.getByRole('button', { name: /discussion/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveClass('focus-visible:ring-2');
+  });
+
+  it('keeps the triage buttons at a 36px target, 44px on touch', () => {
+    ideasApi.ideas = [idea('a', 'Old idea')];
+    render(<IdeasView clientId="acme" businesses={[BAKERY]} canTriage onConvert={vi.fn()} />);
+    for (const name of ['Accept', 'Decline', 'Delete']) {
+      expect(screen.getByRole('button', { name })).toHaveClass(
+        'min-w-9', 'min-h-9', '[@media(hover:none)]:min-w-[44px]', '[@media(hover:none)]:min-h-[44px]'
+      );
+    }
+  });
+});

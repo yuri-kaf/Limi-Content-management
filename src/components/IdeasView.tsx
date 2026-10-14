@@ -21,8 +21,9 @@ const STATUS_META: Record<IdeaStatus, { label: string; color: FolderColor }> = {
 };
 
 // A small icon action on an idea. Each one colours itself on hover by what it does.
+// 36px for a pointer, 44px on touch, where a finger has to find it.
 const ideaAction =
-  `w-8 h-8 inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark transition-colors ${focusRing}`;
+  `min-w-9 min-h-9 [@media(hover:none)]:min-w-[44px] [@media(hover:none)]:min-h-[44px] inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark transition-colors ${focusRing}`;
 
 function IdeaForm({
   onClose,
@@ -270,7 +271,9 @@ export default function IdeasView({
                 <div className="flex items-center gap-3 mt-3">
                   <button
                     onClick={() => setExpanded(isOpen ? null : idea.id)}
-                    className={`text-xs transition-colors hover:text-ink dark:hover:text-ink-dark ${faintText}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`idea-discussion-${idea.id}`}
+                    className={`inline-flex items-center min-h-8 -mx-1 px-1 rounded-tile text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark ${focusRing}`}
                   >
                     {isOpen ? 'Hide discussion' : 'Discussion'}
                   </button>
@@ -286,7 +289,7 @@ export default function IdeasView({
                 </div>
 
                 {isOpen && (
-                  <div className="mt-3">
+                  <div id={`idea-discussion-${idea.id}`} className="mt-3">
                     <CommentThread
                       clientId={clientId}
                       contentId={idea.id}
