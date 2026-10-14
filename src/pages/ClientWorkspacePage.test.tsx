@@ -69,6 +69,7 @@ vi.mock('../contexts/AuthContext', () => ({
 }));
 
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { LG } from '../hooks/useMediaQuery';
 import ClientWorkspacePage from './ClientWorkspacePage';
 
 function Probe() {
@@ -110,8 +111,10 @@ function sheet(title: string): HTMLElement {
 
 beforeEach(() => {
   localStorage.clear();
+  // The desktop layout, and nothing else: a stub answering every query yes
+  // also asked for dark mode and reduced motion without saying so.
   window.matchMedia = ((q: string) => ({
-    matches: true, media: q, onchange: null,
+    matches: q === LG, media: q, onchange: null,
     addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
