@@ -30,6 +30,14 @@ const CORS = {
 
 const preflight = () => new Response(null, { status: 204, headers: CORS });
 
+/** Every /mcp answer carries the CORS headers, so a browser client can read it and its auth challenge. */
+function withCors(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.set('Access-Control-Allow-Origin', CORS['Access-Control-Allow-Origin']);
+  headers.set('Access-Control-Expose-Headers', CORS['Access-Control-Expose-Headers']);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 /** What a verified access token leaves on the request for the tools. */
 interface LimiAuth {
   uid: string;
@@ -123,11 +131,13 @@ export function createMcpEndpoint(
     if (req.method === 'OPTIONS') return preflight();
     const res = await authed(req);
     if (res.status === 401 && outage.has(req)) {
-      return new Response('Limi could not reach Google just now. Try again in a moment.', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '5' },
-      });
+      return withCors(
+        new Response('Limi could not reach Google just now. Try again in a moment.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '5' },
+        })
+      );
     }
-    return res;
+    return withCors(res);
   };
 }

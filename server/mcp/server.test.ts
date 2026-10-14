@@ -77,6 +77,25 @@ describe('the MCP endpoint', () => {
     expect(res.headers.get('WWW-Authenticate')).toBeNull();
   });
 
+  it('sends CORS headers on every response, not just the preflight', async () => {
+    const { down, handle } = setup();
+    const expectCors = (res: Response) => {
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(res.headers.get('Access-Control-Expose-Headers')).toContain('WWW-Authenticate');
+      expect(res.headers.get('Access-Control-Expose-Headers')).toContain('Mcp-Session-Id');
+    };
+    const unauthorized = await rpc(handle, null, 'tools/list');
+    expect(unauthorized.res.status).toBe(401);
+    expectCors(unauthorized.res);
+    const ok = await rpc(handle, await accessToken('admin1'), 'tools/list');
+    expect(ok.res.status).toBe(200);
+    expectCors(ok.res);
+    down.add('securetoken.googleapis.com');
+    const outage = await rpc(handle, await accessToken('cli1'), 'tools/list');
+    expect(outage.res.status).toBe(503);
+    expectCors(outage.res);
+  });
+
   it('asks for sign-in without a token', async () => {
     const { handle } = setup();
     const { res } = await rpc(handle, null, 'tools/list');
