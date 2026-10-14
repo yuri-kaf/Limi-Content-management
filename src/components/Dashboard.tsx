@@ -1,17 +1,21 @@
-import { Client, ContentItem, UserRole } from '../types';
+import { Client, ContentItem, ContentStatus, UserRole } from '../types';
+import { STAGES } from '../utils';
+import { stageCardVars, stageDot } from '../stageColors';
 import { tile, heading, faintText, bodyText } from '../ui';
-
-const STAGES = [
-  { id: 'editing', label: 'Editing', color: '#8b5cf6' },
-  { id: 'review', label: 'In Review', color: '#0284c7' },
-  { id: 'to-post', label: 'Ready to Post', color: '#d97706' },
-  { id: 'posted', label: 'Posted', color: '#059669' },
-] as const;
 
 const DAY = 86_400_000;
 
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+}
+
+// The dot beside a number names the stage it counts, in that stage's colour.
+// An overdue count is the one red thing on the page.
+type Accent = ContentStatus | 'overdue';
+
+function AccentDot({ accent }: { accent: Accent }) {
+  if (accent === 'overdue') return <span className="w-1.5 h-1.5 rounded-full bg-brand" />;
+  return <span className={`w-1.5 h-1.5 rounded-full ${stageDot}`} style={stageCardVars(accent)} />;
 }
 
 // A headline number is a stat tile, not a chart — there is no shape to read.
@@ -24,14 +28,12 @@ function Stat({
   label: string;
   value: number | string;
   hint?: string;
-  accent?: string;
+  accent?: Accent;
 }) {
   return (
     <div className={`${tile} p-4 sm:p-5`}>
       <div className="flex items-center gap-2">
-        {accent && (
-          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
-        )}
+        {accent && <AccentDot accent={accent} />}
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${faintText}`}>
           {label}
         </span>
@@ -69,6 +71,8 @@ function VolumeBars({ rows }: { rows: { label: string; value: number }[] }) {
   );
 }
 
+// The board's own stages, names and colours, rather than a private copy that
+// had drifted to "In Review" and "Ready to Post".
 function StageBreakdown({ items }: { items: ContentItem[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -76,7 +80,7 @@ function StageBreakdown({ items }: { items: ContentItem[] }) {
         const count = items.filter((i) => i.status === s.id).length;
         return (
           <div key={s.id} className="flex flex-col gap-1.5">
-            <div className="h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+            <div className={`h-1.5 rounded-full ${stageDot}`} style={stageCardVars(s.id)} />
             <span className={`text-lg font-semibold tabular-nums ${heading}`}>{count}</span>
             {/* Label always present — colour never carries meaning alone. */}
             <span className={`text-[11px] ${faintText}`}>{s.label}</span>
@@ -117,14 +121,14 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
   if (role === 'client') {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <Stat label="Posted this month" value={postedThisMonth} accent="#059669" />
+        <Stat label="Posted this month" value={postedThisMonth} accent="posted" />
         <Stat
           label="Needs your review"
           value={awaitingReview}
           hint={awaitingReview ? 'Waiting on you' : 'Nothing pending'}
-          accent="#0284c7"
+          accent="review"
         />
-        <Stat label="Scheduled next 7 days" value={dueThisWeek} accent="#d97706" />
+        <Stat label="Scheduled next 7 days" value={dueThisWeek} accent="to-post" />
       </div>
     );
   }
@@ -134,19 +138,19 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
   return (
     <div className="flex flex-col gap-3 sm:gap-4 mb-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Stat label="Posted this month" value={postedThisMonth} accent="#059669" />
+        <Stat label="Posted this month" value={postedThisMonth} accent="posted" />
         <Stat
           label="Awaiting client"
           value={awaitingReview}
           hint={awaitingReview ? 'Chase if stale' : 'All clear'}
-          accent="#0284c7"
+          accent="review"
         />
-        <Stat label="Due in 7 days" value={dueThisWeek} accent="#d97706" />
+        <Stat label="Due in 7 days" value={dueThisWeek} accent="to-post" />
         <Stat
           label="Overdue"
           value={overdue}
           hint={overdue ? 'Past scheduled date' : 'Nothing late'}
-          accent={overdue ? '#dc2626' : undefined}
+          accent={overdue ? 'overdue' : undefined}
         />
       </div>
 

@@ -11,25 +11,28 @@ import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
 import AppShell from './components/AppShell';
 import Logo from './components/Logo';
+import { page, card, heading, bodyText, faintText, inset } from './ui';
+
+const codeInline = 'bg-tint dark:bg-tint-dark px-1 rounded-[4px] text-ink-soft dark:text-ink-softdark';
 
 function FirebaseSetupGuide() {
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#080808] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl p-6">
+    <div className={`${page} flex items-center justify-center p-4`}>
+      <div className={`${card} max-w-md w-full p-6`}>
         <div className="flex items-center gap-2.5 mb-5">
           <Logo variant="mark" size={32} />
-          <span className="text-neutral-900 dark:text-white font-bold text-base">Limi · Setup Required</span>
+          <span className={`${heading} text-base`}>Limi · Setup required</span>
         </div>
-        <p className="text-neutral-500 dark:text-[#888] text-sm mb-5 leading-relaxed">
+        <p className={`text-sm mb-5 leading-relaxed ${bodyText}`}>
           Firebase is not configured yet. Complete these steps to connect your database:
         </p>
-        <ol className="text-sm text-neutral-500 dark:text-[#666] space-y-2 mb-5">
-          <li className="flex gap-2"><span className="text-[#dc2626] font-bold">1.</span>Create a project at <span className="text-neutral-600 dark:text-[#888]">console.firebase.google.com</span></li>
-          <li className="flex gap-2"><span className="text-[#dc2626] font-bold">2.</span><span>Enable <strong className="text-neutral-600 dark:text-[#888]">Firestore Database</strong> (start in test mode)</span></li>
-          <li className="flex gap-2"><span className="text-[#dc2626] font-bold">3.</span>Go to Project Settings → Your apps → Web</li>
-          <li className="flex gap-2"><span className="text-[#dc2626] font-bold">4.</span>Copy your config and create a <code className="bg-neutral-100 dark:bg-[#1a1a1a] px-1 rounded text-neutral-600 dark:text-[#aaa]">.env</code> file:</li>
+        <ol className={`text-sm space-y-2 mb-5 ${bodyText}`}>
+          <li className="flex gap-2"><span className="text-brand font-bold">1.</span>Create a project at <span className="text-ink dark:text-ink-dark">console.firebase.google.com</span></li>
+          <li className="flex gap-2"><span className="text-brand font-bold">2.</span><span>Enable <strong className="text-ink dark:text-ink-dark">Firestore Database</strong> (start in test mode)</span></li>
+          <li className="flex gap-2"><span className="text-brand font-bold">3.</span>Go to Project Settings → Your apps → Web</li>
+          <li className="flex gap-2"><span className="text-brand font-bold">4.</span>Copy your config and create a <code className={codeInline}>.env</code> file:</li>
         </ol>
-        <pre className="bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#1a1a1a] rounded-xl p-4 text-xs text-neutral-500 dark:text-[#777] overflow-x-auto leading-relaxed">
+        <pre className={`${inset} p-4 text-xs leading-relaxed overflow-x-auto ${bodyText}`}>
 {`VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
@@ -37,7 +40,9 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id`}
         </pre>
-        <p className="text-neutral-400 dark:text-[#444] text-xs mt-4">Then restart the dev server with <code className="bg-neutral-100 dark:bg-[#1a1a1a] px-1 rounded">npm run dev</code></p>
+        <p className={`text-xs mt-4 ${faintText}`}>
+          Then restart the dev server with <code className={codeInline}>npm run dev</code>
+        </p>
       </div>
     </div>
   );
@@ -45,8 +50,8 @@ VITE_FIREBASE_APP_ID=your_app_id`}
 
 function AuthSplash() {
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[#080808] flex items-center justify-center">
-      <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+    <div className={`${page} flex items-center justify-center`}>
+      <div className="w-5 h-5 border-2 border-hairline dark:border-hairline-dark border-t-brand rounded-full animate-spin" />
     </div>
   );
 }
