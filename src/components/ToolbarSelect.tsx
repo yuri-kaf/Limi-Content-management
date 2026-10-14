@@ -6,7 +6,10 @@ import { toolbarSelect, toolbarSelectChevron, toolbarSelectWrap } from '../ui';
 // It stays native for its keyboard and screen-reader behaviour and the OS
 // picker on a phone; only the closed control is restyled: no OS chevron
 // (appearance-none), and a lucide one drawn over its right edge instead.
-export default function ToolbarSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
+// No className: the recipe is the look, and one passed in would be dropped.
+type Props = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className'>;
+
+export default function ToolbarSelect(props: Props) {
   return (
     <span className={toolbarSelectWrap}>
       <select {...props} className={toolbarSelect} />

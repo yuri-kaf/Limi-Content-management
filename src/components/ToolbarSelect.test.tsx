@@ -25,4 +25,15 @@ describe('ToolbarSelect', () => {
     await userEvent.selectOptions(select, 'c1');
     expect(onChange).toHaveBeenCalled();
   });
+
+  // Its look is the recipe's: a className would be dropped silently, so the
+  // type refuses one.
+  it('takes no className', () => {
+    render(
+      // @ts-expect-error -- className is not a ToolbarSelect prop
+      <ToolbarSelect aria-label="Status" className="w-full"><option>Live</option></ToolbarSelect>
+    );
+    expect(screen.getByRole('combobox', { name: 'Status' }).className).toBe(toolbarSelect);
+  });
 });
+
