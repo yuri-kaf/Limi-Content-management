@@ -11,7 +11,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import Dashboard from '../components/Dashboard';
 import { runWrite } from '../utils';
 import {
-  shell, heading, faintText, btnPrimary, card, emptyState, emptyTitle, emptyBody, focusRing,
+  shell, heading, faintText, btnPrimary, card, emptyState, emptyTitle, emptyBody, btnWarningSm,
 } from '../ui';
 
 // The brand, theme toggle, Team link and sign-out all live in AppShell's
@@ -76,7 +76,7 @@ export default function ClientsPage() {
   const totalContent = visibleClients.reduce((sum, c) => sum + c.content.length, 0);
 
   const banner = 'mb-5 rounded-card border border-warning/30 dark:border-warning-textdark/25 bg-warning-soft dark:bg-warning-softdark p-4';
-  const bannerBtn = `mt-3 inline-flex items-center h-8 [@media(hover:none)]:h-11 px-4 rounded-tile bg-warning hover:bg-warning-hover disabled:opacity-50 text-white text-xs font-semibold transition-colors ${focusRing}`;
+  const bannerBtn = `mt-3 ${btnWarningSm}`;
 
   return (
     // The shell no longer scrolls, so this page owns its scroll region.

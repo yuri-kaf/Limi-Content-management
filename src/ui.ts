@@ -57,6 +57,11 @@ export const input =
 export const btnPrimarySm =
   `inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-3 rounded-tile bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
+// The same compact button in the warning fill, for the action inside a
+// warning banner (a pending data migration).
+export const btnWarningSm =
+  `inline-flex items-center justify-center gap-1.5 h-8 [@media(hover:none)]:h-11 px-4 rounded-tile bg-warning hover:bg-warning-hover text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+
 // min-h-11 keeps primary actions at the 44px touch target.
 export const btnPrimary =
   `inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-brand hover:bg-brand-hover text-white text-sm font-semibold shadow-pill transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;
