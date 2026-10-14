@@ -20,17 +20,24 @@ describe('FolderIcon', () => {
   });
 
   // Yellow is the one colour too light to hold its shape on the light page at
-  // sidebar size, so there, in light mode only, it gets a darker edge.
-  it('edges a small yellow folder, and nothing else', () => {
-    const edged = (props: { color: string; size: number }) => {
+  // sidebar size, so there, in light mode only, it gets a darker edge round its
+  // silhouette: one unfilled outline over the folder, so no line is drawn
+  // across the body where the front panel meets the back.
+  it('edges the silhouette of a small yellow folder, and nothing else', () => {
+    const strokes = (props: { color: string; size: number }) => {
       const { container, unmount } = render(<FolderIcon {...props} />);
-      const strokes = [...container.querySelectorAll('path, rect')].map((el) => el.getAttribute('stroke'));
+      const stroked = [...container.querySelectorAll('[stroke]')].map((el) => ({
+        tag: el.tagName.toLowerCase(), fill: el.getAttribute('fill'), d: el.getAttribute('d'),
+        stroke: el.getAttribute('stroke'),
+      }));
+      const back = container.querySelector('path')!.getAttribute('d');
       unmount();
-      return strokes;
+      return { stroked, back };
     };
-    expect(edged({ color: 'yellow', size: 18 })).toEqual(['#a16207', '#a16207']);
-    expect(edged({ color: 'yellow', size: 88 })).toEqual([null, null]);
-    expect(edged({ color: 'blue', size: 18 })).toEqual([null, null]);
+    const small = strokes({ color: 'yellow', size: 24 });
+    expect(small.stroked).toEqual([{ tag: 'path', fill: 'none', d: small.back, stroke: '#a16207' }]);
+    expect(strokes({ color: 'yellow', size: 88 }).stroked).toEqual([]);
+    expect(strokes({ color: 'blue', size: 18 }).stroked).toEqual([]);
   });
 
   it('embosses the initial only where there is room for it', () => {

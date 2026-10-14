@@ -23,6 +23,11 @@ interface Props {
   className?: string;
 }
 
+// The back panel and its tab. The front panel sits inside it, so this is also
+// the folder's silhouette.
+const BACK =
+  'M2 7a4 4 0 0 1 4-4h14.6a4 4 0 0 1 3.2 1.6L26.4 8H58a4 4 0 0 1 4 4v34a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z';
+
 // Below this a letter or a logo is a smudge, so the folder is drawn plain. The
 // exception is a forced initial, which is drawn bigger to make up for it.
 const EMBLEM_MIN = 40;
@@ -78,9 +83,7 @@ export default function FolderIcon({
   const initial = roomy || forceInitial ? initialOf(label) : undefined;
   // A 1px outline in the colour's edge tone, on a small folder only and in
   // light mode only: on the dark canvas even yellow stands off at 8:1.
-  const edge = !roomy && c.edge
-    ? { stroke: c.edge, strokeWidth: 1, vectorEffect: 'non-scaling-stroke' as const }
-    : {};
+  const edge = !roomy ? c.edge : undefined;
 
   return (
     <span
@@ -92,10 +95,8 @@ export default function FolderIcon({
       <svg viewBox="0 0 64 52" width={size} height={height} className="block overflow-visible">
         {/* The back panel and its tab, in the full colour. */}
         <path
-          d="M2 7a4 4 0 0 1 4-4h14.6a4 4 0 0 1 3.2 1.6L26.4 8H58a4 4 0 0 1 4 4v34a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"
+          d={BACK}
           fill={c.swatch}
-          className="dark:[stroke:none]"
-          {...edge}
         />
         {/* The front panel, lighter, hinged at the bottom. */}
         <rect
@@ -105,9 +106,21 @@ export default function FolderIcon({
           height="36"
           rx="4"
           fill={c.front}
-          {...edge}
-          className="dark:[stroke:none] [transform-box:fill-box] origin-bottom transition-transform duration-150 ease-out-soft [@media(hover:hover)]:group-hover/folder:[transform:scaleY(.94)]"
+          className="[transform-box:fill-box] origin-bottom transition-transform duration-150 ease-out-soft [@media(hover:hover)]:group-hover/folder:[transform:scaleY(.94)]"
         />
+        {/* The edge traces the back panel, which is the whole silhouette: the
+            front sits inside it. One unfilled outline on top, rather than a
+            stroke on each shape, so no line crosses the body where they meet. */}
+        {edge && (
+          <path
+            d={BACK}
+            fill="none"
+            stroke={edge}
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+            className="dark:hidden"
+          />
+        )}
       </svg>
       {(showLogo || initial) && (
         // Centred on the front panel, which runs from 14 to 50 of the SVG's 52
