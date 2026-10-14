@@ -4,6 +4,12 @@ import { CheckCircle, XCircle, ExternalLink, Download, Film, Image as ImageIcon 
 import { useShare } from '../store';
 import { getMediaInfo, runWrite } from '../utils';
 import Logo from '../components/Logo';
+import { card, heading, bodyText, faintText, readout, textarea, btnGhost, btnPrimary } from '../ui';
+
+// The one page a reviewer outside the app acts on, so approving is a solid
+// button. Emerald 700, not 600: white on 600 measures 3.8:1 and fails AA.
+const approveBtn =
+  'flex-1 inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40';
 
 export default function PublicReviewPage() {
   const { token } = useParams<{ token: string }>();
@@ -21,7 +27,7 @@ export default function PublicReviewPage() {
   }
 
   const shell = (children: React.ReactNode) => (
-    <div className="min-h-screen min-h-dvh bg-neutral-50 dark:bg-[#080808] flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-dvh bg-tint dark:bg-canvas-dark flex items-center justify-center p-4">
       <div className="w-full max-w-lg">{children}</div>
     </div>
   );
@@ -29,7 +35,7 @@ export default function PublicReviewPage() {
   if (state === 'loading') {
     return shell(
       <div className="flex items-center justify-center py-20">
-        <div className="w-5 h-5 border-2 border-neutral-200 dark:border-[#222] border-t-[#dc2626] rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-hairline dark:border-hairline-dark border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -38,11 +44,9 @@ export default function PublicReviewPage() {
   // indistinguishable, so a stale link reveals nothing about what it pointed to.
   if (state === 'missing' || !share || share.revoked) {
     return shell(
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl p-8 text-center">
-        <h1 className="text-base font-bold text-neutral-900 dark:text-white mb-2">
-          This link isn't available
-        </h1>
-        <p className="text-sm text-neutral-400 dark:text-[#555] leading-relaxed">
+      <div className={`${card} p-8 text-center`}>
+        <h1 className={`${heading} text-base mb-2`}>This link isn't available</h1>
+        <p className={`text-sm leading-relaxed ${faintText}`}>
           It may have expired or been turned off. Ask whoever sent it for a new one.
         </p>
       </div>
@@ -51,20 +55,21 @@ export default function PublicReviewPage() {
 
   const media = getMediaInfo(share.mediaLink);
   const isGraphic = share.mediaType === 'graphic';
-  const decided = !!share.decision;
+  const decided = share.decision === 'approved' || share.decision === 'declined';
+  const approved = share.decision === 'approved';
 
   return shell(
     <>
       <div className="flex items-center gap-2.5 mb-5">
         <Logo variant="full" size={40} />
         <div>
-          <span className="text-neutral-900 dark:text-white font-bold text-[15px]">Limi</span>
-          <p className="text-[11px] text-neutral-400 dark:text-[#555]">{share.clientName}</p>
+          <span className={`${heading} text-[15px]`}>Limi</span>
+          <p className={`text-[11px] ${faintText}`}>{share.clientName}</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#111] border border-neutral-200 dark:border-[#1e1e1e] rounded-2xl overflow-hidden shadow-xl">
-        <div className="bg-neutral-100 dark:bg-[#0c0c0c]" style={{ aspectRatio: '16/9' }}>
+      <div className={`${card} overflow-hidden shadow-lift`}>
+        <div className="bg-tint dark:bg-tint-dark" style={{ aspectRatio: '16/9' }}>
           {media.previewUrl && !imgError ? (
             <img
               src={media.previewUrl}
@@ -75,11 +80,11 @@ export default function PublicReviewPage() {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2">
               {isGraphic ? (
-                <ImageIcon size={24} className="text-neutral-300 dark:text-[#333]" />
+                <ImageIcon size={24} className={faintText} />
               ) : (
-                <Film size={24} className="text-neutral-300 dark:text-[#333]" />
+                <Film size={24} className={faintText} />
               )}
-              <span className="text-[11px] text-neutral-400 dark:text-[#444] px-6 text-center">
+              <span className={`text-[11px] px-6 text-center ${faintText}`}>
                 {media.previewNote ?? 'No preview available — open the link below.'}
               </span>
             </div>
@@ -87,20 +92,12 @@ export default function PublicReviewPage() {
         </div>
 
         <div className="p-5 flex flex-col gap-4">
-          <h1 className="text-base font-bold text-neutral-900 dark:text-white leading-snug">
-            {share.title}
-          </h1>
+          <h1 className={`${heading} text-base leading-snug`}>{share.title}</h1>
 
-          {share.caption && (
-            <p className="text-sm text-neutral-500 dark:text-[#888] leading-relaxed bg-neutral-50 dark:bg-[#0d0d0d] rounded-xl p-3 border border-neutral-200 dark:border-[#1a1a1a] whitespace-pre-wrap">
-              {share.caption}
-            </p>
-          )}
+          {share.caption && <p className={readout}>{share.caption}</p>}
 
           {share.hashtags && (
-            <p className="text-xs text-neutral-400 dark:text-[#666] leading-relaxed break-words">
-              {share.hashtags}
-            </p>
+            <p className={`text-xs leading-relaxed break-words ${faintText}`}>{share.hashtags}</p>
           )}
 
           <div className="flex items-center gap-2">
@@ -108,7 +105,7 @@ export default function PublicReviewPage() {
               href={share.mediaLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] transition-colors text-sm font-medium"
+              className={`${btnGhost} flex-1`}
             >
               <ExternalLink size={13} />
               Open
@@ -118,7 +115,7 @@ export default function PublicReviewPage() {
                 href={media.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-neutral-700 dark:hover:text-[#999] transition-colors text-sm font-medium"
+                className={`${btnGhost} flex-1`}
               >
                 <Download size={13} />
                 Download
@@ -126,20 +123,20 @@ export default function PublicReviewPage() {
             )}
           </div>
 
-          <div className="pt-1 border-t border-neutral-100 dark:border-[#1a1a1a]">
+          <div className="pt-4 border-t border-hairline dark:border-hairline-dark">
             {decided ? (
               <div
-                className="flex items-center gap-2 rounded-xl p-3.5"
-                style={{
-                  backgroundColor: share.decision === 'approved' ? '#05966915' : '#dc262615',
-                  color: share.decision === 'approved' ? '#059669' : '#dc2626',
-                }}
+                className={`flex items-center gap-2 rounded-tile p-3.5 ${
+                  approved
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-brand-soft dark:bg-brand-softdark text-brand dark:text-red-400'
+                }`}
               >
-                {share.decision === 'approved' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                {approved ? <CheckCircle size={16} /> : <XCircle size={16} />}
                 <div>
-                  <p className="text-sm font-semibold capitalize">{share.decision}</p>
+                  <p className="text-sm font-semibold">{approved ? 'Approved' : 'Changes requested'}</p>
                   {share.decisionNote && (
-                    <p className="text-xs opacity-80 mt-0.5">{share.decisionNote}</p>
+                    <p className={`text-xs mt-0.5 ${bodyText}`}>{share.decisionNote}</p>
                   )}
                 </div>
               </div>
@@ -149,20 +146,18 @@ export default function PublicReviewPage() {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="What needs changing?"
+                  aria-label="What needs changing?"
                   rows={3}
-                  className="w-full bg-neutral-100 dark:bg-[#0c0c0c] border border-neutral-200 dark:border-[#222] rounded-lg px-3 py-2.5 text-neutral-900 dark:text-white text-sm placeholder-neutral-400 dark:placeholder-[#333] focus:outline-none focus:border-[#dc2626] resize-none"
+                  className={textarea}
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setDeclining(false)}
-                    className="flex-1 border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] rounded-xl py-2.5 text-sm font-medium"
-                  >
+                  <button onClick={() => setDeclining(false)} className={`${btnGhost} flex-1`}>
                     Back
                   </button>
                   <button
                     onClick={() => decide('declined')}
                     disabled={submitting}
-                    className="flex-1 bg-[#dc2626] hover:bg-[#b91c1c] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors"
+                    className={`${btnPrimary} flex-1`}
                   >
                     {submitting ? 'Sending…' : 'Send feedback'}
                   </button>
@@ -172,16 +167,12 @@ export default function PublicReviewPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setDeclining(true)}
-                  className="flex-1 flex items-center justify-center gap-2 border border-neutral-200 dark:border-[#222] text-neutral-500 dark:text-[#666] hover:text-[#dc2626] hover:border-[#dc2626]/40 rounded-xl py-3 text-sm font-medium transition-colors"
+                  className={`${btnGhost} flex-1 hover:!text-brand hover:!border-brand/40`}
                 >
                   <XCircle size={14} />
                   Request changes
                 </button>
-                <button
-                  onClick={() => decide('approved')}
-                  disabled={submitting}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl py-3 text-sm font-semibold transition-colors"
-                >
+                <button onClick={() => decide('approved')} disabled={submitting} className={approveBtn}>
                   <CheckCircle size={14} />
                   {submitting ? 'Sending…' : 'Approve'}
                 </button>
@@ -191,9 +182,7 @@ export default function PublicReviewPage() {
         </div>
       </div>
 
-      <p className="text-center text-neutral-300 dark:text-[#333] text-xs mt-5">
-        Shared with you for review
-      </p>
+      <p className={`text-center text-xs mt-5 ${faintText}`}>Shared with you for review</p>
     </>
   );
 }
