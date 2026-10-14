@@ -34,14 +34,22 @@ export default function Sidebar({
   return (
     <nav className={sidebar} aria-label="Main">
       {/* Brand + collapse */}
-      <div className="flex items-center gap-2 h-11 px-3 flex-shrink-0">
+      {/* Side by side the brand row needs 80px; the rail is 48px, so there the
+          mark and the button stack. */}
+      <div
+        className={`flex items-center flex-shrink-0 ${
+          collapsed ? 'flex-col justify-center gap-1 py-2' : 'gap-2 h-11 px-3'
+        }`}
+      >
         <Logo variant="mark" size={20} />
         {!collapsed && <span className={`${heading} text-[13px]`}>Limi</span>}
         <button
           onClick={onToggleCollapsed}
           // The `!` because btnIcon's own w-9 h-9 come later in Tailwind's
-          // stylesheet than w-7 h-7, so a plain w-7 h-7 loses and the button is 36px.
-          className={`${btnIcon} ml-auto !w-7 !h-7 flex-shrink-0`}
+          // stylesheet than w-7 h-7, so a plain w-7 h-7 loses. Only from lg,
+          // the desktop sidebar: in the phone drawer this is the close button,
+          // and keeps btnIcon's 36px.
+          className={`${btnIcon} ${collapsed ? '' : 'ml-auto'} lg:!w-7 lg:!h-7 flex-shrink-0`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}

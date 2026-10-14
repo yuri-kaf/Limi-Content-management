@@ -59,6 +59,24 @@ describe('Sidebar', () => {
     expect(props.onNavigate).toHaveBeenCalledWith('/client/acme');
   });
 
+  // The rail is 48px. Logo and button side by side need 80px with the
+  // header's padding, so in the rail they stack.
+  it('stacks the brand row in the 48px rail, so nothing overhangs it', () => {
+    setup({ collapsed: true });
+    const header = screen.getByRole('button', { name: 'Expand sidebar' }).parentElement!;
+    expect(header).toHaveClass('flex-col');
+    expect(header).not.toHaveClass('px-3');
+  });
+
+  // 28px beside the brand on the desktop sidebar, but the phone drawer's close
+  // button keeps btnIcon's 36px.
+  it('keeps the collapse button small only on the desktop sidebar', () => {
+    setup();
+    const button = screen.getByRole('button', { name: 'Collapse sidebar' });
+    expect(button).toHaveClass('lg:!w-7', 'lg:!h-7');
+    expect(button).not.toHaveClass('!w-7');
+  });
+
   it('renders no client labels when collapsed to the rail', () => {
     setup({ collapsed: true });
     expect(screen.queryByText('Acme')).not.toBeInTheDocument();
