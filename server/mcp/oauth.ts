@@ -185,9 +185,13 @@ export function registerHandler({ key, now, extraRedirects = [] }: OAuthDeps): H
 
 // ─── Authorization ───────────────────────────────────────────────────────────
 
-const CODE_TTL = 5 * 60;
+// Codes are stateless, so they are not single-use: one can be redeemed again
+// until it expires. Only the holder of the PKCE verifier can redeem it at all,
+// which is the protection OAuth 2.1 relies on for public clients; the short
+// lifetime keeps the replay window to a minute.
+const CODE_TTL = 60;
 
-/** A sign-in code: valid five minutes, for one client, one redirect and one PKCE challenge. */
+/** A sign-in code: valid one minute, for one client, one redirect and one PKCE challenge. */
 interface CodeClaims {
   rt: string;
   uid: string;
@@ -322,7 +326,7 @@ export interface GrantClaims {
   cid: string;
 }
 
-export function tokenHandler({ key, apiKey, fetch: fetchFn, now }: OAuthDeps): Handler {
+export function tokenHandler({ key, apiKey, projectId, fetch: fetchFn, now }: OAuthDeps): Handler {
   async function issue(req: Request, claims: GrantClaims): Promise<Response> {
     // Both tokens are bound to this deployment's /mcp, so one sealed for a
     // preview deployment is refused by production, and the reverse.
@@ -370,6 +374,15 @@ export function tokenHandler({ key, apiKey, fetch: fetchFn, now }: OAuthDeps): H
         if (err instanceof FirebaseUnavailableError) return unavailable();
         throw err;
       }
+      // Removing someone on the Team page deletes their profile: no more tokens.
+      const fs = createFirestore({ projectId, idToken: fresh.idToken, fetch: fetchFn });
+      let profile;
+      try {
+        profile = await getProfile(fs, grant.uid);
+      } catch {
+        return unavailable();
+      }
+      if (!profile) return oauthError('invalid_grant', 'This login no longer has access to Limi.');
       return issue(req, { rt: fresh.refreshToken, uid: grant.uid, cid: grant.cid });
     }
 

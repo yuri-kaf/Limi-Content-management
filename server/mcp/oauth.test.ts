@@ -328,12 +328,12 @@ describe('token', () => {
     expect(await res.json()).toEqual({ error: 'invalid_grant', error_description: 'PKCE verification failed.' });
   });
 
-  it('refuses an expired code', async () => {
+  it('refuses a code more than a minute old', async () => {
     let now = NOW;
     const s = setup(() => now);
     const clientId = await registerClient(s);
     const code = await codeFor(s, clientId);
-    now = NOW + 6 * 60_000;
+    now = NOW + 61_000;
     const res = await exchange(s, {
       grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
     });
@@ -372,6 +372,36 @@ describe('token', () => {
     s.google.revoke('cli1');
     const refused = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
     expect(await refused.json()).toEqual({ error: 'invalid_grant', error_description: 'Sign in to Limi again.' });
+  });
+
+  it('stops refreshing once the Limi profile is removed', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const first = (await (
+      await exchange(s, {
+        grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+      })
+    ).json()) as { refresh_token: string };
+    s.google.remove('users/cli1');
+    const res = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: 'invalid_grant' });
+  });
+
+  it('answers 503 on refresh when the profile cannot be read', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const first = (await (
+      await exchange(s, {
+        grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+      })
+    ).json()) as { refresh_token: string };
+    s.down.add('firestore.googleapis.com');
+    const res = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: 'temporarily_unavailable' });
   });
 
   it('answers 503, not invalid_grant, while Google is down', async () => {

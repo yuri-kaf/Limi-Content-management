@@ -150,6 +150,8 @@ export function fakeGoogle(options: FakeGoogleOptions = {}) {
     paths: (under: string) => [...docs.keys()].filter((p) => p.startsWith(under)),
     /** What changing a password does: every refresh token for that account stops working. */
     revoke: (uid: string) => revoked.add(uid),
+    /** Deletes a document, e.g. the users/{uid} profile removed on the Team page. */
+    remove: (path: string) => docs.delete(path),
   };
 }
 
