@@ -192,6 +192,31 @@ describe('register', () => {
     expect(refused.status).toBe(400);
   });
 
+  it('refuses more than ten redirect URIs, or one longer than 512 characters', async () => {
+    const s = setup();
+    const many = Array.from({ length: 11 }, (_, i) => `http://localhost:${4000 + i}/callback`);
+    const tooMany = await s.register(jsonPost('/oauth/register', { redirect_uris: many }));
+    expect(await tooMany.json()).toMatchObject({ error: 'invalid_redirect_uri' });
+    const ten = await s.register(jsonPost('/oauth/register', { redirect_uris: many.slice(0, 10) }));
+    expect(ten.status).toBe(201);
+    const base = 'http://localhost:4000/';
+    const long = await s.register(jsonPost('/oauth/register', { redirect_uris: [base + 'a'.repeat(513 - base.length)] }));
+    expect(await long.json()).toMatchObject({ error: 'invalid_redirect_uri' });
+    const justFits = await s.register(jsonPost('/oauth/register', { redirect_uris: [base + 'a'.repeat(512 - base.length)] }));
+    expect(justFits.status).toBe(201);
+  });
+
+  it('refuses an oversized body without parsing it', async () => {
+    const s = setup();
+    const big = { redirect_uris: [CLAUDE_AI], client_name: 'x'.repeat(20_000) };
+    const res = await s.register(jsonPost('/oauth/register', big));
+    expect(res.status).toBe(413);
+    const token = await exchange(s, { grant_type: 'refresh_token', refresh_token: 'x'.repeat(20_000) });
+    expect(token.status).toBe(413);
+    const authorize = await s.authorize(formPost('/oauth/authorize', { email: 'x'.repeat(20_000) }));
+    expect(authorize.status).toBe(413);
+  });
+
   it('refuses a body that is not JSON', async () => {
     const s = setup();
     const res = await s.register(new Request(`${ORIGIN}/oauth/register`, { method: 'POST', body: 'nope' }));

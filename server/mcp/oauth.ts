@@ -56,6 +56,32 @@ const notAllowed = (allow: string) =>
 
 type Handler = (req: Request) => Promise<Response>;
 
+/** No request these endpoints accept comes near this; anything bigger is refused unread. */
+export const MAX_BODY_BYTES = 16 * 1024;
+const MAX_REDIRECT_URIS = 10;
+const MAX_REDIRECT_URI_LENGTH = 512;
+
+/** The body as text, or null when it is larger than MAX_BODY_BYTES. */
+async function readBody(req: Request): Promise<string | null> {
+  const declared = Number(req.headers.get('Content-Length') ?? 0);
+  if (declared > MAX_BODY_BYTES) return null;
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 /** Everything the handlers need; tests pass a fake fetch and a fixed clock. */
 export interface OAuthDeps {
   key: Uint8Array;
@@ -150,7 +176,14 @@ export function registerHandler({ key, now, extraRedirects = [] }: OAuthDeps): H
   return async (req) => {
     if (req.method === 'OPTIONS') return preflight();
     if (req.method !== 'POST') return notAllowed('POST, OPTIONS');
-    const body = (await req.json().catch(() => null)) as { redirect_uris?: unknown; client_name?: unknown } | null;
+    const text = await readBody(req);
+    if (text === null) return oauthError('invalid_client_metadata', 'The registration is too large.', 413);
+    let body: { redirect_uris?: unknown; client_name?: unknown } | null;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = null;
+    }
     if (!body || typeof body !== 'object') {
       return oauthError('invalid_client_metadata', 'The registration must be a JSON object.');
     }
@@ -158,8 +191,11 @@ export function registerHandler({ key, now, extraRedirects = [] }: OAuthDeps): H
     if (
       !Array.isArray(uris) ||
       uris.length === 0 ||
-      uris.length > 10 ||
-      !uris.every((u): u is string => typeof u === 'string' && isAllowedRedirect(u, extraRedirects))
+      uris.length > MAX_REDIRECT_URIS ||
+      !uris.every(
+        (u): u is string =>
+          typeof u === 'string' && u.length <= MAX_REDIRECT_URI_LENGTH && isAllowedRedirect(u, extraRedirects)
+      )
     ) {
       return oauthError('invalid_redirect_uri', "Redirect URIs must be Claude's own callback, or http on localhost.");
     }
@@ -274,7 +310,9 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
       return renderErrorPage(403, 'This sign-in did not come from the Limi sign-in page. Start connecting again from Claude.');
     }
 
-    const form = new URLSearchParams(await req.text());
+    const text = await readBody(req);
+    if (text === null) return renderErrorPage(413, 'That request was too large. Start connecting again from Claude.');
+    const form = new URLSearchParams(text);
     const checked = await checkRequest(key, form);
     if (!checked.ok) return checked.response;
     const { fields } = checked;
@@ -348,7 +386,9 @@ export function tokenHandler({ key, apiKey, projectId, fetch: fetchFn, now }: OA
   return async (req) => {
     if (req.method === 'OPTIONS') return preflight();
     if (req.method !== 'POST') return notAllowed('POST, OPTIONS');
-    const form = new URLSearchParams(await req.text());
+    const text = await readBody(req);
+    if (text === null) return oauthError('invalid_request', 'The request is too large.', 413);
+    const form = new URLSearchParams(text);
     const grantType = form.get('grant_type');
 
     if (grantType === 'authorization_code') {
