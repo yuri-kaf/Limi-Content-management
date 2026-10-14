@@ -49,8 +49,11 @@ export const faintText = 'text-ink-faint dark:text-ink-faintdark';
 export const label =
   'block text-[11px] font-semibold text-ink-faint dark:text-ink-faintdark mb-1.5 uppercase tracking-wider';
 
+// Focus is a 2px ink edge (border plus a 1px ring). An invalid field is a 2px
+// red edge instead; focused, it keeps the red border and gains the ink ring on
+// an offset outside it, so focus never disappears into the error styling.
 export const input =
-  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark aria-[invalid=true]:!border-brand-text dark:aria-[invalid=true]:!border-brand-textdark aria-[invalid=true]:ring-1 aria-[invalid=true]:!ring-brand-text dark:aria-[invalid=true]:!ring-brand-textdark transition-all';
+  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark aria-[invalid=true]:!border-brand-text dark:aria-[invalid=true]:!border-brand-textdark aria-[invalid=true]:ring-1 aria-[invalid=true]:!ring-brand-text dark:aria-[invalid=true]:!ring-brand-textdark aria-[invalid=true]:focus-visible:!ring-2 aria-[invalid=true]:focus-visible:!ring-focus dark:aria-[invalid=true]:focus-visible:!ring-focus-dark aria-[invalid=true]:focus-visible:ring-offset-2 aria-[invalid=true]:focus-visible:ring-offset-canvas dark:aria-[invalid=true]:focus-visible:ring-offset-canvas-dark transition-all';
 
 // A compact primary for inline banners, where a 44px button would outweigh the
 // message. Full height again where there is no pointer to aim with.
