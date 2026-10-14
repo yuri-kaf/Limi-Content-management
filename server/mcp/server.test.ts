@@ -1,4 +1,5 @@
 // @vitest-environment node
+import type { FetchLike } from './firebaseAuth.js';
 import { seal } from './seal.js';
 import { createMcpEndpoint } from './server.js';
 import { limiGoogle, NOW } from './testData.js';
@@ -13,8 +14,14 @@ const MCP = 'https://limi.example/mcp';
 
 function setup() {
   const google = limiGoogle();
-  const handle = createMcpEndpoint({ env: ENV, fetch: google.fetch, now: () => NOW });
-  return { google, handle };
+  /** Hosts that answer 503 for now, as Google does in an outage. */
+  const down = new Set<string>();
+  const fetchFn: FetchLike = async (input, init) =>
+    down.has(new URL(input).hostname)
+      ? new Response(JSON.stringify({ error: { message: 'UNAVAILABLE' } }), { status: 503 })
+      : google.fetch(input, init);
+  const handle = createMcpEndpoint({ env: ENV, fetch: fetchFn, now: () => NOW });
+  return { google, down, handle };
 }
 
 const accessToken = (uid: string, audience = MCP) =>
@@ -72,6 +79,14 @@ describe('the MCP endpoint', () => {
     google.revoke('admin1');
     const { res } = await rpc(handle, await accessToken('admin1'), 'tools/list');
     expect(res.status).toBe(401);
+  });
+
+  it('answers 503, not 401, while Google cannot refresh the sign-in', async () => {
+    const { down, handle } = setup();
+    down.add('securetoken.googleapis.com');
+    const { res } = await rpc(handle, await accessToken('admin1'), 'tools/list');
+    expect(res.status).toBe(503);
+    expect(res.headers.get('WWW-Authenticate')).toBeNull();
   });
 
   it('lists the tools, marking which ones change data', async () => {

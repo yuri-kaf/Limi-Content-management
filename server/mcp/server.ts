@@ -2,7 +2,7 @@ import { createMcpHandler, withMcpAuth } from 'mcp-handler';
 import type { AuthInfo } from '@modelcontextprotocol/server';
 import { notConfigured, readEnv } from './env.js';
 import { unseal } from './seal.js';
-import { createIdTokenCache, FirebaseAuthError, type FetchLike } from './firebaseAuth.js';
+import { createIdTokenCache, FirebaseAuthError, FirebaseUnavailableError, type FetchLike } from './firebaseAuth.js';
 import { createFirestore } from './firestore.js';
 import { getProfile, LimiError, plainMessage, type Session } from './limi.js';
 import { PROTECTED_RESOURCE_PATH, resourceUrl, type GrantClaims } from './oauth.js';
@@ -40,6 +40,10 @@ export function createMcpEndpoint(
   const fetchFn = options.fetch ?? fetch;
   const now = options.now ?? Date.now;
   const idTokenFor = createIdTokenCache(apiKey, fetchFn);
+  // withMcpAuth turns any verification failure into a 401, which makes Claude
+  // sign in again. A Google outage is not a reason to: the requests it hit are
+  // remembered here and answered 503 instead.
+  const outage = new WeakSet<Request>();
 
   async function verifyToken(req: Request, bearer?: string): Promise<AuthInfo | undefined> {
     const grant = await unseal<GrantClaims>(key, 'access', bearer, { audience: resourceUrl(req), now: now() });
@@ -49,6 +53,10 @@ export function createMcpEndpoint(
       return { token: bearer!, clientId: grant.cid, scopes: [], extra: { uid: grant.uid, idToken } satisfies LimiAuth };
     } catch (err) {
       if (err instanceof FirebaseAuthError) return undefined;
+      if (err instanceof FirebaseUnavailableError) {
+        outage.add(req);
+        return undefined;
+      }
       throw err;
     }
   }
@@ -95,5 +103,15 @@ export function createMcpEndpoint(
     { serverInfo: { name: 'limi', version: '1.0.0' }, instructions: INSTRUCTIONS }
   );
 
-  return withMcpAuth(mcp, verifyToken, { required: true, resourceMetadataPath: PROTECTED_RESOURCE_PATH });
+  const authed = withMcpAuth(mcp, verifyToken, { required: true, resourceMetadataPath: PROTECTED_RESOURCE_PATH });
+  return async (req) => {
+    const res = await authed(req);
+    if (res.status === 401 && outage.has(req)) {
+      return new Response('Limi could not reach Google just now. Try again in a moment.', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '5' },
+      });
+    }
+    return res;
+  };
 }

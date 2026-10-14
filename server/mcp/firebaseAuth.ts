@@ -10,6 +10,23 @@ export class FirebaseAuthError extends Error {
   }
 }
 
+/**
+ * Google could not answer: the network failed, it returned a 5xx, or it is
+ * rate limiting. Unlike FirebaseAuthError this says nothing about the sign-in
+ * itself, so callers answer "try again" and never make the person sign in again.
+ */
+export class FirebaseUnavailableError extends Error {
+  constructor(message = 'The Limi sign-in service is not answering. Try again in a moment.') {
+    super(message);
+    this.name = 'FirebaseUnavailableError';
+  }
+}
+
+/** 5xx and 429 are Google's trouble, not the person's: try again later. */
+function isTransient(status: number): boolean {
+  return status >= 500 || status === 429;
+}
+
 const BAD_LOGIN = 'Invalid email or password.';
 
 // The same wording the app's sign-in screen uses (signInErrorMessage).
@@ -37,8 +54,9 @@ async function post(fetchFn: FetchLike, url: string, init: RequestInit) {
   try {
     res = await fetchFn(url, { method: 'POST', ...init });
   } catch {
-    throw new FirebaseAuthError('NETWORK', 'Could not reach the sign-in service. Try again.');
+    throw new FirebaseUnavailableError('Could not reach the Limi sign-in service. Try again in a moment.');
   }
+  if (isTransient(res.status)) throw new FirebaseUnavailableError();
   const body: unknown = await res.json().catch(() => null);
   return { res, body };
 }
@@ -82,8 +100,10 @@ export interface IdToken {
 }
 
 /**
- * Fails when the refresh token has been revoked — a password change, a
- * disabled account — which callers treat exactly like an expired sign-in.
+ * Fails with FirebaseAuthError when Google refuses the refresh token (a 4xx:
+ * TOKEN_EXPIRED after a password change, USER_DISABLED, USER_NOT_FOUND,
+ * INVALID_REFRESH_TOKEN and the like), which callers treat exactly like an
+ * expired sign-in. A network failure or a 5xx is FirebaseUnavailableError.
  */
 export async function exchangeRefreshToken(
   apiKey: string,

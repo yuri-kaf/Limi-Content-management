@@ -3,6 +3,7 @@ import {
   authorizationServerMetadata, authorizeHandler, createOAuth, isAllowedRedirect, parseExtraRedirects, pkceChallenge,
   protectedResourceMetadata, registerHandler, tokenHandler, type GrantClaims, type OAuthDeps,
 } from './oauth.js';
+import type { FetchLike } from './firebaseAuth.js';
 import { unseal } from './seal.js';
 import { limiGoogle, NOW } from './testData.js';
 
@@ -13,9 +14,16 @@ const VERIFIER = 'verifier-0123456789-abcdefghijklmnopqrstuvwxyz';
 
 function setup(now = () => NOW) {
   const google = limiGoogle();
-  const deps: OAuthDeps = { key: KEY, apiKey: 'test-key', projectId: 'limi-test', fetch: google.fetch, now };
+  /** Hosts that answer 503 for now, as Google does in an outage. */
+  const down = new Set<string>();
+  const fetchFn: FetchLike = async (input, init) =>
+    down.has(new URL(input).hostname)
+      ? new Response(JSON.stringify({ error: { message: 'UNAVAILABLE' } }), { status: 503 })
+      : google.fetch(input, init);
+  const deps: OAuthDeps = { key: KEY, apiKey: 'test-key', projectId: 'limi-test', fetch: fetchFn, now };
   return {
     google,
+    down,
     register: registerHandler(deps),
     authorize: authorizeHandler(deps),
     token: tokenHandler(deps),
@@ -261,6 +269,26 @@ describe('authorize', () => {
     expect(await res.text()).toContain('This account has no access to Limi.');
   });
 
+  it('asks to try again when the sign-in service is down', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    s.down.add('identitytoolkit.googleapis.com');
+    const res = await signIn(s, clientId);
+    expect(res.headers.get('Location')).toBeNull();
+    expect(await res.text()).toContain('Try again');
+  });
+
+  it('asks to try again, not "no access", when the profile cannot be read', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    s.down.add('firestore.googleapis.com');
+    const res = await signIn(s, clientId);
+    expect(res.headers.get('Location')).toBeNull();
+    const html = await res.text();
+    expect(html).toContain('Try again');
+    expect(html).not.toContain('no access');
+  });
+
   it('returns to Claude with a code and the state', async () => {
     const s = setup();
     const clientId = await registerClient(s);
@@ -344,6 +372,21 @@ describe('token', () => {
     s.google.revoke('cli1');
     const refused = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
     expect(await refused.json()).toEqual({ error: 'invalid_grant', error_description: 'Sign in to Limi again.' });
+  });
+
+  it('answers 503, not invalid_grant, while Google is down', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const first = (await (
+      await exchange(s, {
+        grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+      })
+    ).json()) as { refresh_token: string };
+    s.down.add('securetoken.googleapis.com');
+    const res = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: 'temporarily_unavailable' });
   });
 
   it('refuses an access token offered as a refresh token', async () => {

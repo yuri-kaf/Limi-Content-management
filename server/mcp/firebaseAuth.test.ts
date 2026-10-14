@@ -1,6 +1,7 @@
 // @vitest-environment node
 import {
-  createIdTokenCache, exchangeRefreshToken, FirebaseAuthError, signInWithPassword, type FetchLike,
+  createIdTokenCache, exchangeRefreshToken, FirebaseAuthError, FirebaseUnavailableError, signInWithPassword,
+  type FetchLike,
 } from './firebaseAuth.js';
 
 interface Seen { url: string; init: RequestInit }
@@ -48,11 +49,18 @@ describe('signInWithPassword', () => {
     });
   });
 
-  it('reports an unreachable service as a sign-in error, not a crash', async () => {
+  it('reports an unreachable service as unavailable, not as a bad sign-in', async () => {
     const fetchFn: FetchLike = async () => {
       throw new TypeError('fetch failed');
     };
-    await expect(signInWithPassword('k', 'a@b.c', 'x', fetchFn)).rejects.toBeInstanceOf(FirebaseAuthError);
+    const err = await signInWithPassword('k', 'a@b.c', 'x', fetchFn).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(FirebaseUnavailableError);
+    expect(err).not.toBeInstanceOf(FirebaseAuthError);
+  });
+
+  it('reports a Google outage as unavailable', async () => {
+    const { fetchFn } = fakeFetch(503, { error: { message: 'UNAVAILABLE' } });
+    await expect(signInWithPassword('k', 'a@b.c', 'x', fetchFn)).rejects.toBeInstanceOf(FirebaseUnavailableError);
   });
 });
 
@@ -70,6 +78,32 @@ describe('exchangeRefreshToken', () => {
     await expect(exchangeRefreshToken('k', 'rt-1', fetchFn)).rejects.toMatchObject({
       code: 'TOKEN_EXPIRED', message: 'Your Limi sign-in has expired. Sign in again.',
     });
+  });
+});
+
+describe('exchangeRefreshToken when Google is unwell', () => {
+  it('treats a 5xx as unavailable, not as a revoked sign-in', async () => {
+    const { fetchFn } = fakeFetch(500, { error: { message: 'INTERNAL' } });
+    const err = await exchangeRefreshToken('k', 'rt-1', fetchFn).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(FirebaseUnavailableError);
+    expect(err).not.toBeInstanceOf(FirebaseAuthError);
+  });
+
+  it('treats a network failure as unavailable', async () => {
+    const fetchFn: FetchLike = async () => {
+      throw new TypeError('fetch failed');
+    };
+    await expect(exchangeRefreshToken('k', 'rt-1', fetchFn)).rejects.toBeInstanceOf(FirebaseUnavailableError);
+  });
+
+  it('treats rate limiting as unavailable', async () => {
+    const { fetchFn } = fakeFetch(429, { error: { message: 'QUOTA_EXCEEDED' } });
+    await expect(exchangeRefreshToken('k', 'rt-1', fetchFn)).rejects.toBeInstanceOf(FirebaseUnavailableError);
+  });
+
+  it('still treats a disabled account as signed out', async () => {
+    const { fetchFn } = fakeFetch(400, { error: { message: 'USER_DISABLED' } });
+    await expect(exchangeRefreshToken('k', 'rt-1', fetchFn)).rejects.toBeInstanceOf(FirebaseAuthError);
   });
 });
 

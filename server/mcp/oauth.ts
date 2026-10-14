@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { getPublicOrigin } from 'mcp-handler';
 import { notConfigured, readEnv } from './env.js';
 import { seal, unseal } from './seal.js';
-import { exchangeRefreshToken, FirebaseAuthError, signInWithPassword, type FetchLike } from './firebaseAuth.js';
+import {
+  exchangeRefreshToken, FirebaseAuthError, FirebaseUnavailableError, signInWithPassword, type FetchLike,
+} from './firebaseAuth.js';
 import { createFirestore } from './firestore.js';
 import { getProfile } from './limi.js';
 import { renderErrorPage, renderSignInPage, type SignInFields } from './signInPage.js';
@@ -43,6 +45,10 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
 function oauthError(error: string, description: string, status = 400): Response {
   return json({ error, error_description: description }, status);
 }
+
+/** Google is having trouble: the client should keep its tokens and retry. */
+const unavailable = () =>
+  oauthError('temporarily_unavailable', 'Limi could not reach Google just now. Try again in a moment.', 503);
 
 const preflight = () => new Response(null, { status: 204, headers: CORS });
 const notAllowed = (allow: string) =>
@@ -271,11 +277,19 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
     try {
       signedIn = await signInWithPassword(apiKey, email, password, fetchFn);
     } catch (err) {
-      return again(err instanceof FirebaseAuthError ? err.message : 'Could not sign in.');
+      if (err instanceof FirebaseAuthError || err instanceof FirebaseUnavailableError) return again(err.message);
+      return again('Could not sign in. Try again.');
     }
     // A Firebase account is not enough: the users/{uid} profile is what grants access.
+    // getProfile answers null only when there is none or the rules refuse it;
+    // anything else (an outage) is not the same as "no access".
     const fs = createFirestore({ projectId, idToken: signedIn.idToken, fetch: fetchFn });
-    const profile = await getProfile(fs, signedIn.uid).catch(() => null);
+    let profile;
+    try {
+      profile = await getProfile(fs, signedIn.uid);
+    } catch {
+      return again('Could not reach Limi just now. Try again in a moment.');
+    }
     if (!profile) return again('This account has no access to Limi. Ask an admin to add you on the Team page.');
 
     const code = await seal(
@@ -353,6 +367,7 @@ export function tokenHandler({ key, apiKey, fetch: fetchFn, now }: OAuthDeps): H
         fresh = await exchangeRefreshToken(apiKey, grant.rt, fetchFn, now());
       } catch (err) {
         if (err instanceof FirebaseAuthError) return oauthError('invalid_grant', 'Sign in to Limi again.');
+        if (err instanceof FirebaseUnavailableError) return unavailable();
         throw err;
       }
       return issue(req, { rt: fresh.refreshToken, uid: grant.uid, cid: grant.cid });
