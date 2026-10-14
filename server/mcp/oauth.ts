@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { getPublicOrigin } from 'mcp-handler';
+import { notConfigured, readEnv } from './env.js';
 import { seal, unseal } from './seal.js';
-import { FirebaseAuthError, signInWithPassword, type FetchLike } from './firebaseAuth.js';
+import { exchangeRefreshToken, FirebaseAuthError, signInWithPassword, type FetchLike } from './firebaseAuth.js';
 import { createFirestore } from './firestore.js';
 import { getProfile } from './limi.js';
 import { renderErrorPage, renderSignInPage, type SignInFields } from './signInPage.js';
@@ -272,4 +273,87 @@ export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }
     );
     return redirectTo(fields.redirect_uri, { code, state: fields.state });
   };
+}
+
+// ─── Tokens ──────────────────────────────────────────────────────────────────
+
+const ACCESS_TTL = 60 * 60;
+const REFRESH_TTL = 90 * 24 * 60 * 60;
+
+/** What an access or refresh token carries. */
+export interface GrantClaims {
+  /** The person's Firebase refresh token. */
+  rt: string;
+  uid: string;
+  /** The OAuth client id it was issued to. */
+  cid: string;
+}
+
+export function tokenHandler({ key, apiKey, fetch: fetchFn, now }: OAuthDeps): Handler {
+  async function issue(req: Request, claims: GrantClaims): Promise<Response> {
+    // Both tokens are bound to this deployment's /mcp, so one sealed for a
+    // preview deployment is refused by production, and the reverse.
+    const audience = resourceUrl(req);
+    const grant = { rt: claims.rt, uid: claims.uid, cid: claims.cid } satisfies GrantClaims;
+    const [accessToken, refreshToken] = await Promise.all([
+      seal(key, 'access', grant, { ttlSeconds: ACCESS_TTL, audience, now: now() }),
+      seal(key, 'refresh', grant, { ttlSeconds: REFRESH_TTL, audience, now: now() }),
+    ]);
+    return json({ access_token: accessToken, token_type: 'Bearer', expires_in: ACCESS_TTL, refresh_token: refreshToken });
+  }
+
+  return async (req) => {
+    if (req.method === 'OPTIONS') return preflight();
+    if (req.method !== 'POST') return notAllowed('POST, OPTIONS');
+    const form = new URLSearchParams(await req.text());
+    const grantType = form.get('grant_type');
+
+    if (grantType === 'authorization_code') {
+      const code = await unseal<CodeClaims>(key, 'code', form.get('code'), { now: now() });
+      if (!code) return oauthError('invalid_grant', 'The sign-in code is not valid or has expired.');
+      if (code.cid !== form.get('client_id')) return oauthError('invalid_grant', 'The code was issued to another client.');
+      if (code.ru !== form.get('redirect_uri')) return oauthError('invalid_grant', 'The redirect_uri does not match.');
+      const verifier = form.get('code_verifier') ?? '';
+      if (!/^[A-Za-z0-9._~-]{43,128}$/.test(verifier) || pkceChallenge(verifier) !== code.cc) {
+        return oauthError('invalid_grant', 'PKCE verification failed.');
+      }
+      return issue(req, { rt: code.rt, uid: code.uid, cid: code.cid });
+    }
+
+    if (grantType === 'refresh_token') {
+      const grant = await unseal<GrantClaims>(key, 'refresh', form.get('refresh_token'), {
+        audience: resourceUrl(req),
+        now: now(),
+      });
+      if (!grant) return oauthError('invalid_grant', 'The refresh token is not valid or has expired.');
+      const clientId = form.get('client_id');
+      if (clientId && clientId !== grant.cid) return oauthError('invalid_grant', 'The token was issued to another client.');
+      // A changed password or a disabled account ends the connection here.
+      let fresh;
+      try {
+        fresh = await exchangeRefreshToken(apiKey, grant.rt, fetchFn, now());
+      } catch (err) {
+        if (err instanceof FirebaseAuthError) return oauthError('invalid_grant', 'Sign in to Limi again.');
+        throw err;
+      }
+      return issue(req, { rt: fresh.refreshToken, uid: grant.uid, cid: grant.cid });
+    }
+
+    return oauthError('unsupported_grant_type', 'Use authorization_code or refresh_token.');
+  };
+}
+
+// ─── Wiring ──────────────────────────────────────────────────────────────────
+
+/** The three handlers that need the secret, or a plain 503 from each while it is missing. */
+export function createOAuth(
+  options: { env?: Record<string, string | undefined>; fetch?: FetchLike; now?: () => number } = {}
+): { register: Handler; authorize: Handler; token: Handler } {
+  const config = readEnv(options.env);
+  if (!config.ok) {
+    const off: Handler = async () => notConfigured(config.message);
+    return { register: off, authorize: off, token: off };
+  }
+  const deps: OAuthDeps = { ...config.env, fetch: options.fetch ?? fetch, now: options.now ?? Date.now };
+  return { register: registerHandler(deps), authorize: authorizeHandler(deps), token: tokenHandler(deps) };
 }

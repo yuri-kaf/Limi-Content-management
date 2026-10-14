@@ -1,7 +1,7 @@
 // @vitest-environment node
 import {
-  authorizationServerMetadata, authorizeHandler, isAllowedRedirect, pkceChallenge, protectedResourceMetadata,
-  registerHandler, type OAuthDeps,
+  authorizationServerMetadata, authorizeHandler, createOAuth, isAllowedRedirect, pkceChallenge,
+  protectedResourceMetadata, registerHandler, tokenHandler, type GrantClaims, type OAuthDeps,
 } from './oauth.js';
 import { unseal } from './seal.js';
 import { limiGoogle, NOW } from './testData.js';
@@ -14,7 +14,12 @@ const VERIFIER = 'verifier-0123456789-abcdefghijklmnopqrstuvwxyz';
 function setup(now = () => NOW) {
   const google = limiGoogle();
   const deps: OAuthDeps = { key: KEY, apiKey: 'test-key', projectId: 'limi-test', fetch: google.fetch, now };
-  return { google, register: registerHandler(deps), authorize: authorizeHandler(deps) };
+  return {
+    google,
+    register: registerHandler(deps),
+    authorize: authorizeHandler(deps),
+    token: tokenHandler(deps),
+  };
 }
 
 type Setup = ReturnType<typeof setup>;
@@ -51,6 +56,13 @@ function authorizeFields(clientId: string, extra: Record<string, string> = {}) {
 async function signIn(s: Setup, clientId: string, email = 'sam@shopit.test', password = 'client-pw') {
   return s.authorize(formPost('/oauth/authorize', { ...authorizeFields(clientId), email, password }));
 }
+
+async function codeFor(s: Setup, clientId: string): Promise<string> {
+  const res = await signIn(s, clientId);
+  return new URL(res.headers.get('Location')!).searchParams.get('code')!;
+}
+
+const exchange = (s: Setup, fields: Record<string, string>) => s.token(formPost('/oauth/token', fields));
 
 describe('metadata', () => {
   it('describes the protected resource at the forwarded origin', async () => {
@@ -195,5 +207,109 @@ describe('authorize', () => {
     expect(back.origin + back.pathname).toBe(CLAUDE_AI);
     expect(back.searchParams.get('state')).toBe('state-1');
     expect(back.searchParams.get('code')).toBeTruthy();
+  });
+});
+
+describe('token', () => {
+  it('exchanges a code for access and refresh tokens', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const res = await exchange(s, {
+      grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    const body = (await res.json()) as { access_token: string; refresh_token: string; token_type: string; expires_in: number };
+    expect(body).toMatchObject({ token_type: 'Bearer', expires_in: 3600 });
+    const access = await unseal<GrantClaims>(KEY, 'access', body.access_token, { audience: `${ORIGIN}/mcp`, now: NOW });
+    expect(access).toMatchObject({ uid: 'cli1', rt: 'rt-cli1', cid: clientId });
+  });
+
+  it('refuses a wrong PKCE verifier', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const res = await exchange(s, {
+      grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI,
+      code_verifier: `${VERIFIER}-wrong`,
+    });
+    expect(await res.json()).toEqual({ error: 'invalid_grant', error_description: 'PKCE verification failed.' });
+  });
+
+  it('refuses an expired code', async () => {
+    let now = NOW;
+    const s = setup(() => now);
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    now = NOW + 6 * 60_000;
+    const res = await exchange(s, {
+      grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+    });
+    expect(await res.json()).toMatchObject({ error: 'invalid_grant' });
+  });
+
+  it('refuses a code presented by another client or for another redirect', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const otherClient = await registerClient(s, 'http://localhost:4000/callback');
+    const code = await codeFor(s, clientId);
+    const base = { grant_type: 'authorization_code', code, code_verifier: VERIFIER };
+    const wrongClient = await exchange(s, { ...base, client_id: otherClient, redirect_uri: CLAUDE_AI });
+    expect(await wrongClient.json()).toMatchObject({ error: 'invalid_grant' });
+    const wrongRedirect = await exchange(s, { ...base, client_id: clientId, redirect_uri: 'https://claude.ai/other' });
+    expect(await wrongRedirect.json()).toMatchObject({ error: 'invalid_grant' });
+  });
+
+  it('refreshes, and stops once the Firebase sign-in is revoked', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const first = (await (
+      await exchange(s, {
+        grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+      })
+    ).json()) as { refresh_token: string };
+
+    const refreshed = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token, client_id: clientId });
+    expect(refreshed.status).toBe(200);
+    const next = (await refreshed.json()) as { access_token: string };
+    expect(await unseal(KEY, 'access', next.access_token, { audience: `${ORIGIN}/mcp`, now: NOW })).toMatchObject({
+      uid: 'cli1',
+    });
+
+    s.google.revoke('cli1');
+    const refused = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.refresh_token });
+    expect(await refused.json()).toEqual({ error: 'invalid_grant', error_description: 'Sign in to Limi again.' });
+  });
+
+  it('refuses an access token offered as a refresh token', async () => {
+    const s = setup();
+    const clientId = await registerClient(s);
+    const code = await codeFor(s, clientId);
+    const first = (await (
+      await exchange(s, {
+        grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: CLAUDE_AI, code_verifier: VERIFIER,
+      })
+    ).json()) as { access_token: string };
+    const res = await exchange(s, { grant_type: 'refresh_token', refresh_token: first.access_token });
+    expect(await res.json()).toMatchObject({ error: 'invalid_grant' });
+  });
+
+  it('refuses other grant types', async () => {
+    const s = setup();
+    const res = await exchange(s, { grant_type: 'client_credentials' });
+    expect(await res.json()).toMatchObject({ error: 'unsupported_grant_type' });
+  });
+});
+
+describe('createOAuth', () => {
+  it('answers 503 everywhere until MCP_TOKEN_SECRET is set', async () => {
+    const oauth = createOAuth({ env: { VITE_FIREBASE_API_KEY: 'k', VITE_FIREBASE_PROJECT_ID: 'p' } });
+    for (const handler of [oauth.register, oauth.authorize, oauth.token]) {
+      const res = await handler(new Request(`${ORIGIN}/oauth/token`, { method: 'POST' }));
+      expect(res.status).toBe(503);
+      expect(await res.text()).toContain('MCP_TOKEN_SECRET is not set');
+    }
   });
 });
