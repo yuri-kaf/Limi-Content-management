@@ -60,4 +60,29 @@ describe('PublicReviewPage', () => {
     expect(screen.getByText('Changes requested')).toBeInTheDocument();
     expect(screen.getByText('Brighter thumbnail')).toBeInTheDocument();
   });
+
+  it('sends an approval without a note', async () => {
+    share.value = make();
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Approve/ }));
+    expect(share.submitDecision).toHaveBeenCalledWith('approved', '');
+  });
+
+  it('shows an approved banner, and no buttons, once approved', () => {
+    share.value = make({ decision: 'approved' });
+    renderPage();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Approve/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Request changes/ })).not.toBeInTheDocument();
+  });
+
+  // A share is written with decision 'pending' before anyone has decided; it
+  // must read as undecided, not as a decision with no banner.
+  it("still offers both decisions when the decision is 'pending'", () => {
+    share.value = make({ decision: 'pending' });
+    renderPage();
+    expect(screen.getByRole('button', { name: /Approve/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Request changes/ })).toBeInTheDocument();
+    expect(screen.queryByText('Changes requested')).not.toBeInTheDocument();
+  });
 });

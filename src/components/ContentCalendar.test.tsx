@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContentCalendar from './ContentCalendar';
 import { ContentItem } from '../types';
+import { STAGES } from '../utils';
 
 function item(over: Partial<ContentItem>): ContentItem {
   return {
@@ -24,7 +25,7 @@ describe('ContentCalendar', () => {
       <ContentCalendar content={[post]} canAdd={false} onDayClick={vi.fn()} onItemClick={onItemClick} />
     );
     const chip = screen.getByRole('button', { name: 'Laptop deals story' });
-    expect(chip.style.getPropertyValue('--sc-tint')).toBe('#faefcc');
+    expect(chip.style.getPropertyValue('--sc-tint')).toBe(STAGES.find((s) => s.id === 'to-post')!.cardTint);
     await userEvent.click(chip);
     expect(onItemClick).toHaveBeenCalledWith(post);
   });

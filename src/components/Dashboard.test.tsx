@@ -23,8 +23,25 @@ describe('Dashboard', () => {
   });
 
   it('gives a client their own three numbers', () => {
-    render(<Dashboard clients={clients} role="client" />);
-    expect(screen.getByText('Needs your review')).toBeInTheDocument();
+    const now = Date.now();
+    const soon = now + 24 * 60 * 60 * 1000;
+    const own: Client[] = [{
+      ...clients[0],
+      content: [
+        item({ id: '1', status: 'posted', createdAt: now }),
+        item({ id: '2', status: 'review' }),
+        item({ id: '3', status: 'review' }),
+        item({ id: '4', status: 'to-post', scheduledAt: soon }),
+        item({ id: '5', status: 'to-post', scheduledAt: soon }),
+        item({ id: '6', status: 'to-post', scheduledAt: soon }),
+      ],
+    }];
+    render(<Dashboard clients={own} role="client" />);
+    // The tile is the label's row's parent; its number sits under the label.
+    const tile = (label: string) => screen.getByText(label).parentElement!.parentElement!;
+    expect(tile('Posted this month')).toHaveTextContent(/^Posted this month1$/);
+    expect(tile('Needs your review')).toHaveTextContent(/^Needs your review2Waiting on you$/);
+    expect(tile('Scheduled next 7 days')).toHaveTextContent(/^Scheduled next 7 days3$/);
     expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
   });
 });
