@@ -131,8 +131,9 @@ function ReadOnlyColumn({
   );
 }
 
-// The dropped card settles into its slot instead of snapping, while the gap it
-// left stays faint until it lands. `settling` on the overlay lets ContentCard
+// The dropped card settles into its slot instead of snapping. The slot is
+// already in the new column (see `pending`), and the card drawn there stays
+// faint, as it was while carried, until the copy lands on it. `settling` on the overlay lets ContentCard
 // straighten its tilt over the same moment. Off for anyone who asked for less
 // motion: dnd-kit animates in JavaScript, which the CSS rule in index.css
 // cannot reach.
@@ -167,8 +168,13 @@ interface Props {
   onAdd: (status: ContentStatus, campaignId?: string) => void;
   onEdit: (item: ContentItem) => void;
   /**
-   * Moves a card to another stage. A returned promise tells the board when
-   * the write has finished; until then the card is drawn where it was dropped.
+   * Called once per drop that changes a card's stage, with the card and the
+   * stage it was dropped on: never for a drop back on its own stage or
+   * outside every column, and never for a client. If it returns a promise,
+   * the card is drawn in the new stage until `content` shows the move or the
+   * promise settles, whichever comes first, so a failed write (resolving
+   * false) puts the card back. Without one, the card moves only when
+   * `content` does.
    */
   onMove: (item: ContentItem, status: ContentStatus) => Promise<unknown> | void;
 }
