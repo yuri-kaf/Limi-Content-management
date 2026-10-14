@@ -85,4 +85,27 @@ describe('ClientFolder', () => {
     setup(client([]));
     expect(screen.queryByRole('button', { name: 'Edit Momoland' })).not.toBeInTheDocument();
   });
+
+  // The pencil sits in a band above the folder rather than on its corner, so
+  // it never covers the folder at the grid's narrowest 132px tile.
+  it('keeps the folder clear of the pencil', () => {
+    setup(client([]), vi.fn());
+    const [tile] = screen.getAllByRole('button');
+    expect(tile).toHaveClass('pt-8');
+  });
+
+  // Faded in under the pointer rather than popped, and always shown on any
+  // device with a touch screen, where a tap would otherwise flash it.
+  it('fades the pencil in, and keeps it shown on a touch screen', () => {
+    setup(client([]), vi.fn());
+    expect(screen.getByRole('button', { name: 'Edit Momoland' })).toHaveClass(
+      '[@media(hover:hover)]:opacity-0', 'group-hover:opacity-100',
+      '[@media(any-pointer:coarse)]:!opacity-100', '!transition-[opacity,color,background-color]'
+    );
+  });
+
+  it('keeps the tile at its usual padding for a viewer who may not edit', () => {
+    setup(client([]));
+    expect(screen.getByRole('button')).toHaveClass('pt-4');
+  });
 });
