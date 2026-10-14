@@ -35,20 +35,30 @@ const palette = (twConfig as any).theme.extend.colors;
 const AA = 4.5;
 
 describe('palette meets WCAG AA', () => {
-  const light = { page: palette.canvas.DEFAULT, tint: palette.tint.DEFAULT };
-  const dark = { page: palette.canvas.dark, tint: palette.tint.dark };
+  // `hover` too: every row, menu item and calendar day washes to it under the
+  // pointer with its faint metadata still on it.
+  const light = { page: palette.canvas.DEFAULT, tint: palette.tint.DEFAULT, hover: palette.hover.DEFAULT };
+  const dark = { page: palette.canvas.dark, tint: palette.tint.dark, hover: palette.hover.dark };
 
   const lightTiers = [palette.ink.DEFAULT, palette.ink.soft, palette.ink.faint];
   const darkTiers = [palette.ink.dark, palette.ink.softdark, palette.ink.faintdark];
 
-  it.each(lightTiers)('light ink tier %s clears AA on page and tint', (tier) => {
+  it.each(lightTiers)('light ink tier %s clears AA on page, tint and hover', (tier) => {
     expect(contrastRatio(tier, light.page)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(tier, light.tint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(tier, light.hover)).toBeGreaterThanOrEqual(AA);
   });
 
-  it.each(darkTiers)('dark ink tier %s clears AA on page and tint', (tier) => {
+  it.each(darkTiers)('dark ink tier %s clears AA on page, tint and hover', (tier) => {
     expect(contrastRatio(tier, dark.page)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(tier, dark.tint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(tier, dark.hover)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it('keeps the three dark tiers visibly separated', () => {
+    const [ink, soft, faint] = darkTiers.map((c) => contrastRatio(c, dark.page));
+    expect(ink / soft).toBeGreaterThan(1.3);
+    expect(soft / faint).toBeGreaterThan(1.3);
   });
 
   it('keeps the three light tiers visibly separated', () => {
@@ -182,8 +192,8 @@ describe('stage pills meet WCAG AA', () => {
 
 describe('stage cards meet WCAG AA', () => {
   // A card's title is ink, its secondary text ink-soft, its chips the stage
-  // text. ink-faint is never used on a card: it measures about 4.1 to 4.3:1 on
-  // the light tints, and ink-faintdark 3.8 to 4.3:1 on the dark ones.
+  // text. ink-faint is never used on a card: it measures 4.4:1 on the Editing
+  // tint, under AA, and only just clears it on the others.
   it.each(STAGES)('$label card is readable in light mode', (stage) => {
     expect(contrastRatio(palette.ink.DEFAULT, stage.cardTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(palette.ink.soft, stage.cardTint)).toBeGreaterThanOrEqual(AA);

@@ -13,8 +13,8 @@ export default {
       colors: {
         // Notion register: pure white page, warm near-black ink, a single
         // off-white tint for sidebar and insets. Every text tier below clears
-        // WCAG AA (4.5:1) on both `canvas` and `tint`, in both themes — see
-        // src/color.test.ts, which asserts it.
+        // WCAG AA (4.5:1) on `canvas`, `tint` and `hover`, in both themes, and
+        // each tier is 1.3x the contrast of the next — see src/color.test.ts.
         canvas: { DEFAULT: '#ffffff', dark: '#191919' },
         // `surface` is the same as canvas in this register: cards are defined
         // by a hairline, not by being a different colour. The name is kept so
@@ -28,11 +28,11 @@ export default {
         hairline: { DEFAULT: '#eae9e5', dark: '#333333' },
         ink: {
           DEFAULT: '#37352f',
-          soft: '#5c5b56',
-          faint: '#71706b',
+          soft: '#52514c',
+          faint: '#6b6a65',
           dark: '#e9e9e7',
-          softdark: '#a8a8a4',
-          faintdark: '#8c8c88',
+          softdark: '#b4b4b0',
+          faintdark: '#999995',
         },
         // DEFAULT is for fills and icons. Red words use `text`/`textdark`:
         // #dc2626 as text is under AA on brand-soft and on every dark surface.
