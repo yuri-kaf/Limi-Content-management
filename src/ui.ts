@@ -92,9 +92,11 @@ export const btnIconDanger = `${btnIcon} hover:!text-brand-text dark:hover:!text
 
 // A small round action floating over a tile's corner, like a Finder badge:
 // its own surface, hairline and shadow, so it reads over whatever is under it.
-// 28px for a pointer, 36px where there is none.
+// 28px for a pointer, 36px where there is none, and there a transparent
+// ::before reaching 4px past each edge makes the touch target 44px without the
+// badge growing. Its user positions it (absolute), which anchors the ::before.
 export const badgeBtn =
-  `w-7 h-7 [@media(hover:none)]:w-9 [@media(hover:none)]:h-9 inline-flex items-center justify-center rounded-full bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark shadow-sm text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-[opacity,color] duration-150 ${focusRing}`;
+  `w-7 h-7 [@media(hover:none)]:w-9 [@media(hover:none)]:h-9 [@media(hover:none)]:before:content-[''] [@media(hover:none)]:before:absolute [@media(hover:none)]:before:-inset-1 inline-flex items-center justify-center rounded-full bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark shadow-sm text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-[opacity,color] duration-150 ${focusRing}`;
 
 // Hidden until its `group` is hovered or holds focus, and always shown where
 // nothing can hover. Pair with a transition on opacity, as badgeBtn has.

@@ -1,4 +1,4 @@
-import { input } from './ui';
+import { badgeBtn, input } from './ui';
 
 describe('input', () => {
   // An invalid field keeps its red edge, but a focused invalid field must still
@@ -18,3 +18,19 @@ describe('input', () => {
     ]));
   });
 });
+
+describe('badgeBtn', () => {
+  // 36px to look at on a touch screen, 44px to hit: a transparent ::before
+  // reaches 4px past each edge. The badge is always positioned (absolute) by
+  // its user, which is what anchors the ::before.
+  it('extends its touch target to 44px without growing', () => {
+    const classes = badgeBtn.split(/\s+/);
+    expect(classes).toEqual(expect.arrayContaining([
+      '[@media(hover:none)]:w-9', '[@media(hover:none)]:h-9',
+      "[@media(hover:none)]:before:content-['']",
+      '[@media(hover:none)]:before:absolute', '[@media(hover:none)]:before:-inset-1',
+    ]));
+    expect(classes).not.toContain('relative');
+  });
+});
+
