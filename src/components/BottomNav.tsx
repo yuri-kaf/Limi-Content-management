@@ -30,7 +30,7 @@ export default function BottomNav({ activePath, onNavigate }: Props) {
             onClick={() => onNavigate(t.path)}
             aria-current={active ? 'page' : undefined}
             className={`flex-1 flex flex-col items-center justify-center gap-1 h-14 transition-colors ${
-              active ? 'text-brand' : faintText
+              active ? 'text-brand-text dark:text-brand-textdark' : faintText
             }`}
           >
             <t.icon size={19} strokeWidth={active ? 2.4 : 1.8} />

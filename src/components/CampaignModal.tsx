@@ -52,7 +52,7 @@ function toRows(deliverables: Deliverable[]): Row[] {
 const typeSelect = `${input} !w-[96px] !px-2 flex-shrink-0`;
 const countInput = `${input} !w-[64px] !px-2 text-center flex-shrink-0`;
 
-const errorText = 'text-[11px] text-brand dark:text-red-400';
+const errorText = 'text-[11px] text-brand-text dark:text-brand-textdark';
 
 export default function CampaignModal({
   campaign, businesses, defaultBusinessId, onClose, onSave, onDelete,

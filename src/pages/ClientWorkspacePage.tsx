@@ -67,7 +67,7 @@ export default function ClientWorkspacePage() {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <p className={`mb-4 text-sm ${faintText}`}>Client not found.</p>
-          <button onClick={() => navigate('/clients')} className="text-sm text-brand hover:text-brand-hover">
+          <button onClick={() => navigate('/clients')} className="text-sm text-brand-text dark:text-brand-textdark hover:underline underline-offset-2">
             ← Back to clients
           </button>
         </div>
@@ -280,7 +280,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
               <p className={`mb-3 text-sm ${faintText}`}>This campaign no longer exists.</p>
               <button
                 onClick={() => navigate(workspacePath(client.id, 'campaigns', businessId))}
-                className="text-sm text-brand hover:text-brand-hover"
+                className="text-sm text-brand-text dark:text-brand-textdark hover:underline underline-offset-2"
               >
                 ← All campaigns
               </button>

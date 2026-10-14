@@ -58,6 +58,37 @@ describe('palette meets WCAG AA', () => {
   });
 });
 
+describe('brand red as text meets WCAG AA', () => {
+  // The brand red itself (#dc2626) is a fill colour: as text it measures 4.4:1
+  // on brand-soft and 3.2 to 3.6:1 on the dark surfaces. Red words use the
+  // text pair instead.
+  const lightGrounds = {
+    canvas: palette.canvas.DEFAULT,
+    surface: palette.surface.DEFAULT,
+    tint: palette.tint.DEFAULT,
+    'brand-soft': palette.brand.soft,
+  };
+  const darkGrounds = {
+    canvas: palette.canvas.dark,
+    surface: palette.surface.dark,
+    tint: palette.tint.dark,
+    'brand-softdark': palette.brand.softdark,
+  };
+
+  it.each(Object.entries(lightGrounds))('brand-text clears AA on %s', (_name, ground) => {
+    expect(contrastRatio(palette.brand.text, ground)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(Object.entries(darkGrounds))('brand-textdark clears AA on %s', (_name, ground) => {
+    expect(contrastRatio(palette.brand.textdark, ground)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it('keeps white text readable on the brand fill', () => {
+    expect(contrastRatio('#ffffff', palette.brand.DEFAULT)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio('#ffffff', palette.brand.hover)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
 describe('stage pills meet WCAG AA', () => {
   it('covers all four stages', () => {
     expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted']);

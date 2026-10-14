@@ -73,7 +73,7 @@ export const badge =
 export function chip(active: boolean) {
   return `inline-flex items-center justify-center gap-2 px-3 min-h-9 rounded-tile text-xs font-semibold border transition-colors ${
     active
-      ? 'bg-brand-soft dark:bg-brand-softdark border-brand/40 text-brand'
+      ? 'bg-brand-soft dark:bg-brand-softdark border-brand/40 text-brand-text dark:text-brand-textdark'
       : 'bg-raised dark:bg-raised-dark border-hairline dark:border-hairline-dark text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
   }`;
 }
@@ -84,11 +84,11 @@ export const btnSuccess =
   'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30';
 
 export const btnDanger =
-  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-brand/30 dark:border-red-900/60 bg-brand-soft dark:bg-red-950/40 text-brand dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/70 transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
+  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-tile text-sm font-semibold border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark hover:bg-brand-softhover dark:hover:bg-brand-softhoverdark transition-colors focus:outline-none focus:ring-2 focus:ring-brand/30';
 
 // A ghost button that turns destructive on hover — for delete affordances that
 // shouldn't shout until they're aimed at.
-export const btnGhostDanger = `${btnGhost} hover:!text-brand hover:!bg-brand-soft dark:hover:!bg-brand-softdark hover:border-brand/30`;
+export const btnGhostDanger = `${btnGhost} hover:!text-brand-text dark:hover:!text-brand-textdark hover:!bg-brand-soft dark:hover:!bg-brand-softdark hover:border-brand/30`;
 
 // ---------------------------------------------------------------------------
 // Modals

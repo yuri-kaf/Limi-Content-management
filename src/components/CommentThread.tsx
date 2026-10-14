@@ -84,7 +84,7 @@ export default function CommentThread({
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className={`text-xs ${heading}`}>{c.authorName}</span>
                   {c.atSeconds !== undefined && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-brand bg-brand-soft dark:bg-brand-softdark px-1.5 py-0.5 rounded">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-brand-text dark:text-brand-textdark bg-brand-soft dark:bg-brand-softdark px-1.5 py-0.5 rounded">
                       <Clock size={9} />
                       {formatTimestamp(c.atSeconds)}
                     </span>
@@ -118,7 +118,7 @@ export default function CommentThread({
                 onChange={(e) => setStamp(e.target.value)}
                 placeholder="0:14"
                 className={`${textarea} w-20 px-2 py-1 text-xs ${
-                  stampInvalid ? 'border-brand text-brand' : ''
+                  stampInvalid ? '!border-brand !text-brand-text dark:!text-brand-textdark' : ''
                 }`}
               />
               <span className={`text-[10px] ${faintText}`}>

@@ -129,7 +129,7 @@ export default function PublicReviewPage() {
                 className={`flex items-center gap-2 rounded-tile p-3.5 ${
                   approved
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-brand-soft dark:bg-brand-softdark text-brand dark:text-red-400'
+                    : 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark'
                 }`}
               >
                 {approved ? <CheckCircle size={16} /> : <XCircle size={16} />}

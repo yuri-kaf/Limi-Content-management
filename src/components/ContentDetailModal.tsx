@@ -10,7 +10,7 @@ import {
 } from '../utils';
 import {
   sheetOverlay, sheetPanelWide, sheetBody, sheetPane, heading, faintText, bodyText, badge,
-  sectionLabel, readout, readoutScroll, textarea, btnGhost, btnPrimary, btnSuccess,
+  sectionLabel, readout, readoutScroll, textarea, btnGhost, btnGhostDanger, btnPrimary, btnSuccess,
   btnDanger, btnIcon,
 } from '../ui';
 
@@ -18,7 +18,7 @@ type CopyTarget = 'caption' | 'hashtags' | 'both';
 
 // Small quiet action next to a section heading (Copy, + tags, Create link).
 const inlineAction =
-  'inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand transition-colors';
+  'inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand-text dark:hover:text-brand-textdark transition-colors';
 
 interface Props {
   clientId: string;
@@ -127,7 +127,7 @@ export default function ContentDetailModal({
     if (item.clientReview === 'declined') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 text-brand dark:text-red-400">
+          <div className="flex items-center gap-1.5 text-brand-text dark:text-brand-textdark">
             <XCircle size={13} />
             <span className="text-xs font-semibold">Client Declined</span>
           </div>
@@ -237,7 +237,7 @@ export default function ContentDetailModal({
                       <Play size={20} className="text-brand ml-0.5" />
                     )}
                   </div>
-                  <span className={`text-xs font-semibold ${bodyText} group-hover/open:text-brand transition-colors`}>
+                  <span className={`text-xs font-semibold ${bodyText} group-hover/open:text-brand-text dark:group-hover/open:text-brand-textdark transition-colors`}>
                     Open in {media.label}
                   </span>
                 </a>
@@ -390,7 +390,7 @@ export default function ContentDetailModal({
                       href={v.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand`}
+                      className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand-text dark:hover:text-brand-textdark`}
                     >
                       <History size={11} />
                       v{i + 1}
@@ -424,7 +424,7 @@ export default function ContentDetailModal({
                   </div>
                 ) : item.clientReview === 'declined' ? (
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-brand dark:text-red-400 text-sm font-semibold">
+                    <div className="flex items-center gap-2 text-brand-text dark:text-brand-textdark text-sm font-semibold">
                       <XCircle size={15} />
                       You declined this content
                     </div>
@@ -465,7 +465,7 @@ export default function ContentDetailModal({
                     </button>
                     <button
                       onClick={() => setDecliningMode(true)}
-                      className={`${btnGhost} flex-1 hover:text-brand hover:border-brand/30`}
+                      className={`${btnGhostDanger} flex-1`}
                     >
                       <XCircle size={13} />
                       Decline
@@ -495,7 +495,7 @@ export default function ContentDetailModal({
                     {/* A link built from a dev-server origin resolves only on
                         this machine, so sending it looks like a broken feature. */}
                     {isLocalOrigin(shareUrl) ? (
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-brand dark:text-red-400">
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-brand-text dark:text-brand-textdark">
                         This link points at a local address, so it will not open for
                         anyone else. Deploy the app and set VITE_PUBLIC_APP_URL to the
                         deployed origin before sending review links.
@@ -558,7 +558,7 @@ export default function ContentDetailModal({
               className={
                 confirmDelete
                   ? btnDanger
-                  : `${btnGhost} hover:text-brand hover:border-brand/30`
+                  : btnGhostDanger
               }
             >
               <Trash2 size={13} />

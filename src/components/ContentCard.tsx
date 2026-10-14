@@ -232,7 +232,7 @@ export default function ContentCard({
   // and a badge on every card would carry no information.
   const reviewBadge =
     item.clientReview === 'declined'
-      ? { text: 'Declined', className: 'text-brand dark:text-red-400' }
+      ? { text: 'Declined', className: 'text-brand-text dark:text-brand-textdark' }
       : item.clientReview === 'approved'
         ? { text: 'Approved', className: 'text-emerald-700 dark:text-emerald-400' }
         : null;
@@ -323,13 +323,13 @@ export default function ContentCard({
                 <Pencil size={13} />
               </button>
             )}
-            {/* On the dark fills, under the button's hover wash, brand red is
-                only about 3.1:1 to 3.3:1, and red-400 is above 5:1. */}
+            {/* brand-textdark, not the brand red: on the dark fills, under the
+                button's hover wash, the brand red is only about 3.1:1. */}
             {onDelete && (
               <button
                 onPointerDown={stopDrag}
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className={`${iconBtn} hover:!text-brand dark:hover:!text-red-400`}
+                className={`${iconBtn} hover:!text-brand-text dark:hover:!text-brand-textdark`}
                 aria-label="Delete"
               >
                 <Trash2 size={13} />
@@ -374,7 +374,7 @@ export default function ContentCard({
             {scheduledLabel && (
               <span
                 className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] ${
-                  overdue ? `${solidChip} text-brand dark:text-red-400` : chip
+                  overdue ? `${solidChip} text-brand-text dark:text-brand-textdark` : chip
                 }`}
                 title={overdue ? 'This slot has passed and it has not been posted' : undefined}
               >

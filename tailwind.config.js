@@ -34,11 +34,17 @@ export default {
           softdark: '#a8a8a4',
           faintdark: '#8c8c88',
         },
+        // DEFAULT is for fills and icons. Red words use `text`/`textdark`:
+        // #dc2626 as text is under AA on brand-soft and on every dark surface.
         brand: {
           DEFAULT: '#dc2626',
           hover: '#b91c1c',
           soft: '#fdf2f2',
           softdark: '#2a1414',
+          softhover: '#fbe4e4',
+          softhoverdark: '#3a1a1a',
+          text: '#b91c1c',
+          textdark: '#f87171',
         },
         // Stage text colours. The tint/text pairs used by the pills live in
         // STAGES in src/utils.ts, because they are applied as inline styles.

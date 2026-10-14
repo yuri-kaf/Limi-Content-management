@@ -224,7 +224,7 @@ export default function IdeasView({
                             href={l}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-1.5 text-xs truncate transition-colors hover:text-brand ${faintText}`}
+                            className={`flex items-center gap-1.5 text-xs truncate transition-colors ${faintText} hover:text-brand-text dark:hover:text-brand-textdark`}
                           >
                             <LinkIcon size={11} className="flex-shrink-0" />
                             <span className="truncate">{l}</span>
@@ -258,7 +258,7 @@ export default function IdeasView({
                       )}
                       <button
                         onClick={() => handleDelete(idea)}
-                        className={`${ideaAction} hover:text-brand hover:bg-brand-soft dark:hover:bg-brand-softdark`}
+                        className={`${ideaAction} hover:text-brand-text dark:hover:text-brand-textdark hover:bg-brand-soft dark:hover:bg-brand-softdark`}
                         aria-label="Delete"
                       >
                         <Trash2 size={13} />
@@ -277,7 +277,7 @@ export default function IdeasView({
                   {canTriage && idea.status === 'accepted' && !idea.convertedContentId && (
                     <button
                       onClick={() => onConvert(idea)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-text dark:text-brand-textdark hover:underline underline-offset-2"
                     >
                       Make content
                       <ArrowRight size={12} />

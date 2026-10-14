@@ -23,8 +23,8 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
 // are already validated for contrast, and every chip carries its text label.
 const ROLE_TONE: Record<UserRole, { chip: string; avatar: string }> = {
   admin: {
-    chip: 'bg-brand-soft dark:bg-brand-softdark text-brand',
-    avatar: 'bg-brand-soft dark:bg-brand-softdark text-brand',
+    chip: 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark',
+    avatar: 'bg-brand-soft dark:bg-brand-softdark text-brand-text dark:text-brand-textdark',
   },
   'social-media-manager': {
     chip: 'bg-sky-50 dark:bg-sky-950/40 text-stage-review dark:text-sky-400',
@@ -396,7 +396,7 @@ export default function UserManagementPage() {
                       {!isMe && (
                         <button
                           onClick={() => handleDelete(user)}
-                          className={`${btnIcon} hover:text-brand hover:bg-brand-soft dark:hover:bg-brand-softdark`}
+                          className={`${btnIcon} hover:text-brand-text dark:hover:text-brand-textdark hover:bg-brand-soft dark:hover:bg-brand-softdark`}
                           aria-label={`Remove ${user.name}`}
                         >
                           <Trash2 size={14} />

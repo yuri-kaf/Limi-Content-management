@@ -76,7 +76,7 @@ describe('ContentCard', () => {
   it('turns Delete a lighter red under a hover in dark mode', () => {
     renderCard({ onDelete: vi.fn() });
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
-      'hover:!text-brand', 'dark:hover:!text-red-400'
+      'hover:!text-brand-text', 'dark:hover:!text-brand-textdark'
     );
   });
 

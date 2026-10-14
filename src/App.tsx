@@ -27,10 +27,10 @@ function FirebaseSetupGuide() {
           Firebase is not configured yet. Complete these steps to connect your database:
         </p>
         <ol className={`text-sm space-y-2 mb-5 ${bodyText}`}>
-          <li className="flex gap-2"><span className="text-brand font-bold">1.</span>Create a project at <span className="text-ink dark:text-ink-dark">console.firebase.google.com</span></li>
-          <li className="flex gap-2"><span className="text-brand font-bold">2.</span><span>Enable <strong className="text-ink dark:text-ink-dark">Firestore Database</strong> (start in test mode)</span></li>
-          <li className="flex gap-2"><span className="text-brand font-bold">3.</span>Go to Project Settings → Your apps → Web</li>
-          <li className="flex gap-2"><span className="text-brand font-bold">4.</span>Copy your config and create a <code className={codeInline}>.env</code> file:</li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">1.</span>Create a project at <span className="text-ink dark:text-ink-dark">console.firebase.google.com</span></li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">2.</span><span>Enable <strong className="text-ink dark:text-ink-dark">Firestore Database</strong> (start in test mode)</span></li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">3.</span>Go to Project Settings → Your apps → Web</li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">4.</span>Copy your config and create a <code className={codeInline}>.env</code> file:</li>
         </ol>
         <pre className={`${inset} p-4 text-xs leading-relaxed overflow-x-auto ${bodyText}`}>
 {`VITE_FIREBASE_API_KEY=your_api_key

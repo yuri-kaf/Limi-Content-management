@@ -98,7 +98,7 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
             >
               <div className="flex items-center justify-between px-0.5">
                 <span
-                  className={`text-[11px] font-semibold leading-none ${todayCell ? 'text-brand' : faintText}`}
+                  className={`text-[11px] font-semibold leading-none ${todayCell ? 'text-brand-text dark:text-brand-textdark' : faintText}`}
                 >
                   {day}
                 </span>

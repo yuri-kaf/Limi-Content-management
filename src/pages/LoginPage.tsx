@@ -83,7 +83,7 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-tile border border-brand/30 dark:border-red-900/60 bg-brand-soft dark:bg-red-950/30 px-3 py-2.5 text-sm text-brand dark:text-red-400"
+                className="rounded-tile border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark px-3 py-2.5 text-sm text-brand-text dark:text-brand-textdark"
               >
                 {error}
               </div>

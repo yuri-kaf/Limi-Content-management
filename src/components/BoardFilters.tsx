@@ -78,7 +78,7 @@ export default function BoardFilters({ value, onChange }: Props) {
       {count > 0 && (
         <button
           onClick={() => onChange(NO_FILTERS)}
-          className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium ${faintText} hover:text-brand transition-colors`}
+          className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium ${faintText} hover:text-brand-text dark:hover:text-brand-textdark transition-colors`}
         >
           <X size={11} />
           Clear
@@ -118,7 +118,7 @@ export default function BoardFilters({ value, onChange }: Props) {
           {count > 0 && (
             <button
               onClick={() => onChange(NO_FILTERS)}
-              className={`${row} mt-2 text-brand hover:text-brand`}
+              className={`${row} mt-2 !text-brand-text dark:!text-brand-textdark`}
             >
               <X size={13} />
               Clear all filters
