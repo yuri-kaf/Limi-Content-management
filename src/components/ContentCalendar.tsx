@@ -102,11 +102,18 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 >
                   {day}
                 </span>
+                {/* The cell takes a click for the pointer; this is the same
+                    action for a keyboard and a screen reader. Shown on hover or
+                    focus, and always where there is no hover to reveal it. */}
                 {canAdd && (
-                  <Plus
-                    size={10}
-                    className={`opacity-0 group-hover:opacity-100 transition-opacity ${faintText}`}
-                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDayClick(d); }}
+                    aria-label={`Add post on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+                    className={`-my-1 -mr-1 w-6 h-6 inline-flex items-center justify-center rounded-tile opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,background-color,color] ${faintText} hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30`}
+                  >
+                    <Plus size={12} />
+                  </button>
                 )}
               </div>
 

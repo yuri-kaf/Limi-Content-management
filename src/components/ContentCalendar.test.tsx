@@ -39,4 +39,21 @@ describe('ContentCalendar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Previous month' }));
     expect(screen.getByText(monthLabel(now))).toBeInTheDocument();
   });
+
+  it('offers a keyboard-reachable add button on each day when adding is allowed', async () => {
+    const onDayClick = vi.fn();
+    render(<ContentCalendar content={[]} canAdd onDayClick={onDayClick} onItemClick={vi.fn()} />);
+    const day = new Date(now.getFullYear(), now.getMonth(), 12);
+    const label = `Add post on ${day.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    const add = screen.getByRole('button', { name: label });
+    add.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onDayClick).toHaveBeenCalledTimes(1);
+    expect(onDayClick.mock.calls[0][0]).toEqual(day);
+  });
+
+  it('has no add buttons when adding is not allowed', () => {
+    render(<ContentCalendar content={[]} canAdd={false} onDayClick={vi.fn()} onItemClick={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /^Add post on/ })).not.toBeInTheDocument();
+  });
 });
