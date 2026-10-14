@@ -4,7 +4,7 @@ import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { buildToday, TodayEntry, todayTotal, todaySources } from '../today';
 import { QUEUE_SECTIONS, QueueGroup } from '../components/QueueGroup';
-import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody } from '../ui';
+import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody, focusRing } from '../ui';
 
 // The home page answers one question: what needs me. The clients grid answers
 // "what exists", which is a different and much less frequent question.
@@ -57,7 +57,7 @@ export default function TodayPage() {
                 onClick={() =>
                   document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark text-[11px] font-medium text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-colors"
+                className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark text-[11px] font-medium text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-colors ${focusRing}`}
               >
                 {s.label}
                 <span className="tabular-nums font-semibold">{groups[s.key].length}</span>

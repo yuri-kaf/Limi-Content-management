@@ -19,6 +19,7 @@ vi.mock('../store', () => ({
 }));
 
 import IdeasView from './IdeasView';
+import { focusRing } from '../ui';
 
 const BAKERY: Business = { id: 'b1', name: 'Bakery', color: 'orange', about: '', createdAt: 1 };
 const CAFE: Business = { id: 'b2', name: 'Cafe', color: 'green', about: '', createdAt: 2 };
@@ -77,7 +78,7 @@ describe('IdeasView — controls', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle).toHaveClass('focus-visible:ring-2');
+    expect(toggle.className).toContain(focusRing);
   });
 
   it('keeps the triage buttons at a 36px target, 44px on touch', () => {

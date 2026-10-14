@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Pencil, Building2, Megaphone } from 'lucide-react';
-import { btnIcon, card } from '../../ui';
+import { btnIcon, card, focusRingInset } from '../../ui';
 
 interface Props {
   onEditClient: () => void;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 const menuItem =
-  'w-full flex items-center gap-2 h-8 px-2 rounded-tile text-[13px] text-left text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark hover:text-ink dark:hover:text-ink-dark transition-colors focus:outline-none focus-visible:bg-hover dark:focus-visible:bg-hover-dark';
+  `w-full flex items-center gap-2 h-8 px-2 rounded-tile text-[13px] text-left text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark hover:text-ink dark:hover:text-ink-dark transition-colors focus-visible:bg-hover dark:focus-visible:bg-hover-dark ${focusRingInset}`;
 
 // A disclosure — a button that shows a short list of actions — rather than an
 // ARIA menu, which would promise arrow-key movement it does not have. It closes

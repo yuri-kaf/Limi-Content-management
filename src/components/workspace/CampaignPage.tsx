@@ -126,7 +126,7 @@ export default function CampaignPage({
       <div className="flex-shrink-0 border-b border-hairline dark:border-hairline-dark px-4 pt-3 pb-2.5 flex flex-col gap-2.5">
         <button
           onClick={onBack}
-          className={`self-start inline-flex items-center gap-1 min-h-8 text-[12px] font-medium ${faintText} hover:text-ink dark:hover:text-ink-dark transition-colors`}
+          className={`self-start inline-flex items-center gap-1 min-h-8 text-[12px] font-medium ${faintText} hover:text-ink dark:hover:text-ink-dark transition-colors rounded-tile ${focusRing}`}
         >
           <ArrowLeft size={13} />
           All campaigns

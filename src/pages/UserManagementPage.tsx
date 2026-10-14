@@ -10,7 +10,7 @@ import { runWrite } from '../utils';
 import Logo from '../components/Logo';
 import {
   page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint,
-  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger,
+  input, overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger, focusRing,
 } from '../ui';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -299,7 +299,7 @@ export default function UserManagementPage() {
           <div>
             <button
               onClick={() => navigate('/')}
-              className={`flex items-center gap-1.5 text-xs mb-2 transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark`}
+              className={`flex items-center gap-1.5 text-xs mb-2 transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark rounded-chip ${focusRing}`}
             >
               <ArrowLeft size={13} />
               Back

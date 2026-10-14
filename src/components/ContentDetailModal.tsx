@@ -11,14 +11,14 @@ import {
 import {
   sheetOverlay, sheetPanelWide, sheetBody, sheetPane, heading, faintText, bodyText, badge,
   sectionLabel, readout, readoutScroll, textarea, btnGhost, btnGhostDanger, btnPrimary, btnSuccess,
-  btnDanger, btnIcon,
+  btnDanger, btnIcon, focusRing, focusRingInset,
 } from '../ui';
 
 type CopyTarget = 'caption' | 'hashtags' | 'both';
 
 // Small quiet action next to a section heading (Copy, + tags, Create link).
 const inlineAction =
-  'inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand-text dark:hover:text-brand-textdark transition-colors';
+  `inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand-text dark:hover:text-brand-textdark transition-colors rounded-chip ${focusRing}`;
 
 interface Props {
   clientId: string;
@@ -228,7 +228,7 @@ export default function ContentDetailModal({
                   href={item.driveLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-full flex flex-col items-center justify-center gap-2 group/open hover:bg-hairline/40 dark:hover:bg-hairline-dark/40 transition-colors"
+                  className={`w-full h-full flex flex-col items-center justify-center gap-2 group/open hover:bg-hairline/40 dark:hover:bg-hairline-dark/40 transition-colors ${focusRingInset}`}
                 >
                   <div className="w-12 h-12 rounded-full bg-surface dark:bg-surface-dark shadow-card flex items-center justify-center">
                     {isGraphic ? (
@@ -270,7 +270,7 @@ export default function ContentDetailModal({
                         onClick={() => { if (!isCurrent) onChangeStatus(s.id); }}
                         aria-current={isCurrent}
                         disabled={isCurrent}
-                        className={`flex items-center gap-1.5 px-3 h-9 rounded-tile text-xs font-semibold transition-colors ${
+                        className={`flex items-center gap-1.5 px-3 h-9 rounded-tile text-xs font-semibold transition-colors ${focusRing} ${
                           isCurrent
                             ? 'cursor-default'
                             : 'bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
@@ -390,7 +390,7 @@ export default function ContentDetailModal({
                       href={v.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand-text dark:hover:text-brand-textdark`}
+                      className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand-text dark:hover:text-brand-textdark rounded-chip ${focusRing}`}
                     >
                       <History size={11} />
                       v{i + 1}
@@ -433,7 +433,7 @@ export default function ContentDetailModal({
                     )}
                     <button
                       onClick={() => { setDecliningMode(false); onReview('pending'); }}
-                      className={`self-start text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark`}
+                      className={`self-start text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark rounded-chip ${focusRing}`}
                     >
                       Reset review
                     </button>

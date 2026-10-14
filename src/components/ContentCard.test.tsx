@@ -4,7 +4,7 @@ import { DndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
 import ContentCard from './ContentCard';
 import { ContentItem } from '../types';
-import { lift } from '../ui';
+import { focusRingInset, lift } from '../ui';
 
 function item(over: Partial<ContentItem> = {}): ContentItem {
   return {
@@ -57,14 +57,13 @@ describe('ContentCard', () => {
   });
 
   // A focus indicator needs 3:1. At 40% the ring was 1.9:1 on the light page.
-  it('draws a solid focus ring, whether or not the card can move', () => {
+  it('draws a solid inset focus ring, whether or not the card can move', () => {
     renderCard();
     render(<ContentCard item={item({ id: 'i2', title: 'Static reel' })} draggable={false} />);
     for (const title of ['Momo reel', 'Static reel']) {
-      expect(cardOf(title)).toHaveClass(
-        'focus:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-focus',
-        'dark:focus-visible:ring-focus-dark'
-      );
+      // Inset: an offset ring would draw a canvas-coloured halo round the
+      // pastel fill.
+      expect(cardOf(title).className).toContain(focusRingInset);
       expect(cardOf(title).className).not.toMatch(/ring-(?:brand|focus)\//);
     }
   });

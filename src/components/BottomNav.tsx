@@ -1,5 +1,5 @@
 import { Home, LayoutGrid, User } from 'lucide-react';
-import { faintText } from '../ui';
+import { faintText, focusRingInset } from '../ui';
 
 const TABS = [
   { path: '/', label: 'Home', icon: Home },
@@ -29,7 +29,7 @@ export default function BottomNav({ activePath, onNavigate }: Props) {
             key={t.path}
             onClick={() => onNavigate(t.path)}
             aria-current={active ? 'page' : undefined}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 h-14 transition-colors ${
+            className={`flex-1 flex flex-col items-center justify-center gap-1 h-14 transition-colors ${focusRingInset} ${
               active ? 'text-brand-text dark:text-brand-textdark' : faintText
             }`}
           >

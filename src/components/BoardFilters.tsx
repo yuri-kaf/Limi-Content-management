@@ -5,7 +5,7 @@ import { PLATFORM_LABELS } from '../utils';
 import {
   ContentFilters, DATE_WINDOWS, DateWindow, NO_FILTERS, activeFilterCount,
 } from '../filters';
-import { btnGhost, card, sectionLabel, faintText, navBadge } from '../ui';
+import { btnGhost, card, sectionLabel, faintText, navBadge, focusRing, focusRingInset } from '../ui';
 
 const TYPES: { id: MediaType | 'all'; label: string }[] = [
   { id: 'all', label: 'Any type' },
@@ -21,7 +21,7 @@ interface Props {
 }
 
 const row =
-  'w-full flex items-center gap-2 h-7 px-2 rounded-tile text-[13px] text-left transition-colors text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark';
+  `w-full flex items-center gap-2 h-7 px-2 rounded-tile text-[13px] text-left transition-colors text-ink-soft dark:text-ink-softdark hover:bg-hover dark:hover:bg-hover-dark ${focusRingInset}`;
 
 export default function BoardFilters({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
@@ -78,7 +78,7 @@ export default function BoardFilters({ value, onChange }: Props) {
       {count > 0 && (
         <button
           onClick={() => onChange(NO_FILTERS)}
-          className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium ${faintText} hover:text-brand-text dark:hover:text-brand-textdark transition-colors`}
+          className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium ${faintText} hover:text-brand-text dark:hover:text-brand-textdark transition-colors rounded-chip ${focusRing}`}
         >
           <X size={11} />
           Clear

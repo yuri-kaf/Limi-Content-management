@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import ContentCalendar from './ContentCalendar';
 import { ContentItem } from '../types';
 import { STAGES } from '../utils';
+import { focusRingInset } from '../ui';
 
 function item(over: Partial<ContentItem>): ContentItem {
   return {
@@ -26,6 +27,7 @@ describe('ContentCalendar', () => {
     );
     const chip = screen.getByRole('button', { name: 'Laptop deals story' });
     expect(chip.style.getPropertyValue('--sc-tint')).toBe(STAGES.find((s) => s.id === 'to-post')!.cardTint);
+    expect(chip.className).toContain(focusRingInset);
     await userEvent.click(chip);
     expect(onItemClick).toHaveBeenCalledWith(post);
   });
@@ -47,6 +49,8 @@ describe('ContentCalendar', () => {
     const day = new Date(now.getFullYear(), now.getMonth(), 12);
     const label = `Add post on ${day.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
     const add = screen.getByRole('button', { name: label });
+    // 24px for a pointer, 32px where there is none.
+    expect(add).toHaveClass('[@media(hover:none)]:w-8', '[@media(hover:none)]:h-8');
     add.focus();
     await userEvent.keyboard('{Enter}');
     expect(onDayClick).toHaveBeenCalledTimes(1);

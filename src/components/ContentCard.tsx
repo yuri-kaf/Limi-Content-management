@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Campaign, ContentItem, ContentStatus } from '../types';
 import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
 import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
-import { lift, focusRing } from '../ui';
+import { lift, focusRingInset } from '../ui';
 import ColorLabel from './ColorLabel';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar, AlertCircle,
@@ -41,7 +41,7 @@ const CLICK_SLOP = 4;
 
 // On the pastel fill a hover wash has to be lighter than the card, not darker.
 const iconBtn =
-  'w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-white/60 dark:hover:bg-black/20 transition-colors';
+  `w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-white/60 dark:hover:bg-black/20 transition-colors ${focusRingInset}`;
 
 // Chips sit one layer above the fill: translucent white in light, a darker wash
 // in dark. Their stage-coloured text clears AA on the fill itself, and the
@@ -65,7 +65,7 @@ const inHand =
 // card's second title line. The focus ring is solid brand, 4.8:1 on the light
 // page and 3.6:1 on the dark one: at 40% it was 1.9:1 and 1.5:1, and less
 // against the fills, under the 3:1 a focus indicator needs.
-const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} ${focusRing}`;
+const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} ${focusRingInset}`;
 
 interface ShellProps {
   /** The card's stage, which picks the pastel it is filled with. */
