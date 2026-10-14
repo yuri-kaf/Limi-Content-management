@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
+import { btnIcon } from '../ui';
 import { NavModel } from '../nav';
 
 const nav: NavModel = {
@@ -59,13 +60,24 @@ describe('Sidebar', () => {
     expect(props.onNavigate).toHaveBeenCalledWith('/client/acme');
   });
 
-  // The rail is 48px. Logo and button side by side need 80px with the
-  // header's padding, so in the rail they stack.
-  it('stacks the brand row in the 48px rail, so nothing overhangs it', () => {
+  // In the 48px rail the brand row keeps its 44px height and holds one
+  // control: the logo mark, which turns into the expand icon under the pointer
+  // or keyboard focus, as in Linear.
+  it('makes the rail brand row one expand button that shows the logo', () => {
     setup({ collapsed: true });
-    const header = screen.getByRole('button', { name: 'Expand sidebar' }).parentElement!;
-    expect(header).toHaveClass('flex-col');
-    expect(header).not.toHaveClass('px-3');
+    const button = screen.getByRole('button', { name: 'Expand sidebar' });
+    const header = button.parentElement!;
+    expect(header).toHaveClass('h-11');
+    expect(header).not.toHaveClass('flex-col');
+    expect(header.children).toHaveLength(1);
+    expect(button.querySelectorAll('svg, img').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('draws the footer buttons at btnIcon size, with no dead overrides', () => {
+    setup();
+    for (const name of ['Toggle theme', 'Sign out']) {
+      expect(screen.getByRole('button', { name }).className).toBe(btnIcon);
+    }
   });
 
   // 28px beside the brand on the desktop sidebar, but the phone drawer's close

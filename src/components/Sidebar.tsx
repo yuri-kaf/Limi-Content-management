@@ -33,28 +33,46 @@ export default function Sidebar({
 
   return (
     <nav className={sidebar} aria-label="Main">
-      {/* Brand + collapse */}
-      {/* Side by side the brand row needs 80px; the rail is 48px, so there the
-          mark and the button stack. */}
-      <div
-        className={`flex items-center flex-shrink-0 ${
-          collapsed ? 'flex-col justify-center gap-1 py-2' : 'gap-2 h-11 px-3'
-        }`}
-      >
-        <Logo variant="mark" size={20} />
-        {!collapsed && <span className={`${heading} text-[13px]`}>Limi</span>}
-        <button
-          onClick={onToggleCollapsed}
-          // The `!` because btnIcon's own w-9 h-9 come later in Tailwind's
-          // stylesheet than w-7 h-7, so a plain w-7 h-7 loses. Only from lg,
-          // the desktop sidebar: in the phone drawer this is the close button,
-          // and keeps btnIcon's 36px.
-          className={`${btnIcon} ${collapsed ? '' : 'ml-auto'} lg:!w-7 lg:!h-7 flex-shrink-0`}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-        </button>
-      </div>
+      {/* Brand + collapse. Expanded: the mark, the name and a collapse button.
+          In the 48px rail there is room for one control, so the mark is the
+          expand button, and turns into the expand icon under the pointer or
+          keyboard focus, as in Linear. */}
+      {collapsed ? (
+        <div className="flex items-center justify-center h-11 flex-shrink-0">
+          <button
+            onClick={onToggleCollapsed}
+            className={`${btnIcon} group/rail`}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <Logo
+              variant="mark"
+              size={20}
+              className="group-hover/rail:hidden group-focus-visible/rail:hidden"
+            />
+            <PanelLeftOpen
+              size={14}
+              className="hidden group-hover/rail:block group-focus-visible/rail:block"
+            />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 h-11 px-3 flex-shrink-0">
+          <Logo variant="mark" size={20} />
+          <span className={`${heading} text-[13px]`}>Limi</span>
+          <button
+            onClick={onToggleCollapsed}
+            // The `!` because btnIcon's own w-9 h-9 come later in Tailwind's
+            // stylesheet than w-7 h-7, so a plain w-7 h-7 loses. Only from lg,
+            // the desktop sidebar: in the phone drawer this is the close button,
+            // and keeps btnIcon's 36px.
+            className={`${btnIcon} ml-auto lg:!w-7 lg:!h-7 flex-shrink-0`}
+            aria-label="Collapse sidebar"
+          >
+            <PanelLeftClose size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
         <button
@@ -147,10 +165,10 @@ export default function Sidebar({
           <p className={`px-2 pb-1.5 text-[11px] truncate ${faintText}`}>{userEmail}</p>
         )}
         <div className={`flex items-center gap-1 ${collapsed ? 'flex-col' : ''}`}>
-          <button onClick={onToggleTheme} className={`${btnIcon} w-7 h-7`} aria-label="Toggle theme">
+          <button onClick={onToggleTheme} className={btnIcon} aria-label="Toggle theme">
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
-          <button onClick={onSignOut} className={`${btnIcon} w-7 h-7`} aria-label="Sign out">
+          <button onClick={onSignOut} className={btnIcon} aria-label="Sign out">
             <LogOut size={14} />
           </button>
         </div>
