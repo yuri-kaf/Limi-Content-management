@@ -156,6 +156,12 @@ export const overlay =
 // Panels carry will-change for good, not just while they enter: Safari drops
 // the compositing layer when the entrance ends and re-rasterises the panel
 // under the blurred overlay, which showed as a dip of a pixel or two.
+//
+// The cost: will-change: transform makes the panel the containing block for
+// every `position: fixed` descendant, as a real transform would. A dropdown,
+// popover or tooltip inside a dialog that positions itself with `fixed`
+// against the viewport will be placed against the panel instead, and clipped
+// by its overflow. Render those through a portal to document.body.
 export const modalPanel =
   'w-full max-w-md p-6 bg-surface dark:bg-surface-dark rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark max-h-[90dvh] overflow-y-auto animate-scale-in [will-change:transform,opacity]';
 
