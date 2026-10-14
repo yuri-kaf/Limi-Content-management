@@ -131,8 +131,11 @@ export const btnGhostDanger = `${btnGhost} hover:!text-brand-text dark:hover:!te
 export const overlay =
   'fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 dark:bg-black/70 backdrop-blur-md animate-fade-in';
 
+// Panels carry will-change for good, not just while they enter: Safari drops
+// the compositing layer when the entrance ends and re-rasterises the panel
+// under the blurred overlay, which showed as a dip of a pixel or two.
 export const modalPanel =
-  'w-full max-w-md p-6 bg-surface dark:bg-surface-dark rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark max-h-[90dvh] overflow-y-auto animate-scale-in';
+  'w-full max-w-md p-6 bg-surface dark:bg-surface-dark rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark max-h-[90dvh] overflow-y-auto animate-scale-in [will-change:transform,opacity]';
 
 // Bottom sheet on phones, centred dialog from `sm` up — for the taller,
 // media-led modals where a sheet reads more naturally on a small screen.
@@ -142,7 +145,7 @@ export const sheetOverlay =
 // A sheet rises from the bottom edge on a phone and scales in as a dialog from
 // `sm` up, matching where it sits in each layout.
 export const sheetPanel =
-  'w-full sm:max-w-lg bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark overflow-hidden overflow-y-auto max-h-[92dvh] animate-sheet-up sm:animate-scale-in';
+  'w-full sm:max-w-lg bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark overflow-hidden overflow-y-auto max-h-[92dvh] animate-sheet-up sm:animate-scale-in [will-change:transform,opacity]';
 
 export const modalTitle = `${heading} text-base`;
 
@@ -178,7 +181,7 @@ export const shell = `max-w-[1440px] ${shellPad}`;
 // own. Distinct from sheetPanel, which scrolls as a single column and so lets
 // the media and the close button slide away.
 export const sheetPanelWide =
-  'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden animate-sheet-up sm:animate-scale-in';
+  'w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl bg-surface dark:bg-surface-dark rounded-t-card sm:rounded-card shadow-lift dark:ring-1 dark:ring-hairline-dark flex flex-col max-h-[92dvh] overflow-hidden animate-sheet-up sm:animate-scale-in [will-change:transform,opacity]';
 
 // One scroll region per pane below lg, two above it. min-h-0 is what actually
 // lets a flex child scroll instead of growing past its parent.

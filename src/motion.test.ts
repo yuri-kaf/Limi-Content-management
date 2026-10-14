@@ -1,4 +1,5 @@
 import { enter, staggerStyle } from './motion';
+import { modalPanel, sheetPanel, sheetPanelWide } from './ui';
 
 describe('staggerStyle', () => {
   it('starts each item a little after the one before', () => {
@@ -19,4 +20,16 @@ describe('staggerStyle', () => {
   it('pairs with the fade-up entrance', () => {
     expect(enter).toBe('animate-fade-up');
   });
+});
+
+describe('dialog panels', () => {
+  // Safari drops a panel's compositing layer the moment its entrance ends and
+  // re-rasterises it under the blurred overlay, which shows as a dip of a
+  // pixel or two. Promoting the panel for good keeps it on one layer.
+  it.each(Object.entries({ modalPanel, sheetPanel, sheetPanelWide }))(
+    '%s stays on its own layer after its entrance',
+    (_name, recipe) => {
+      expect(recipe).toContain('[will-change:transform,opacity]');
+    }
+  );
 });
