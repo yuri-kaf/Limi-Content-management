@@ -117,11 +117,17 @@ export default function CommentThread({
                 value={stamp}
                 onChange={(e) => setStamp(e.target.value)}
                 placeholder="0:14"
-                className={`${textarea} w-20 px-2 py-1 text-xs ${
-                  stampInvalid ? '!border-brand !text-brand-text dark:!text-brand-textdark' : ''
-                }`}
+                aria-label="Timestamp"
+                aria-invalid={stampInvalid}
+                aria-describedby={`stamp-hint-${contentId}`}
+                className={`${textarea} w-20 px-2 py-1 text-xs`}
               />
-              <span className={`text-[10px] ${faintText}`}>
+              <span
+                id={`stamp-hint-${contentId}`}
+                className={`text-[10px] ${
+                  stampInvalid ? 'text-brand-text dark:text-brand-textdark' : faintText
+                }`}
+              >
                 {stampInvalid ? 'Use m:ss, e.g. 0:14' : 'Optional — point at a moment'}
               </span>
             </div>

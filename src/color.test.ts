@@ -135,20 +135,32 @@ describe('info tokens meet WCAG AA', () => {
   });
 });
 
-// WCAG 1.4.11: a focus indicator needs 3:1 against what it sits on. The ring
-// is drawn on a canvas-coloured offset, and on tint and hover where it is
-// inset, so it has to clear all three in each theme.
+// WCAG 1.4.11: a focus indicator needs 3:1 against what it sits on. Focus is
+// neutral ink, not the brand red, so it never reads as an error. It is drawn
+// on canvas-coloured offsets, inset on tint and hover rows, and inset on the
+// pastel stage cards, so it has to clear all of them in each theme.
 describe('focus ring meets WCAG non-text contrast', () => {
   const NON_TEXT = 3;
 
-  it('clears 3:1 on canvas, tint and hover in light mode', () => {
-    for (const ground of [palette.canvas.DEFAULT, palette.tint.DEFAULT, palette.hover.DEFAULT]) {
+  it('is not the brand red', () => {
+    expect(palette.focus.DEFAULT).not.toBe(palette.brand.DEFAULT);
+    expect(palette.focus.dark).not.toBe(palette.brand.textdark);
+  });
+
+  it('clears 3:1 on every light ground', () => {
+    for (const ground of [
+      palette.canvas.DEFAULT, palette.surface.DEFAULT, palette.tint.DEFAULT, palette.hover.DEFAULT,
+      ...STAGES.map((s) => s.cardTint),
+    ]) {
       expect(contrastRatio(palette.focus.DEFAULT, ground)).toBeGreaterThanOrEqual(NON_TEXT);
     }
   });
 
-  it('clears 3:1 on canvas, tint and hover in dark mode', () => {
-    for (const ground of [palette.canvas.dark, palette.tint.dark, palette.hover.dark]) {
+  it('clears 3:1 on every dark ground', () => {
+    for (const ground of [
+      palette.canvas.dark, palette.surface.dark, palette.tint.dark, palette.hover.dark,
+      ...STAGES.map((s) => s.cardTintDark),
+    ]) {
       expect(contrastRatio(palette.focus.dark, ground)).toBeGreaterThanOrEqual(NON_TEXT);
     }
   });

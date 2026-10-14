@@ -2,10 +2,11 @@
 // import from here instead of each re-inventing its own border/padding recipe,
 // which is how the old UI drifted.
 
-// Keyboard focus, one recipe everywhere. A solid 2px ring in the `focus`
-// colour on a 2px canvas-coloured offset, so it reads at 3:1 or better whatever
-// the control's own fill (color.test.ts asserts it), and only for keyboard focus:
-// a mouse click does not leave a ring behind.
+// Keyboard focus, one recipe everywhere. A solid 2px ring in the neutral
+// `focus` ink on a 2px canvas-coloured offset, so it reads at 3:1 or better
+// whatever the control's own fill (color.test.ts asserts it), and only for
+// keyboard focus: a mouse click does not leave a ring behind. Red is kept for
+// errors: an input marked aria-invalid draws a 2px brand-text edge instead.
 export const focusRing =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-dark';
 
@@ -49,7 +50,7 @@ export const label =
   'block text-[11px] font-semibold text-ink-faint dark:text-ink-faintdark mb-1.5 uppercase tracking-wider';
 
 export const input =
-  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark transition-all';
+  'w-full bg-raised dark:bg-canvas-dark border border-hairline dark:border-hairline-dark rounded-tile px-3.5 py-2.5 text-ink dark:text-ink-dark text-sm placeholder-ink-faint dark:placeholder-ink-faintdark focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark focus-visible:ring-1 focus-visible:ring-focus dark:focus-visible:ring-focus-dark aria-[invalid=true]:!border-brand-text dark:aria-[invalid=true]:!border-brand-textdark aria-[invalid=true]:ring-1 aria-[invalid=true]:!ring-brand-text dark:aria-[invalid=true]:!ring-brand-textdark transition-all';
 
 // A compact primary for inline banners, where a 44px button would outweigh the
 // message. Full height again where there is no pointer to aim with.
