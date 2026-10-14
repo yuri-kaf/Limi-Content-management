@@ -101,6 +101,11 @@ export const badgeBtn =
 export const revealOnGroupHover =
   'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100';
 
+// Today's date in a calendar: its number in a filled brand circle, the one
+// mark it needs. White on the brand red is 4.8:1 (color.test.ts).
+export const todayMark =
+  'inline-flex items-center justify-center h-6 min-w-6 px-1 rounded-full bg-brand text-white text-[12px] font-semibold tabular-nums';
+
 // Segmented pill navigation, as in the reference dashboards.
 export const pillGroup =
   'inline-flex items-center gap-1 p-1 rounded-full bg-raised dark:bg-raised-dark border border-hairline dark:border-hairline-dark';

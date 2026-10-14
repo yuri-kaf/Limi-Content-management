@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import ContentCalendar from './ContentCalendar';
 import { ContentItem } from '../types';
 import { STAGES } from '../utils';
-import { focusRingInset } from '../ui';
+import { focusRingInset, todayMark } from '../ui';
 
 function item(over: Partial<ContentItem>): ContentItem {
   return {
@@ -16,6 +16,11 @@ function item(over: Partial<ContentItem>): ContentItem {
 // every time zone the suite runs in.
 const now = new Date();
 const thisMonth = (day: number) => new Date(now.getFullYear(), now.getMonth(), day, 10).getTime();
+// A data-date is a local YYYY-MM-DD, read back in local time.
+const parse = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 const monthLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
 describe('ContentCalendar', () => {
@@ -60,5 +65,35 @@ describe('ContentCalendar', () => {
   it('has no add buttons when adding is not allowed', () => {
     render(<ContentCalendar content={[]} canAdd={false} onDayClick={vi.fn()} onItemClick={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /^Add post on/ })).not.toBeInTheDocument();
+  });
+
+  // One continuous grid: whole weeks, Sunday first, with the neighbouring
+  // months' days filling the first and last week rather than blank holes.
+  it('fills whole weeks, with the neighbouring months shown as outside', () => {
+    const { container } = render(
+      <ContentCalendar content={[]} canAdd={false} onDayClick={vi.fn()} onItemClick={vi.fn()} />
+    );
+    const cells = [...container.querySelectorAll<HTMLElement>('[data-date]')];
+    expect(cells.length % 7).toBe(0);
+    expect(parse(cells[0].dataset.date!).getDay()).toBe(0);
+    const inside = cells.filter((c) => c.dataset.outside === undefined);
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    expect(inside).toHaveLength(daysInMonth);
+    for (const c of cells.filter((c) => c.dataset.outside !== undefined)) {
+      expect(parse(c.dataset.date!).getMonth()).not.toBe(now.getMonth());
+    }
+  });
+
+  // Today is marked by its number alone, in a filled circle, as in Apple's
+  // and Notion's calendars, not by tinting the whole cell red.
+  it('marks today by its number, and nothing else', () => {
+    const { container } = render(
+      <ContentCalendar content={[]} canAdd={false} onDayClick={vi.fn()} onItemClick={vi.fn()} />
+    );
+    const today = container.querySelector<HTMLElement>('[aria-current="date"]')!;
+    expect(today).not.toBeNull();
+    expect(today.querySelector(`[class="${todayMark}"]`)).toHaveTextContent(String(now.getDate()));
+    expect(container.querySelectorAll('[aria-current="date"]')).toHaveLength(1);
+    expect(today.className).not.toMatch(/brand/);
   });
 });
