@@ -1,6 +1,10 @@
+import { createHash } from 'node:crypto';
 import { getPublicOrigin } from 'mcp-handler';
-import { seal } from './seal.js';
-import type { FetchLike } from './firebaseAuth.js';
+import { seal, unseal } from './seal.js';
+import { FirebaseAuthError, signInWithPassword, type FetchLike } from './firebaseAuth.js';
+import { createFirestore } from './firestore.js';
+import { getProfile } from './limi.js';
+import { renderErrorPage, renderSignInPage, type SignInFields } from './signInPage.js';
 
 // OAuth 2.1 for the MCP connector, per the MCP authorization spec (2025-06-18):
 // RFC 9728 protected-resource metadata, RFC 8414 server metadata, RFC 7591
@@ -150,5 +154,122 @@ export function registerHandler({ key, now }: OAuthDeps): Handler {
       },
       201
     );
+  };
+}
+
+// ─── Authorization ───────────────────────────────────────────────────────────
+
+const CODE_TTL = 5 * 60;
+
+/** A sign-in code: valid five minutes, for one client, one redirect and one PKCE challenge. */
+interface CodeClaims {
+  rt: string;
+  uid: string;
+  cid: string;
+  ru: string;
+  cc: string;
+}
+
+/** RFC 7636 S256: BASE64URL(SHA256(verifier)). */
+export function pkceChallenge(verifier: string): string {
+  return createHash('sha256').update(verifier).digest('base64url');
+}
+
+function redirectTo(base: string, params: Record<string, string>): Response {
+  const url = new URL(base);
+  for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v);
+  return new Response(null, { status: 302, headers: { Location: url.toString(), 'Cache-Control': 'no-store' } });
+}
+
+type Checked = { ok: true; fields: SignInFields; clientName: string } | { ok: false; response: Response };
+
+async function checkRequest(key: Uint8Array, params: URLSearchParams): Promise<Checked> {
+  const fields: SignInFields = {
+    client_id: params.get('client_id') ?? '',
+    redirect_uri: params.get('redirect_uri') ?? '',
+    state: params.get('state') ?? '',
+    code_challenge: params.get('code_challenge') ?? '',
+    code_challenge_method: params.get('code_challenge_method') ?? '',
+    response_type: params.get('response_type') ?? '',
+  };
+  const client = await unseal<ClientClaims>(key, 'client', fields.client_id);
+  if (!client) {
+    return {
+      ok: false,
+      response: renderErrorPage(400, 'This sign-in link is not valid. Start connecting again from Claude.'),
+    };
+  }
+  // Never redirect anywhere the client did not register: show the error here.
+  if (!client.ru.includes(fields.redirect_uri)) {
+    return {
+      ok: false,
+      response: renderErrorPage(
+        400,
+        'This sign-in link asks to return somewhere Limi does not recognise. Start connecting again from Claude.'
+      ),
+    };
+  }
+  if (fields.response_type !== 'code') {
+    return {
+      ok: false,
+      response: redirectTo(fields.redirect_uri, { error: 'unsupported_response_type', state: fields.state }),
+    };
+  }
+  if (!fields.code_challenge || fields.code_challenge_method !== 'S256') {
+    return {
+      ok: false,
+      response: redirectTo(fields.redirect_uri, {
+        error: 'invalid_request',
+        error_description: 'PKCE with S256 is required.',
+        state: fields.state,
+      }),
+    };
+  }
+  return { ok: true, fields, clientName: client.nm };
+}
+
+/** GET shows the sign-in page; POST signs in and returns to Claude with a code. */
+export function authorizeHandler({ key, apiKey, projectId, fetch: fetchFn, now }: OAuthDeps): Handler {
+  return async (req) => {
+    if (req.method === 'GET') {
+      const checked = await checkRequest(key, new URL(req.url).searchParams);
+      if (!checked.ok) return checked.response;
+      return renderSignInPage({ fields: checked.fields, clientName: checked.clientName });
+    }
+    if (req.method !== 'POST') return notAllowed('GET, POST');
+
+    const form = new URLSearchParams(await req.text());
+    const checked = await checkRequest(key, form);
+    if (!checked.ok) return checked.response;
+    const { fields, clientName } = checked;
+    const email = (form.get('email') ?? '').trim();
+    const password = form.get('password') ?? '';
+    const again = (error: string) => renderSignInPage({ fields, clientName, email, error });
+    if (!email || !password) return again('Enter your email and password.');
+
+    let signedIn;
+    try {
+      signedIn = await signInWithPassword(apiKey, email, password, fetchFn);
+    } catch (err) {
+      return again(err instanceof FirebaseAuthError ? err.message : 'Could not sign in.');
+    }
+    // A Firebase account is not enough: the users/{uid} profile is what grants access.
+    const fs = createFirestore({ projectId, idToken: signedIn.idToken, fetch: fetchFn });
+    const profile = await getProfile(fs, signedIn.uid).catch(() => null);
+    if (!profile) return again('This account has no access to Limi. Ask an admin to add you on the Team page.');
+
+    const code = await seal(
+      key,
+      'code',
+      {
+        rt: signedIn.refreshToken,
+        uid: signedIn.uid,
+        cid: fields.client_id,
+        ru: fields.redirect_uri,
+        cc: fields.code_challenge,
+      } satisfies CodeClaims,
+      { ttlSeconds: CODE_TTL, now: now() }
+    );
+    return redirectTo(fields.redirect_uri, { code, state: fields.state });
   };
 }
