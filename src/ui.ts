@@ -82,6 +82,17 @@ export const btnIcon =
 // own hover colours would otherwise win by stylesheet order.
 export const btnIconDanger = `${btnIcon} hover:!text-brand-text dark:hover:!text-brand-textdark hover:!bg-brand-soft dark:hover:!bg-brand-softdark`;
 
+// A small round action floating over a tile's corner, like a Finder badge:
+// its own surface, hairline and shadow, so it reads over whatever is under it.
+// 28px for a pointer, 36px where there is none.
+export const badgeBtn =
+  `w-7 h-7 [@media(hover:none)]:w-9 [@media(hover:none)]:h-9 inline-flex items-center justify-center rounded-full bg-surface dark:bg-surface-dark border border-hairline dark:border-hairline-dark shadow-sm text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-[opacity,color] duration-150 ${focusRing}`;
+
+// Hidden until its `group` is hovered or holds focus, and always shown where
+// nothing can hover. Pair with a transition on opacity, as badgeBtn has.
+export const revealOnGroupHover =
+  'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100';
+
 // Segmented pill navigation, as in the reference dashboards.
 export const pillGroup =
   'inline-flex items-center gap-1 p-1 rounded-full bg-raised dark:bg-raised-dark border border-hairline dark:border-hairline-dark';

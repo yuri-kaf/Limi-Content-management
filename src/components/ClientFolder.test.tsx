@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ClientFolder from './ClientFolder';
+import { badgeBtn, revealOnGroupHover } from '../ui';
 import { Client, ContentItem } from '../types';
 
 function item(over: Partial<ContentItem>): ContentItem {
@@ -86,22 +87,14 @@ describe('ClientFolder', () => {
     expect(screen.queryByRole('button', { name: 'Edit Momoland' })).not.toBeInTheDocument();
   });
 
-  // The pencil sits in a band above the folder rather than on its corner, so
-  // it never covers the folder at the grid's narrowest 132px tile.
-  it('keeps the folder clear of the pencil', () => {
+  // A Finder-style badge over the tile's corner, not a band that pushes the
+  // folder down: every tile keeps the same padding, editable or not.
+  it('floats the pencil as a badge, without padding the tile for it', () => {
     setup(client([]), vi.fn());
-    const [tile] = screen.getAllByRole('button');
-    expect(tile).toHaveClass('pt-8');
-  });
-
-  // Faded in under the pointer rather than popped, and always shown on any
-  // device with a touch screen, where a tap would otherwise flash it.
-  it('fades the pencil in, and keeps it shown on a touch screen', () => {
-    setup(client([]), vi.fn());
-    expect(screen.getByRole('button', { name: 'Edit Momoland' })).toHaveClass(
-      '[@media(hover:hover)]:opacity-0', 'group-hover:opacity-100',
-      '[@media(any-pointer:coarse)]:!opacity-100', '!transition-[opacity,color,background-color]'
-    );
+    const [tile, pencil] = screen.getAllByRole('button');
+    expect(tile).toHaveClass('pt-4');
+    expect(pencil.className).toContain(badgeBtn);
+    expect(pencil.className).toContain(revealOnGroupHover);
   });
 
   it('keeps the tile at its usual padding for a viewer who may not edit', () => {

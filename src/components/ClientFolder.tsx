@@ -4,7 +4,7 @@ import { Client } from '../types';
 import { awaitingReview } from '../nav';
 import FolderIcon from './FolderIcon';
 import ColorLabel from './ColorLabel';
-import { btnIcon, faintText, focusRing } from '../ui';
+import { badgeBtn, faintText, focusRing, revealOnGroupHover } from '../ui';
 
 interface Props {
   client: Client;
@@ -20,10 +20,10 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 // waiting on the client first, then how much there is.
 //
 // Two sibling buttons, not one inside the other (invalid HTML): the tile opens
-// the client and the pencil edits it. The pencil fades in under a pointer, and
-// is always shown on a device with a touch screen, where a tap counts as a
-// hover and would flash it in on the way to opening the client. An editable
-// tile's top padding is a band for the pencil, so it never sits on the folder.
+// the client and the pencil edits it. The pencil is a badge on the tile's
+// corner with its own surface, so it reads even where it overlaps the folder.
+// It fades in under a pointer or with focus inside the tile, and is always
+// shown where nothing can hover.
 //
 // The outer `group` reveals the pencil. The tile alone is the `group/folder`
 // that lifts the folder, so hovering the pencil beside it does not.
@@ -41,7 +41,7 @@ export default function ClientFolder({ client, onEdit }: Props) {
     <div className="group relative">
       <button
         onClick={() => navigate(`/client/${client.id}`)}
-        className={`group/folder w-full flex flex-col items-center gap-2 px-2 ${onEdit ? 'pt-8 [@media(any-pointer:coarse)]:pt-10' : 'pt-4'} pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] ${focusRing}`}
+        className={`group/folder w-full flex flex-col items-center gap-2 px-2 pt-4 pb-3 rounded-card text-center transition-[background-color,transform] duration-150 ease-out-soft hover:bg-tint dark:hover:bg-tint-dark active:scale-[.98] ${focusRing}`}
       >
         <FolderIcon color={client.color} size={88} label={client.name} imageUrl={client.imageUrl} />
         <span
@@ -61,7 +61,7 @@ export default function ClientFolder({ client, onEdit }: Props) {
       {onEdit && (
         <button
           onClick={onEdit}
-          className={`${btnIcon} !w-7 !h-7 [@media(any-pointer:coarse)]:!w-9 [@media(any-pointer:coarse)]:!h-9 absolute top-0.5 right-0.5 !transition-[opacity,color,background-color] duration-150 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:!opacity-100`}
+          className={`${badgeBtn} ${revealOnGroupHover} absolute top-1 right-1`}
           aria-label={`Edit ${client.name}`}
         >
           <Pencil size={13} />
