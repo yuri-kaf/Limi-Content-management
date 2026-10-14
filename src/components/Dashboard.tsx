@@ -1,5 +1,6 @@
 import { Client, ContentItem, ContentStatus, UserRole } from '../types';
 import { STAGES } from '../utils';
+import { isLate } from '../today';
 import { stageCardVars, stageDot } from '../stageColors';
 import { tile, heading, faintText, bodyText } from '../ui';
 
@@ -109,9 +110,7 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
   const dueThisWeek = all.filter(
     (i) => i.scheduledAt && i.scheduledAt >= now && i.scheduledAt <= now + 7 * DAY
   ).length;
-  const overdue = all.filter(
-    (i) => i.scheduledAt && i.scheduledAt > 0 && i.scheduledAt < now && i.status !== 'posted'
-  ).length;
+  const overdue = all.filter((i) => isLate(i, now)).length;
 
   const volume = clients
     .map((c) => ({ label: c.name, value: c.content.length }))

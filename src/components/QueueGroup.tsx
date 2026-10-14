@@ -1,5 +1,5 @@
 import { Clock, RotateCcw, CalendarClock, CalendarPlus } from 'lucide-react';
-import { TodayEntry, TodayGroups, slotLabel } from '../today';
+import { TodayEntry, TodayGroups, isLate, slotLabel } from '../today';
 import StagePill from './StagePill';
 import FolderIcon from './FolderIcon';
 import { faintText, rowList, queueRow, countChip, sectionLabel } from '../ui';
@@ -53,8 +53,7 @@ export function QueueRow({
   index?: number;
 }) {
   const slot = slotLabel(entry.item.scheduledAt, now);
-  // Something already posted cannot be late, however old its slot.
-  const late = !!slot?.late && entry.item.status !== 'posted';
+  const late = isLate(entry.item, now);
   const when = entry.item.scheduledAt
     ? new Date(entry.item.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null;

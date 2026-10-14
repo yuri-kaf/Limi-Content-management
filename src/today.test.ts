@@ -1,4 +1,4 @@
-import { buildToday, slotLabel, todaySources, todayTotal } from './today';
+import { buildToday, isLate, slotLabel, todaySources, todayTotal } from './today';
 import { AppUser, Client, ContentItem } from './types';
 
 const NOW = new Date('2026-08-20T12:00:00Z').getTime();
@@ -124,5 +124,28 @@ describe('todaySources', () => {
     const sources = todaySources(clients, user('client', ['a']));
     expect(sources.map((c) => c.id)).toEqual(['a']);
     expect(sources[0].content.map((i) => i.id)).toEqual(['ready']);
+  });
+});
+
+describe('isLate', () => {
+  const noon = new Date(2026, 7, 20, 12, 0, 0).getTime();
+  const at = (days: number, hour: number) => new Date(2026, 7, 20 + days, hour, 0, 0).getTime();
+  const post = (scheduledAt: number | undefined, status: ContentItem['status'] = 'to-post') =>
+    ({ scheduledAt, status }) as Pick<ContentItem, 'scheduledAt' | 'status'>;
+
+  // The board and the queue ask the same question. A slot earlier today is
+  // "today", not late: the post can still go out today.
+  it('is false for a slot earlier today, as the queue calls it "today"', () => {
+    expect(isLate(post(at(0, 9)), noon)).toBe(false);
+    expect(slotLabel(at(0, 9), noon)?.late).toBe(false);
+  });
+
+  it('is true for a slot on an earlier day', () => {
+    expect(isLate(post(at(-1, 23)), noon)).toBe(true);
+  });
+
+  it('is never true for something posted, or with no slot', () => {
+    expect(isLate(post(at(-3, 9), 'posted'), noon)).toBe(false);
+    expect(isLate(post(undefined), noon)).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { Campaign, ContentItem, ContentStatus } from '../types';
 import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
 import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
 import { lift, focusRingInset } from '../ui';
+import { isLate } from '../today';
 import ColorLabel from './ColorLabel';
 import {
   Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar, AlertCircle,
@@ -226,7 +227,8 @@ export default function ContentCard({
 
   // A post whose slot has passed and which never went out is the one thing on
   // this board that is actually wrong, so it is the one thing allowed to shout.
-  const overdue = hasSchedule && item.scheduledAt! < Date.now() && item.status !== 'posted';
+  // Late by the queue's rule: a slot earlier today is still "today".
+  const overdue = isLate(item, Date.now());
 
   // The client's decision used to be visible only inside the detail sheet,
   // which meant scanning a Review column told you nothing about what was
@@ -378,7 +380,7 @@ export default function ContentCard({
                 className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-chip ${
                   overdue ? `${solidChip} text-brand-text dark:text-brand-textdark` : chip
                 }`}
-                title={overdue ? 'This slot has passed and it has not been posted' : undefined}
+                title={overdue ? 'This slot was on an earlier day and it has not been posted' : undefined}
               >
                 {overdue ? <AlertCircle size={10} /> : <Calendar size={10} />}
                 {scheduledLabel}

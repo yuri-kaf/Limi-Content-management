@@ -134,3 +134,17 @@ export function slotLabel(scheduledAt: number | undefined, now: number): SlotLab
   if (late < 31) return { text: `${plural(Math.round(late / 7), 'week')} late`, late: true };
   return { text: `${plural(Math.round(late / 30), 'month')} late`, late: true };
 }
+
+/**
+ * Whether a post is late, by the rule the queue reads: its slot was on an
+ * earlier day and it has not been posted. A slot earlier today is "today", not
+ * late, because it can still go out today. The board's red chip, the Today
+ * queue, the Overdue filter and the dashboard's Overdue count all ask this.
+ */
+export function isLate(
+  item: Pick<ContentItem, 'scheduledAt' | 'status'>,
+  now: number
+): boolean {
+  return item.status !== 'posted' && !!slotLabel(item.scheduledAt, now)?.late;
+}
+

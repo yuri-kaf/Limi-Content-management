@@ -1,5 +1,6 @@
 import { ContentItem, MediaType, Platform } from './types';
 import { mediaTypeOf } from './utils';
+import { isLate } from './today';
 
 export type DateWindow = 'all' | 'overdue' | 'next7' | 'month' | 'unscheduled';
 
@@ -33,9 +34,9 @@ function matchesDate(item: ContentItem, window: DateWindow, now: number): boolea
       return true;
     case 'unscheduled':
       return !scheduled;
-    // Something already posted cannot be overdue, however old its slot is.
+    // The queue's rule: an earlier day, and not yet posted.
     case 'overdue':
-      return scheduled && at < now && item.status !== 'posted';
+      return isLate(item, now);
     case 'next7':
       return scheduled && at >= now && at <= now + 7 * DAY;
     case 'month':

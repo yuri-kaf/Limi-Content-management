@@ -39,6 +39,26 @@ const DRIVE = 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345
 const gripOf = (card: HTMLElement) => card.querySelector('.lucide-grip-vertical');
 
 describe('ContentCard', () => {
+  // The board uses the queue's rule: a slot earlier today is "today", in the
+  // stage's own chip colour, not the red late chip.
+  it('does not mark a slot earlier today as late, but does an earlier day', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 20, 15, 0, 0));
+    try {
+      const { unmount } = renderCard({
+        item: item({ status: 'to-post', scheduledAt: new Date(2026, 7, 20, 9, 0, 0).getTime() }),
+      });
+      expect(document.querySelector('.lucide-circle-alert, .lucide-alert-circle')).toBeNull();
+      unmount();
+      renderCard({
+        item: item({ status: 'to-post', scheduledAt: new Date(2026, 7, 19, 9, 0, 0).getTime() }),
+      });
+      expect(document.querySelector('.lucide-circle-alert, .lucide-alert-circle')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("fills the card with its stage's pastel", () => {
     renderCard({ item: item({ status: 'to-post' }) });
     const card = cardOf('Momo reel');
