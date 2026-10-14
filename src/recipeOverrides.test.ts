@@ -24,12 +24,17 @@ const OWNED: Record<string, RegExp[]> = {
   btnDanger: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
   btnSuccess: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
   btnSuccessSolid: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
+  btnPrimarySm: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
+  btnGhostSm: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
+  btnWarningSm: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
+  badgeBtn: [HOVER, /^(?:w|h|min-w|min-h)-/],
 };
 
 /**
  * The text of the template literal that `${recipe}` sits in, from just after
- * it to the literal's closing backtick, including any nested templates (a
- * `${cond ? `a` : `b`}` inside it) but not their JavaScript.
+ * it to the literal's closing backtick, including any nested templates and
+ * quoted strings inside its expressions (`${cond ? 'a' : `b`}`), but not the
+ * rest of their JavaScript.
  */
 function restOfTemplate(source: string, from: number): string {
   let out = '';
@@ -43,7 +48,12 @@ function restOfTemplate(source: string, from: number): string {
       else if (ch === '$' && source[i + 1] === '{') { stack.push('expr'); i++; out += ' '; }
       else out += ch;
     } else if (ch === '`') stack.push('tpl');
-    else if (ch === '{') stack.push('expr');
+    else if (ch === "'" || ch === '"') {
+      const end = source.indexOf(ch, i + 1);
+      if (end < 0) break;
+      out += ' ' + source.slice(i + 1, end) + ' ';
+      i = end;
+    } else if (ch === '{') stack.push('expr');
     else if (ch === '}') { stack.pop(); out += ' '; }
   }
   return out;
@@ -69,6 +79,9 @@ describe('recipe overrides', () => {
     expect(stackedOverrides('`${btnPrimary} h-9 min-h-0`')).toEqual(['btnPrimary + h-9', 'btnPrimary + min-h-0']);
     expect(stackedOverrides('`${btnIcon} w-7 h-7`')).toHaveLength(2);
     expect(stackedOverrides('`${btnGhost} ${on ? `px-2` : ``}`')).toEqual(['btnGhost + px-2']);
+    expect(stackedOverrides("`${btnIcon} ${on ? 'w-7' : \"h-7\"}`")).toEqual(['btnIcon + w-7', 'btnIcon + h-7']);
+    expect(stackedOverrides('`${btnPrimarySm} h-8`')).toEqual(['btnPrimarySm + h-8']);
+    expect(stackedOverrides('`${badgeBtn} w-11`')).toEqual(['badgeBtn + w-11']);
   });
 
   it('lets through what does not compete', () => {
