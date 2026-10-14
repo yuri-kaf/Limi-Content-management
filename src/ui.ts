@@ -30,7 +30,7 @@ export const card =
 // `active:` does here; a second `[@media(hover:hover)]:hover:` class wins or
 // loses by its name.
 export const lift =
-  'transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float [@media(hover:hover)]:active:translate-y-0 [@media(hover:hover)]:active:shadow-none active:scale-[.98]';
+  'transition-[transform,box-shadow,background-color,border-color,filter] duration-150 ease-out-soft [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-float [@media(hover:hover)]:active:translate-y-0 [@media(hover:hover)]:active:shadow-none active:scale-[.98]';
 
 // Clickable cards lift off the page, and their hairline firms up as they do.
 // A shadow does not show on the dark canvas, so dark mode tints on hover too.

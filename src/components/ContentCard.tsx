@@ -65,7 +65,9 @@ const inHand =
 // card's second title line. The focus ring is solid brand, 4.8:1 on the light
 // page and 3.6:1 on the dark one: at 40% it was 1.9:1 and 1.5:1, and less
 // against the fills, under the 3:1 a focus indicator needs.
-const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} ${focusRingInset}`;
+// In dark mode the lift's shadow is lost on the canvas, so the pastel fill
+// brightens a little under the pointer instead of a generic wash covering it.
+const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} dark:[@media(hover:hover)]:hover:brightness-110 ${focusRingInset}`;
 
 interface ShellProps {
   /** The card's stage, which picks the pastel it is filled with. */

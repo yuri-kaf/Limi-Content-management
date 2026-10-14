@@ -87,6 +87,13 @@ describe('ContentCard', () => {
     expect(cardOf('Momo reel').className).toContain('hover:-translate-y-0.5');
   });
 
+  // The lift's shadow does not show on the dark canvas, so in dark mode the
+  // pastel fill itself brightens under the pointer.
+  it('brightens its fill under the pointer in dark mode', () => {
+    renderCard();
+    expect(cardOf('Momo reel')).toHaveClass('dark:[@media(hover:hover)]:hover:brightness-110');
+  });
+
   // useSortable answers every new items array with an instant transition,
   // which as an inline style would beat the lift's own easing.
   it("keeps the lift's easing when the board renders again", () => {
