@@ -1,4 +1,4 @@
-﻿import { ContentItem, ContentStatus, MediaType, Platform } from './types';
+﻿import { ContentItem, ContentStatus, MediaType, Platform } from './types.js';
 
 export function extractDriveFileId(url: string): string | null {
   if (!url) return null;

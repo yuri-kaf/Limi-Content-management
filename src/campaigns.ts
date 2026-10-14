@@ -1,8 +1,8 @@
 import {
   Business, Campaign, CampaignStatus, Client, ContentItem, Deliverable, FolderColor,
-} from './types';
-import { awaitingReview } from './nav';
-import { DEFAULT_FOLDER_COLOR } from './folderColors';
+} from './types.js';
+import { awaitingReview } from './nav.js';
+import { DEFAULT_FOLDER_COLOR } from './folderColors.js';
 
 // ─── Scope ───────────────────────────────────────────────────────────────────
 

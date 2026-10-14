@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
-import { FolderColor } from './types';
-import { contrastRatio } from './color';
+import { FolderColor } from './types.js';
+import { contrastRatio } from './color.js';
 
 export interface FolderColorDef {
   id: FolderColor;

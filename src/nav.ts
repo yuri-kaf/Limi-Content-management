@@ -1,4 +1,4 @@
-import { AppUser, Client, ContentItem, FolderColor } from './types';
+import { AppUser, Client, ContentItem, FolderColor } from './types.js';
 
 export interface NavClient {
   id: string;
