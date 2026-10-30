@@ -74,7 +74,7 @@ function VolumeBars({ rows }: { rows: { label: string; value: number }[] }) {
 // had drifted to "In Review" and "Ready to Post".
 function StageBreakdown({ items }: { items: ContentItem[] }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
       {STAGES.map((s) => {
         const count = items.filter((i) => i.status === s.id).length;
         return (

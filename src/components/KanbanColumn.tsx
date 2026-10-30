@@ -17,6 +17,7 @@ const PURPOSE: Record<ContentStatus, string> = {
   review: 'Waiting on the client. Items here are asking for a decision.',
   'to-post': 'Approved and scheduled. Ready to go out.',
   posted: 'Published. Kept for the record.',
+  backup: 'Ready but not planned. Keep spare posts here for when a slot opens up.',
 };
 
 interface Props {

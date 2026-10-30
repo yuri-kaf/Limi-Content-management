@@ -177,8 +177,8 @@ describe('focus ring meets WCAG non-text contrast', () => {
 });
 
 describe('stage pills meet WCAG AA', () => {
-  it('covers all four stages', () => {
-    expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted']);
+  it('covers all five stages', () => {
+    expect(STAGES.map((s) => s.id)).toEqual(['editing', 'review', 'to-post', 'posted', 'backup']);
   });
 
   it.each(STAGES)('$label pill is readable in light mode', (stage) => {

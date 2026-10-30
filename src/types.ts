@@ -1,4 +1,4 @@
-export type ContentStatus = 'editing' | 'review' | 'to-post' | 'posted';
+export type ContentStatus = 'editing' | 'review' | 'to-post' | 'posted' | 'backup';
 export type UserRole = 'admin' | 'social-media-manager' | 'client';
 export type ClientReview = 'pending' | 'approved' | 'declined';
 export type MediaType = 'video' | 'graphic';

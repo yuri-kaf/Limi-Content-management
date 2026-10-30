@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { businessDeleteBlocker, scopeContent } from '../campaigns';
 import { campaignPath, parseTab, resolveScope, tabsFor, workspacePath } from '../workspace';
-import { runWrite } from '../utils';
+import { isInternalStage, runWrite } from '../utils';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs';
 import WorkspaceMenu from '../components/workspace/WorkspaceMenu';
 import BusinessScopeBar from '../components/workspace/BusinessScopeBar';
@@ -143,12 +143,12 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
     : campaigns;
   // A client never sees work still in Editing. The board hides that column, so
   // the calendar has to agree with it.
-  const visibleContent = isClientRole ? content.filter((i) => i.status !== 'editing') : content;
+  const visibleContent = isClientRole ? content.filter((i) => !isInternalStage(i.status)) : content;
   // Read from the live list rather than a snapshot held in state, so the sheet
   // reflects a stage change or a review decision as it happens. A client's list
   // leaves out Editing, so a link to work in progress opens nothing for them.
   const openable = isClientRole
-    ? client.content.filter((i) => i.status !== 'editing')
+    ? client.content.filter((i) => !isInternalStage(i.status))
     : client.content;
   const selectedItem = selectedId ? openable.find((c) => c.id === selectedId) ?? null : null;
   const formBusiness = businessForm?.business;

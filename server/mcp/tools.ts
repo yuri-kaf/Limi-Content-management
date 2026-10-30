@@ -51,7 +51,7 @@ export async function runTool(tool: LimiTool, session: Session, args: unknown): 
 const WRITES = 'This changes data in Limi: confirm with the person before calling it.';
 const DATES = 'Dates are Kathmandu time, written 2026-10-20 or 2026-10-20 15:30.';
 
-const stage = z.enum(['editing', 'review', 'to-post', 'posted']);
+const stage = z.enum(['editing', 'review', 'to-post', 'posted', 'backup']);
 const platform = z.enum(['instagram', 'facebook', 'tiktok']);
 const postId = z.string().min(1).describe('The post id, from list_content or get_today.');
 
@@ -441,7 +441,7 @@ const updateContentTool = defineTool({
 const moveContentTool = defineTool({
   name: 'move_content',
   title: 'Move a post to another stage',
-  description: `Moves a post to Editing, Review, To Post or Posted, and notes the move on its thread. ${WRITES}`,
+  description: `Moves a post to Editing, Review, To Post, Posted or Backup (ready posts held back with no slot yet), and notes the move on its thread. ${WRITES}`,
   readOnly: false,
   destructive: true,
   input: z.object({ id: postId, stage }),

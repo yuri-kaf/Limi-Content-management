@@ -10,7 +10,7 @@ import { runTool, TOOLS } from './tools.js';
 
 const INSTRUCTIONS = [
   "Limi is a social media agency's content system: clients, their businesses, posts moving through",
-  'Editing, Review, To Post and Posted, campaigns and ideas. You act as the signed-in person and see',
+  'Editing, Review, To Post, Posted and Backup, campaigns and ideas. You act as the signed-in person and see',
   'only what they can see. Dates are Kathmandu time (UTC+5:45). Before any tool that changes data,',
   'tell the person exactly what will change and wait for them to confirm. Nothing can be deleted here.',
 ].join(' ');

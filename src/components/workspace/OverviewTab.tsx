@@ -94,7 +94,7 @@ export default function OverviewTab({
             four columns. */}
         <section
           aria-label="Pipeline"
-          className={`grid grid-cols-2 sm:grid-cols-4 gap-3 ${enter}`}
+          className={`grid grid-cols-2 sm:grid-cols-5 gap-3 ${enter}`}
           style={staggerStyle(1)}
         >
           {STAGES.map((s) => (

@@ -1,4 +1,5 @@
 import { AppUser, Client, FolderColor } from './types';
+import { isInternalStage } from './utils';
 
 export type PaletteKind = 'page' | 'client' | 'content' | 'command';
 
@@ -91,7 +92,7 @@ export function buildIndex(clients: Client[], user: AppUser | null): PaletteItem
     });
     // A client cannot open work still in Editing, so it is not indexed for them.
     const searchable = (client.content ?? []).filter(
-      (i) => !isClientRole || i.status !== 'editing'
+      (i) => !isClientRole || !isInternalStage(i.status)
     );
     for (const item of searchable) {
       items.push({

@@ -305,7 +305,18 @@ export const STAGES: Stage[] = [
   { id: 'posted', label: 'Posted', color: '#2f6e4a',
     tint: '#eef3ed', text: '#2f6e4a', tintDark: '#1a2e23', textDark: '#71b391',
     cardTint: '#dcf0e1', cardText: '#2a6142', cardTintDark: '#1a3527', cardTextDark: '#86c4a2' },
+  // Finished work with no slot yet, kept in hand for a gap in the schedule.
+  // Slate, so it reads as shelved rather than as part of the flow above it.
+  { id: 'backup', label: 'Backup', color: '#5b6672',
+    tint: '#eef0f2', text: '#4a5560', tintDark: '#262b31', textDark: '#a9b4bf',
+    cardTint: '#e4e8ec', cardText: '#434d57', cardTintDark: '#2b3137', cardTextDark: '#b4bfca' },
 ];
+
+// Stages only the team sees. A client never gets work still in Editing, nor
+// the backup shelf of things not yet planned.
+export function isInternalStage(status: ContentStatus): boolean {
+  return status === 'editing' || status === 'backup';
+}
 
 // ─── Dates ───────────────────────────────────────────────────────────────────
 

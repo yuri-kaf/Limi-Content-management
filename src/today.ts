@@ -1,4 +1,5 @@
 import { AppUser, Client, ContentItem, FolderColor } from './types.js';
+import { isInternalStage } from './utils.js';
 
 export interface TodayEntry {
   clientId: string;
@@ -49,7 +50,7 @@ export function todaySources(clients: Client[], user: AppUser | null): Client[] 
   if (user?.role !== 'client') return clients;
   return clients
     .filter((c) => user.assignedClientIds?.includes(c.id))
-    .map((c) => ({ ...c, content: c.content.filter((i) => i.status !== 'editing') }));
+    .map((c) => ({ ...c, content: c.content.filter((i) => !isInternalStage(i.status)) }));
 }
 
 export function buildToday(clients: Client[], now: number): TodayGroups {

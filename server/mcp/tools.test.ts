@@ -52,7 +52,7 @@ describe('list_clients', () => {
       id: 'shopit',
       name: 'Shopit',
       businesses: [{ id: 'main', name: 'Shopit' }, { id: 'nepal', name: 'Shopit Nepal' }],
-      stages: { Editing: 1, Review: 2, 'To Post': 1, Posted: 0 },
+      stages: { Editing: 1, Review: 2, 'To Post': 1, Posted: 0, Backup: 0 },
       awaitingReview: 1,
       overdue: 1,
     });

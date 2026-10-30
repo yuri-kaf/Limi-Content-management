@@ -570,7 +570,7 @@ describe('ContentBoard — phone', () => {
 
   it('shows every stage as a tab and adds into the one selected', async () => {
     const props = renderBoard();
-    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
     await userEvent.click(screen.getByRole('tab', { name: /To Post/ }));
     await userEvent.click(screen.getByRole('button', { name: 'New' }));
     expect(props.onAdd).toHaveBeenCalledWith('to-post', undefined);

@@ -420,6 +420,7 @@ const STATUS_LABELS: Record<ContentStatus, string> = {
   review: 'Review',
   'to-post': 'To Post',
   posted: 'Posted',
+  backup: 'Backup',
 };
 
 interface Actor {
