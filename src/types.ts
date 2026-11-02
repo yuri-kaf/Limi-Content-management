@@ -162,6 +162,72 @@ export interface Campaign {
 /** What the campaign form produces. */
 export type CampaignDraft = Omit<Campaign, 'id' | 'createdAt'>;
 
+// ─── Leads ───────────────────────────────────────────────────────────────────
+
+// Where a lead stands. The pipeline runs new → approached → positive →
+// proposal → onboarded; roadblock is a live deal that is stuck; later and
+// no-reply are parked (worth another try), denied is closed. The labels,
+// groups and colours live in LEAD_STATUSES in src/leads.ts.
+export type LeadStatus =
+  | 'new' | 'approached' | 'positive' | 'proposal' | 'roadblock'
+  | 'later' | 'no-reply' | 'denied' | 'onboarded';
+
+// How the lead was found. Instagram and TikTok are where most come from today;
+// the rest are there for whoever sells next.
+export type LeadSource =
+  | 'instagram' | 'tiktok' | 'facebook' | 'whatsapp' | 'call' | 'email'
+  | 'walk-in' | 'referral' | 'event' | 'website' | 'other';
+
+export type LeadLostReason =
+  | 'not-interested' | 'no-budget' | 'price' | 'has-agency' | 'in-house'
+  | 'bad-fit' | 'unreachable' | 'other';
+
+/** How good a client they would be: 3 is the best. Absent means not rated yet. */
+export type LeadPotential = 1 | 2 | 3;
+
+export interface Lead {
+  id: string;
+  /** The business, as the team would call it. */
+  name: string;
+  /** The person spoken to, when there is one. */
+  contactName?: string;
+  source: LeadSource;
+  status: LeadStatus;
+  potential?: LeadPotential;
+  /** Handles as typed (with or without @) or full profile URLs. */
+  instagram?: string;
+  tiktok?: string;
+  facebook?: string;
+  website?: string;
+  phone?: string;
+  /** The phone number takes WhatsApp, so a chat link is offered. */
+  whatsapp?: boolean;
+  email?: string;
+  /** What they do: cafe, clothing, clinic. */
+  industry?: string;
+  location?: string;
+  /** What kind of lead this is, written for whoever picks it up next. */
+  note: string;
+  /** A calendar day, 'YYYY-MM-DD', as campaign dates are. */
+  followUpOn?: string;
+  /** Only on denied leads. */
+  lostReason?: LeadLostReason;
+  ownerEmail: string;
+  ownerName: string;
+  createdAt: number;
+  updatedAt: number;
+  /** When the status last changed, for "Approached 5d". */
+  statusAt: number;
+  /** The client this lead became, once onboarded. */
+  clientId?: string;
+}
+
+/** What the lead form produces. */
+export type LeadDraft = Omit<
+  Lead,
+  'id' | 'ownerEmail' | 'ownerName' | 'createdAt' | 'updatedAt' | 'statusAt' | 'clientId'
+>;
+
 export interface Client {
   id: string;
   name: string;
