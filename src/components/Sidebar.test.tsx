@@ -11,6 +11,7 @@ const nav: NavModel = {
     { id: 'bolt', name: 'Bolt', attention: 0 },
   ],
   showTeam: true,
+  showLeads: true,
 };
 
 function setup(over: Partial<ComponentProps<typeof Sidebar>> = {}) {
@@ -102,6 +103,7 @@ describe('Sidebar', () => {
           { id: 'bolt', name: 'Bolt', attention: 0 },
         ],
         showTeam: false,
+        showLeads: false,
       },
     });
     const colours = [...document.querySelectorAll('[data-folder-color]')].map((el) =>

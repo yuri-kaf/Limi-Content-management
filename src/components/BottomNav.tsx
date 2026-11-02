@@ -1,28 +1,31 @@
-import { Home, LayoutGrid, User } from 'lucide-react';
+import { Home, LayoutGrid, Target, User } from 'lucide-react';
 import { faintText, focusRingInset } from '../ui';
 
 const TABS = [
   { path: '/', label: 'Home', icon: Home },
   { path: '/clients', label: 'Clients', icon: LayoutGrid },
+  { path: '/leads', label: 'Leads', icon: Target },
   { path: '/profile', label: 'Profile', icon: User },
 ];
 
 interface Props {
   activePath: string;
+  /** Team only; a client has no leads page. */
+  showLeads?: boolean;
   onNavigate: (path: string) => void;
 }
 
 // Phones get a bottom bar for the three top-level destinations. The sidebar
 // drawer still exists for switching between client boards, which is a different
 // kind of navigation — a list that grows, rather than a fixed set of places.
-export default function BottomNav({ activePath, onNavigate }: Props) {
+export default function BottomNav({ activePath, showLeads = false, onNavigate }: Props) {
   return (
     <nav
       className="lg:hidden flex-shrink-0 flex items-stretch border-t border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Sections"
     >
-      {TABS.map((t) => {
+      {TABS.filter((t) => showLeads || t.path !== '/leads').map((t) => {
         const active = activePath === t.path;
         return (
           <button

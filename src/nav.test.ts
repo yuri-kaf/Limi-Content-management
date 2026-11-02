@@ -64,6 +64,12 @@ describe('buildNav', () => {
   });
 
   it('is empty while the user is still resolving', () => {
-    expect(buildNav(clients, null)).toEqual({ clients: [], showTeam: false });
+    expect(buildNav(clients, null)).toEqual({ clients: [], showTeam: false, showLeads: false });
+  });
+
+  it('shows leads to the team and never to a client', () => {
+    expect(buildNav(clients, user('admin')).showLeads).toBe(true);
+    expect(buildNav(clients, user('social-media-manager')).showLeads).toBe(true);
+    expect(buildNav(clients, user('client', ['bolt'])).showLeads).toBe(false);
   });
 });

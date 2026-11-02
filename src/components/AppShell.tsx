@@ -7,7 +7,8 @@ import FolderIcon from './FolderIcon';
 import CommandPalette from './CommandPalette';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useClients } from '../store';
+import { useClients, useLeads } from '../store';
+import { dayOf, leadsDue } from '../leads';
 import { buildNav } from '../nav';
 import {
   appRoot, breadcrumbBar, breadcrumbText, drawerScrim, btnIcon,
@@ -57,6 +58,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   const nav = buildNav(clients, currentUser);
+  // The Leads badge: follow-ups due today or late. The leads page itself
+  // subscribes again; Firestore shares the one listener's cache between them.
+  const { leads } = useLeads(nav.showLeads);
+  const due = leadsDue(leads, dayOf(Date.now()));
   const width = collapsed ? SIDEBAR_RAIL : SIDEBAR_WIDTH;
 
   // Inside a client board the useful gesture is "get me out", not "show me the
@@ -99,6 +104,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     activeClient?.name ??
     (location.pathname === '/users'
       ? 'Team'
+      : location.pathname === '/leads'
+        ? 'Leads'
       : location.pathname === '/clients'
         ? 'Clients'
         : location.pathname === '/profile'
@@ -110,6 +117,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     activeClientId,
     activePath: location.pathname,
     userEmail: currentUser?.email ?? '',
+    leadsDue: due,
     theme,
     onNavigate: go,
     onToggleTheme: toggleTheme,
@@ -188,7 +196,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
             back arrow and a back swipe — and on a phone it needs the 56px far
             more than it needs a second way home. With the stage tabs added, the
             board still carries less chrome than it did with the bar. */}
-        {!insideBoard && <BottomNav activePath={location.pathname} onNavigate={go} />}
+        {!insideBoard && (
+          <BottomNav activePath={location.pathname} showLeads={nav.showLeads} onNavigate={go} />
+        )}
       </div>
 
       <CommandPalette

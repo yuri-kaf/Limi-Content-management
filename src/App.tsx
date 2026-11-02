@@ -9,6 +9,7 @@ import ClientWorkspacePage from './pages/ClientWorkspacePage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
+import LeadsPage from './pages/LeadsPage';
 import AppShell from './components/AppShell';
 import Logo from './components/Logo';
 import { page, card, heading, bodyText, faintText, inset } from './ui';
@@ -70,6 +71,7 @@ function AuthenticatedRoutes() {
           which is a different and much rarer question. */}
       <Route path="/" element={<AppShell><TodayPage /></AppShell>} />
       <Route path="/clients" element={<AppShell><ClientsPage /></AppShell>} />
+      <Route path="/leads" element={<AppShell><LeadsPage /></AppShell>} />
       <Route path="/profile" element={<AppShell><ProfilePage /></AppShell>} />
       {/* :tab is optional, so the bare /client/:id every older link uses still
           opens the default tab. */}

@@ -1,6 +1,6 @@
 import {
   LayoutGrid, Users, Sun, Moon, PanelLeftClose, PanelLeftOpen, LogOut,
-  Columns3, Building2, Home,
+  Columns3, Building2, Home, Target,
 } from 'lucide-react';
 import { NavModel } from '../nav';
 import FolderIcon from './FolderIcon';
@@ -14,6 +14,8 @@ interface Props {
   activeClientId?: string;
   activePath: string;
   userEmail: string;
+  /** Lead follow-ups due today or late. */
+  leadsDue?: number;
   theme: 'light' | 'dark';
   collapsed: boolean;
   onNavigate: (path: string) => void;
@@ -23,7 +25,7 @@ interface Props {
 }
 
 export default function Sidebar({
-  nav, activeClientId, activePath, userEmail, theme, collapsed,
+  nav, activeClientId, activePath, userEmail, leadsDue = 0, theme, collapsed,
   onNavigate, onToggleTheme, onToggleCollapsed, onSignOut,
 }: Props) {
   // In the rail only an icon shows, so a page button takes its name from a label
@@ -93,6 +95,22 @@ export default function Sidebar({
           <LayoutGrid size={14} className="flex-shrink-0" />
           {!collapsed && <span className="truncate">Clients</span>}
         </button>
+        {nav.showLeads && (
+          <button
+            onClick={() => onNavigate('/leads')}
+            className={navItem(activePath === '/leads')}
+            aria-current={activePath === '/leads' ? 'page' : undefined}
+            {...(collapsed
+              ? railName(leadsDue > 0 ? `Leads, ${leadsDue} follow-ups due` : 'Leads')
+              : {})}
+          >
+            <Target size={14} className="flex-shrink-0" />
+            {!collapsed && <span className="truncate">Leads</span>}
+            {!collapsed && leadsDue > 0 && (
+              <span className={navBadge} aria-label={`${leadsDue} follow-ups due`}>{leadsDue}</span>
+            )}
+          </button>
+        )}
 
         {!collapsed && (
           <div className={`${navGroupLabel} flex items-center gap-1.5`}>

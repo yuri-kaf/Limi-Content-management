@@ -76,6 +76,9 @@ export function buildIndex(clients: Client[], user: AppUser | null): PaletteItem
     { id: 'page-clients', kind: 'page', label: 'Clients', detail: 'Every board', path: '/clients', keywords: 'boards grid' },
     { id: 'page-profile', kind: 'page', label: 'Profile', detail: 'Your account', path: '/profile', keywords: 'account settings me' },
   ];
+  if (!isClientRole) {
+    items.push({ id: 'page-leads', kind: 'page', label: 'Leads', detail: 'Businesses to win', path: '/leads', keywords: 'sales prospects pipeline crm follow up' });
+  }
   if (user.role === 'admin') {
     items.push({ id: 'page-users', kind: 'page', label: 'Team', detail: 'People and roles', path: '/users', keywords: 'users staff permissions' });
   }

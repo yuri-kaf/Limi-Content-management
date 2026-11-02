@@ -11,6 +11,8 @@ export interface NavClient {
 export interface NavModel {
   clients: NavClient[];
   showTeam: boolean;
+  /** Leads are the team's: clients never see the page. */
+  showLeads: boolean;
 }
 
 // "Needs someone else" is the only count worth putting in navigation: it is the
@@ -22,7 +24,7 @@ export function awaitingReview(content: ContentItem[]): number {
 export function buildNav(clients: Client[], user: AppUser | null): NavModel {
   // Auth resolves asynchronously; rendering an empty tree beats flashing every
   // client at a user whose role has not arrived yet.
-  if (!user) return { clients: [], showTeam: false };
+  if (!user) return { clients: [], showTeam: false, showLeads: false };
 
   const visible =
     user.role === 'client'
@@ -37,5 +39,6 @@ export function buildNav(clients: Client[], user: AppUser | null): NavModel {
       attention: awaitingReview(c.content ?? []),
     })),
     showTeam: user.role === 'admin',
+    showLeads: user.role !== 'client',
   };
 }
