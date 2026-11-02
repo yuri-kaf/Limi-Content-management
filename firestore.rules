@@ -110,6 +110,21 @@ service cloud.firestore {
       }
     }
 
+    // Sales leads: businesses that are not clients yet. The whole team works
+    // them; clients never see them. Only an admin deletes one, because a denied
+    // lead is kept on purpose, so nobody approaches the same business twice.
+    match /leads/{leadId} {
+      allow read, create, update: if isAdmin() || isManager();
+      allow delete: if isAdmin();
+
+      // Status moves and notes, append-only like content comments.
+      match /activity/{entryId} {
+        allow read, create: if isAdmin() || isManager();
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
     // Public review links. The document ID is an unguessable token and holding
     // it is the entire credential, so these carry a snapshot of one item rather
     // than granting access to the content collection.

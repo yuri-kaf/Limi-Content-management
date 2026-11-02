@@ -27,7 +27,8 @@ import { auth, db, getProvisioningAuth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import {
   AppUser, Business, BusinessDraft, Campaign, CampaignDraft, CampaignStatus, Client, ClientReview,
-  Comment, ContentItem, ContentStatus, FolderColor, Idea, IdeaStatus, MediaType, Platform, Share,
+  Comment, ContentItem, ContentStatus, FolderColor, Idea, IdeaStatus, Lead, LeadDraft,
+  LeadLostReason, LeadPotential, LeadStatus, MediaType, Platform, Share,
 } from './types';
 import { generateId, generateShareToken, publicAppOrigin } from './utils';
 import {
@@ -1139,6 +1140,287 @@ export function useClients() {
     pendingBusinessMigration,
     migrateBusinesses,
   };
+}
+
+// ─── Leads ───────────────────────────────────────────────────────────────────
+
+// Leads live in a top-level collection, not under a client: a lead is a
+// business that is not a client yet. Each carries an activity log of its own
+// (status moves and notes), in the same shape as content comments.
+function leadsCol() {
+  return collection(db, 'leads');
+}
+
+function leadActivityCol(leadId: string) {
+  return collection(db, 'leads', leadId, 'activity');
+}
+
+const LEAD_OPTIONAL = [
+  'contactName', 'potential', 'instagram', 'tiktok', 'facebook', 'website', 'phone',
+  'whatsapp', 'email', 'industry', 'location', 'followUpOn', 'lostReason',
+] as const;
+
+// Blank text means "not given", which is stored as no field at all. On an
+// update a cleared field has to be deleted, not merely left out.
+function leadWrite(draft: LeadDraft, forUpdate: boolean) {
+  const out: Record<string, unknown> = {
+    name: draft.name.trim(),
+    source: draft.source,
+    status: draft.status,
+    note: draft.note.trim(),
+  };
+  for (const key of LEAD_OPTIONAL) {
+    const raw = draft[key];
+    const value = typeof raw === 'string' ? raw.trim() : raw;
+    const empty = value === undefined || value === '' || value === false;
+    // A lost reason only belongs on a denied lead.
+    const stale = key === 'lostReason' && draft.status !== 'denied';
+    if (!empty && !stale) out[key] = value;
+    else if (forUpdate) out[key] = deleteField();
+  }
+  return out;
+}
+
+async function writeLeadActivity(
+  leadId: string,
+  body: string,
+  actor: Actor,
+  kind: Comment['kind'] = 'system'
+) {
+  try {
+    const id = generateId();
+    const entry: Comment = {
+      id, kind, body, authorEmail: actor.email, authorName: actor.name, createdAt: Date.now(),
+    };
+    await setDoc(doc(leadActivityCol(leadId), id), entry);
+  } catch (err) {
+    // As with content: losing a log line beats failing the change itself.
+    console.error('[limi] could not write lead activity', err);
+  }
+}
+
+const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: 'To contact', approached: 'Approached', positive: 'Positive', proposal: 'Proposal',
+  roadblock: 'Roadblock', later: 'Not now', 'no-reply': 'No reply', denied: 'Denied',
+  onboarded: 'Onboarded',
+};
+
+/** Team only: rules refuse the collection to clients, so they never subscribe. */
+export function useLeads(enabled = true) {
+  const { currentUser } = useAuth();
+  const allowed = enabled && !!currentUser && currentUser.role !== 'client';
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const me = useMemo<Actor>(
+    () => ({ email: currentUser?.email ?? '', name: currentUser?.name ?? 'Someone' }),
+    [currentUser]
+  );
+
+  useEffect(() => {
+    if (!allowed) {
+      setLeads([]);
+      setLoading(false);
+      return;
+    }
+    // Every lead, newest first. Small documents, so one listener holds a few
+    // thousand comfortably; past that, load closed leads on demand.
+    const unsubscribe = onSnapshot(
+      query(leadsCol(), orderBy('createdAt', 'desc')),
+      (snap) => {
+        setLeads(snap.docs.map((d) => ({ ...(d.data() as Omit<Lead, 'id'>), id: d.id })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[limi] leads subscription failed', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, [allowed]);
+
+  const addLead = useCallback(
+    async (draft: LeadDraft) => {
+      const ref = doc(leadsCol());
+      const now = Date.now();
+      await setDoc(ref, {
+        ...leadWrite(draft, false),
+        ownerEmail: me.email,
+        ownerName: me.name,
+        createdAt: now,
+        updatedAt: now,
+        statusAt: now,
+      });
+      await writeLeadActivity(ref.id, `added this lead as ${LEAD_STATUS_LABELS[draft.status]}`, me);
+      return ref.id;
+    },
+    [me]
+  );
+
+  const updateLead = useCallback(
+    async (lead: Lead, draft: LeadDraft) => {
+      const now = Date.now();
+      const moved = lead.status !== draft.status;
+      await updateDoc(doc(leadsCol(), lead.id), {
+        ...leadWrite(draft, true),
+        updatedAt: now,
+        ...(moved ? { statusAt: now } : {}),
+      });
+      if (moved) {
+        await writeLeadActivity(lead.id, `moved this to ${LEAD_STATUS_LABELS[draft.status]}`, me);
+      }
+    },
+    [me]
+  );
+
+  // The quick change made from the list: the status, its clock, and a lost
+  // reason only when the lead is denied.
+  const setLeadStatus = useCallback(
+    async (lead: Lead, status: LeadStatus, lostReason?: LeadLostReason) => {
+      if (lead.status === status && lead.lostReason === lostReason) return;
+      const now = Date.now();
+      await updateDoc(doc(leadsCol(), lead.id), {
+        status,
+        updatedAt: now,
+        ...(lead.status !== status ? { statusAt: now } : {}),
+        lostReason: status === 'denied' && lostReason ? lostReason : deleteField(),
+      });
+      if (lead.status !== status) {
+        await writeLeadActivity(lead.id, `moved this to ${LEAD_STATUS_LABELS[status]}`, me);
+      }
+    },
+    [me]
+  );
+
+  const setLeadPotential = useCallback(async (leadId: string, potential: LeadPotential | null) => {
+    await updateDoc(doc(leadsCol(), leadId), {
+      potential: potential ?? deleteField(),
+      updatedAt: Date.now(),
+    });
+  }, []);
+
+  const setLeadFollowUp = useCallback(
+    async (leadId: string, day: string | null) => {
+      await updateDoc(doc(leadsCol(), leadId), {
+        followUpOn: day ?? deleteField(),
+        updatedAt: Date.now(),
+      });
+      await writeLeadActivity(leadId, day ? `set a follow-up for ${day}` : 'cleared the follow-up', me);
+    },
+    [me]
+  );
+
+  const addLeadNote = useCallback(
+    async (leadId: string, body: string) => {
+      await writeLeadActivity(leadId, body, me, 'user');
+      await updateDoc(doc(leadsCol(), leadId), { updatedAt: Date.now() });
+    },
+    [me]
+  );
+
+  // Onboarding makes the client, its first business and the lead's new status
+  // in one batch, so there is never a client without its lead marked, nor a
+  // lead marked onboarded with no client to show for it. Linking to a client
+  // that already exists skips the first two.
+  const onboardLead = useCallback(
+    async (
+      lead: Lead,
+      target: { clientId: string } | { client: { name: string; about: string; color: FolderColor } }
+    ) => {
+      const now = Date.now();
+      const batch = writeBatch(db);
+      let clientId: string;
+      if ('clientId' in target) {
+        clientId = target.clientId;
+      } else {
+        const clientRef = doc(collection(db, 'clients'));
+        clientId = clientRef.id;
+        batch.set(clientRef, {
+          name: target.client.name,
+          imageUrl: '',
+          about: target.client.about,
+          color: target.client.color,
+          createdAt: now,
+        });
+        batch.set(
+          doc(businessesCol(clientId), DEFAULT_BUSINESS_ID),
+          defaultBusinessFor(target.client, now)
+        );
+      }
+      batch.update(doc(leadsCol(), lead.id), {
+        status: 'onboarded',
+        clientId,
+        statusAt: now,
+        updatedAt: now,
+        followUpOn: deleteField(),
+        lostReason: deleteField(),
+      });
+      await batch.commit();
+      await writeLeadActivity(lead.id, 'onboarded this lead as a client', me);
+      return clientId;
+    },
+    [me]
+  );
+
+  // Onboarded leads are left alone: un-onboarding one in bulk would orphan
+  // the client it became.
+  const bulkSetLeadStatus = useCallback(
+    async (targets: Lead[], status: LeadStatus) => {
+      const now = Date.now();
+      const moving = targets.filter((l) => l.status !== status && l.status !== 'onboarded');
+      await commitInChunks(
+        moving.map((l) => (b: WriteBatch) => {
+          b.update(doc(leadsCol(), l.id), {
+            status,
+            statusAt: now,
+            updatedAt: now,
+            ...(status === 'denied' ? {} : { lostReason: deleteField() }),
+          });
+        })
+      );
+      await Promise.all(
+        moving.map((l) => writeLeadActivity(l.id, `moved this to ${LEAD_STATUS_LABELS[status]}`, me))
+      );
+      return moving.length;
+    },
+    [me]
+  );
+
+  const deleteLead = useCallback(async (leadId: string) => {
+    await deleteDoc(doc(leadsCol(), leadId));
+  }, []);
+
+  return {
+    leads, loading, addLead, updateLead, setLeadStatus, setLeadPotential, setLeadFollowUp,
+    addLeadNote, onboardLead, bulkSetLeadStatus, deleteLead,
+  };
+}
+
+export function useLeadActivity(leadId: string | undefined) {
+  const [entries, setEntries] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!leadId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = onSnapshot(
+      query(leadActivityCol(leadId), orderBy('createdAt', 'desc')),
+      (snap) => {
+        setEntries(snap.docs.map((d) => ({ ...(d.data() as Omit<Comment, 'id'>), id: d.id })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[limi] lead activity subscription failed', err);
+        setLoading(false);
+      }
+    );
+    return unsubscribe;
+  }, [leadId]);
+
+  return { entries, loading };
 }
 
 // ─── Users ───────────────────────────────────────────────────────────────────
