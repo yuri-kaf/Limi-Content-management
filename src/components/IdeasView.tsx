@@ -177,7 +177,7 @@ export default function IdeasView({
   }
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="sr-only">Ideas</h2>
@@ -202,7 +202,7 @@ export default function IdeasView({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fill,minmax(380px,1fr))] gap-3 items-start">
           {ideas.map((idea) => {
             const meta = STATUS_META[idea.status];
             const isOpen = expanded === idea.id;

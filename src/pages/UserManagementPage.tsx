@@ -278,7 +278,7 @@ export default function UserManagementPage() {
     <div className="flex-1 min-h-0 overflow-y-auto">
       {/* The shell's top bar already names the page, so this starts with the
           count and the one action. */}
-      <main className={`${shellPad} max-w-3xl py-5 pb-24 sm:pb-8`}>
+      <main className={`${shellPad} py-5 pb-24 sm:pb-8`}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <p className={`text-[13px] ${faintText}`}>
             {loading ? 'Loading…' : `${users.length} member${users.length !== 1 ? 's' : ''}`}

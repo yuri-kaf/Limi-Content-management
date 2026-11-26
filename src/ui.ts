@@ -224,7 +224,7 @@ export const page = 'min-h-screen min-h-dvh bg-canvas dark:bg-canvas-dark';
 // Tailwind orders same-property utilities itself, so which width wins depends
 // on how the two values sort, not on their order in the class list.
 export const shellPad = 'mx-auto px-4 sm:px-8';
-export const shell = `max-w-[1440px] ${shellPad}`;
+export const shell = shellPad;
 // A client view's body: anchored to the 20px edge its title row and business
 // chips share, never centred under a left-aligned header.
 export const viewPad = 'px-5';
@@ -348,17 +348,20 @@ export const emptyBody =
 export const appRoot =
   'h-dvh overflow-hidden flex bg-tint dark:bg-tint-dark';
 
-// One horizontal row of fixed-width columns. Replaces a 2x2 grid, in which a
-// move between stages on different rows was a diagonal drag — the geometry that
-// made drag-and-drop unreliable in the first place.
+// One horizontal row of columns. Replaces a 2x2 grid, in which a move between
+// stages on different rows was a diagonal drag — the geometry that made
+// drag-and-drop unreliable in the first place.
 export const boardScroller = 'flex-1 min-h-0 overflow-x-auto overflow-y-hidden';
+// min-w-full rather than min-w-max: the columns share whatever width the
+// window has. When it runs out they hold at 260px and the row scrolls; the
+// after: spacer keeps the right padding once it does.
 export const boardRow =
-  'flex gap-2 h-full px-4 pb-3 min-w-max';
-// 280px so four columns plus the 248px sidebar fit a 1440px window without
-// horizontal scroll — the most common desktop size — while still leaving the
-// next column peeking on a phone, which is what advertises the scroll.
+  'flex gap-2 h-full pl-4 pb-3 min-w-full after:content-[""] after:w-2 after:flex-shrink-0';
+// Columns grow to fill a wide screen (no empty strip to the right of Backup)
+// but never go below 260px, so on a 1280px laptop or a phone the next column
+// still peeks in and advertises the scroll.
 export const boardColumn =
-  'flex flex-col w-[260px] flex-shrink-0 h-full min-h-0 bg-raised dark:bg-raised-dark rounded-card';
+  'flex flex-col flex-1 basis-0 min-w-[260px] flex-shrink-0 h-full min-h-0 bg-raised dark:bg-raised-dark rounded-card';
 
 // Pinned so you always know which stage you are looking at, however far down
 // the column you have scrolled.

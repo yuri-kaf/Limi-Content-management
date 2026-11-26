@@ -32,7 +32,7 @@ export default function CampaignsTab({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${viewPad} max-w-[1100px] py-6`}>
+      <div className={`${viewPad} py-6`}>
         <div className="flex items-center justify-between gap-3 mb-5">
           <div>
             <h1 className="sr-only">Campaigns</h1>
@@ -71,7 +71,7 @@ export default function CampaignsTab({
                   <span className={sectionLabel}>{meta.label}</span>
                   <span className={countChip}>{group.length}</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
                   {group.map((c) => (
                     <CampaignCard
                       key={c.id}

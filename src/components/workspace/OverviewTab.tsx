@@ -57,14 +57,14 @@ export default function OverviewTab({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${viewPad} max-w-[1100px] py-6 flex flex-col gap-7`}>
+      <div className={`${viewPad} py-6 flex flex-col gap-7`}>
         {multi && (
           <section aria-label="Businesses" className={enter} style={staggerStyle(0)}>
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className={sectionLabel}>Businesses</span>
               <span className={countChip}>{businesses.length}</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
               {businesses.map((b) => (
                 <BusinessCard
                   key={b.id}

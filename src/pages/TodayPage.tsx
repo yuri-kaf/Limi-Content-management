@@ -30,7 +30,7 @@ export default function TodayPage() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shellPad} max-w-[820px] py-6`}>
+      <div className={`${shellPad} py-6`}>
         {/* One headline: the day, then the count in the same line. */}
         <h1 className={`${heading} text-[22px] leading-8 font-normal`}>
           {today}
@@ -66,7 +66,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className={`mt-4 ${!loading && total > 0 ? 'grid grid-cols-1 min-[1400px]:grid-cols-2 gap-x-6 items-start' : ''}`}>
           {!loading && total === 0 ? (
             <div className={emptyState}>
               <CheckCircle2 size={28} className="text-success-text dark:text-success-textdark" />
