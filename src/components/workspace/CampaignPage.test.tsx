@@ -32,7 +32,6 @@ function renderPage(over: Partial<React.ComponentProps<typeof CampaignPage>> = {
     canManage: true,
     canEditItem: () => true,
     canDeleteItem: () => true,
-    onBack: vi.fn(),
     onEdit: vi.fn(),
     onSetStatus: vi.fn(),
     onOpenItem: vi.fn(),

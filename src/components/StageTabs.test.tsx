@@ -7,7 +7,7 @@ import { STAGES } from '../utils';
 const tabs: StageTab[] = [
   { id: 'editing', label: 'Editing', count: 16 },
   { id: 'review', label: 'Review', count: 0 },
-  { id: 'to-post', label: 'To Post', count: 1 },
+  { id: 'to-post', label: 'To post', count: 1 },
   { id: 'posted', label: 'Posted', count: 13 },
 ];
 
@@ -37,7 +37,7 @@ describe('StageTabs', () => {
     setup('to-post');
     const selected = screen.getAllByRole('tab').filter((t) => t.getAttribute('aria-selected') === 'true');
     expect(selected).toHaveLength(1);
-    expect(selected[0]).toHaveTextContent('To Post');
+    expect(selected[0]).toHaveTextContent('To post');
   });
 
   it('reports the stage that was tapped', async () => {

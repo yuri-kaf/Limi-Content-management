@@ -1,4 +1,4 @@
-import { Sun, Moon, LogOut, Mail, Shield } from 'lucide-react';
+import { Sun, Moon, LogOut, Mail, Shield } from '../icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -17,16 +17,16 @@ export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const row = 'flex items-center gap-3 px-3.5 py-3';
+  const row = 'flex items-center gap-3 px-4 py-3';
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className={`${shellPad} max-w-[600px] py-6`}>
-        <h1 className={`${heading} text-lg mb-6`}>Profile</h1>
+        <h1 className={`${heading} text-[22px] leading-8 font-normal mb-5`}>Profile</h1>
 
-        <div className={`${card} divide-y divide-hairline dark:divide-hairline-dark mb-6`}>
+        <div className={`${card} overflow-hidden mb-6`}>
           <div className={row}>
-            <Mail size={15} className={faintText} />
+            <Mail size={18} className={faintText} />
             <div className="min-w-0">
               <div className={sectionLabel}>Email</div>
               <div className={`text-[13px] truncate ${bodyText}`}>
@@ -34,8 +34,9 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+          <div className="mx-4 h-px bg-hairline dark:bg-hairline-dark" />
           <div className={row}>
-            <Shield size={15} className={faintText} />
+            <Shield size={18} className={faintText} />
             <div className="min-w-0">
               <div className={sectionLabel}>Role</div>
               <div className={`text-[13px] ${bodyText}`}>
@@ -47,7 +48,7 @@ export default function ProfilePage() {
 
         <div className={sectionLabel}>Appearance</div>
         <button onClick={toggleTheme} className={`${btnGhost} w-full mt-2 justify-start`}>
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           {theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
         </button>
 

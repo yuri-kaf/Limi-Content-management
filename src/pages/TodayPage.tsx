@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '../icons';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import { buildToday, TodayEntry, todayTotal, todaySources } from '../today';
 import { QUEUE_SECTIONS, QueueGroup } from '../components/QueueGroup';
-import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody, focusRing } from '../ui';
+import { shellPad, heading, faintText, card, emptyState, emptyTitle, emptyBody, chip } from '../ui';
 
 // The home page answers one question: what needs me. The clients grid answers
 // "what exists", which is a different and much less frequent question.
@@ -31,23 +31,23 @@ export default function TodayPage() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className={`${shellPad} max-w-[820px] py-6`}>
-        <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
-          <h1 className={`${heading} text-lg`}>Today</h1>
-          <span className={`text-[12px] ${faintText}`}>{today}</span>
-        </div>
-        <p className={`text-[13px] ${faintText}`}>
-          {loading
-            ? 'Loading…'
-            : total === 0
-              ? 'Nothing is waiting.'
-              : `${total} thing${total === 1 ? '' : 's'} across ${visible.length} client${visible.length === 1 ? '' : 's'}.`}
-        </p>
+        {/* One headline: the day, then the count in the same line. */}
+        <h1 className={`${heading} text-[22px] leading-8 font-normal`}>
+          {today}
+          <span className={`block sm:inline text-[14px] sm:ml-3 ${faintText}`}>
+            {loading
+              ? 'Loading…'
+              : total === 0
+                ? 'Nothing is waiting'
+                : `${total} thing${total === 1 ? '' : 's'} across ${visible.length} client${visible.length === 1 ? '' : 's'}`}
+          </span>
+        </h1>
 
         {/* A jump strip, but only when there is more than one place to jump to.
             With a single group it would be a label for the thing directly under
             it. */}
         {filled.length > 1 && (
-          <div className="flex items-center gap-1.5 flex-wrap mt-3.5">
+          <div className="flex items-center gap-2 flex-wrap mt-3">
             {filled.map((s) => (
               <button
                 key={s.id}
@@ -57,7 +57,7 @@ export default function TodayPage() {
                 onClick={() =>
                   document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }
-                className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark text-[11px] font-medium text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark transition-colors ${focusRing}`}
+                className={chip(false)}
               >
                 {s.label}
                 <span className="tabular-nums font-semibold">{groups[s.key].length}</span>
@@ -66,12 +66,10 @@ export default function TodayPage() {
           </div>
         )}
 
-        <div className="mt-5">
+        <div className="mt-4">
           {!loading && total === 0 ? (
             <div className={emptyState}>
-              <div className="w-11 h-11 rounded-tile bg-tint dark:bg-tint-dark flex items-center justify-center">
-                <CheckCircle2 size={20} className="text-success-text dark:text-success-textdark" />
-              </div>
+              <CheckCircle2 size={28} className="text-success-text dark:text-success-textdark" />
               <p className={emptyTitle}>All clear</p>
               <p className={emptyBody}>
                 Nothing is waiting on a client, nothing was declined, and nothing is

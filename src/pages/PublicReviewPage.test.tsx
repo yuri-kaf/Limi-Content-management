@@ -42,13 +42,13 @@ describe('PublicReviewPage', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Momo reel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Approve/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request changes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ask for changes/ })).toBeInTheDocument();
   });
 
   it('sends a change request with its note', async () => {
     share.value = make();
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /Request changes/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Ask for changes/ }));
     await userEvent.type(screen.getByPlaceholderText('What needs changing?'), 'Brighter thumbnail');
     await userEvent.click(screen.getByRole('button', { name: 'Send feedback' }));
     expect(share.submitDecision).toHaveBeenCalledWith('declined', 'Brighter thumbnail');
@@ -73,7 +73,7 @@ describe('PublicReviewPage', () => {
     renderPage();
     expect(screen.getByText('Approved')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Approve/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Request changes/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ask for changes/ })).not.toBeInTheDocument();
   });
 
   // A share is written with decision 'pending' before anyone has decided; it
@@ -82,7 +82,7 @@ describe('PublicReviewPage', () => {
     share.value = make({ decision: 'pending' });
     renderPage();
     expect(screen.getByRole('button', { name: /Approve/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request changes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ask for changes/ })).toBeInTheDocument();
     expect(screen.queryByText('Changes requested')).not.toBeInTheDocument();
   });
 });

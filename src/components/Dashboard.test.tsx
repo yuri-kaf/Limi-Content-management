@@ -17,7 +17,7 @@ const clients: Client[] = [{
 describe('Dashboard', () => {
   it("breaks the pipeline down under the board's own stage names", () => {
     render(<Dashboard clients={clients} role="admin" />);
-    for (const name of ['Editing', 'Review', 'To Post', 'Posted']) {
+    for (const name of ['Editing', 'Review', 'To post', 'Posted']) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
   });

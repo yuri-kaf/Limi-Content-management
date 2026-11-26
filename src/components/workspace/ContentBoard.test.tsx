@@ -92,10 +92,22 @@ function renderBoard(over: Partial<BoardProps> = {}) {
   return { ...props, rerender };
 }
 
-// The card itself, rather than one of the controls inside it. Its name is
-// everything it shows, so the title is matched anywhere in it.
+// The card itself, rather than one of the controls inside it (its ⋮ menu is
+// named after it too). Its name is everything it shows, so the title is
+// matched anywhere in it; the card is the one that carries its stage.
 function card(title: string) {
-  return screen.getByRole('button', { name: new RegExp(title) });
+  const found = screen
+    .getAllByRole('button', { name: new RegExp(title) })
+    .filter((el) => el.hasAttribute('data-stage'));
+  expect(found).toHaveLength(1);
+  return found[0];
+}
+
+// A card's ⋮ menu, opened from the keyboard, and the item in it.
+async function menuItem(title: string, name: string | RegExp) {
+  focus(within(card(title)).getByRole('button', { name: `${title} actions` }));
+  await userEvent.keyboard('{Enter}');
+  return screen.getByRole('menuitem', { name });
 }
 
 function focus(element: HTMLElement) {
@@ -146,7 +158,9 @@ function layOutBoard() {
 // A key that should not lift a card leaves both alone.
 function expectNothingLifted() {
   expect(document.querySelector('[aria-pressed="true"]')).toBeNull();
-  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  // A stage grid mounts no drag machinery at all, so it has no live region.
+  const live = screen.queryByRole('status');
+  if (live) expect(live).toBeEmptyDOMElement();
 }
 
 // dnd-kit never detaches a sensor when its board unmounts, so a drag a test
@@ -180,7 +194,7 @@ describe('ContentBoard', () => {
     // Another business in scope, or the campaign deleted: it leaves the list.
     board.rerender({ campaigns: [] });
     expect(screen.getByText('Menu post')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('button', { name: 'New post' }));
     expect(board.onAdd).toHaveBeenLastCalledWith('editing', undefined);
   });
 
@@ -205,14 +219,14 @@ describe('ContentBoard', () => {
 
   it('starts a new item in Editing from the toolbar', async () => {
     const props = renderBoard();
-    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('button', { name: 'New post' }));
     expect(props.onAdd).toHaveBeenCalledWith('editing', undefined);
   });
 
   it('files new content under the campaign the board is filtered to', async () => {
     const props = renderBoard();
     await userEvent.selectOptions(screen.getByLabelText('Campaign'), 'c1');
-    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('button', { name: 'New post' }));
     expect(props.onAdd).toHaveBeenCalledWith('editing', 'c1');
   });
 
@@ -329,12 +343,12 @@ describe('ContentBoard — moving cards', () => {
   // The padding sits inside the phone column's scroll region, not around it,
   // so a lifted card's shadow and a focus ring have room instead of being cut
   // off at the region's edge.
-  it('pads the phone column inside its scroll region', () => {
+  it('pads the phone grid inside its scroll region', () => {
     stubMatchMedia(false);
     renderBoard({ content: [item({ id: 'a', title: 'Launch reel', status: 'editing' })] });
     const region = card('Launch reel').closest('.overflow-y-auto') as HTMLElement;
-    expect(region).toHaveClass('px-3', 'pt-2');
-    expect(region.parentElement!.parentElement).not.toHaveClass('px-3');
+    expect(region).toHaveClass('px-4');
+    expect(region.parentElement).not.toHaveClass('px-4');
   });
 
   it('settles a dropped card into its slot', () => {
@@ -380,39 +394,48 @@ describe('ContentBoard — keyboard', () => {
     expect(props.onOpen).not.toHaveBeenCalled();
   });
 
-  it("edits on Enter or Space on a card's Edit button, without lifting the card", async () => {
+  it("opens a card's menu on Enter, without lifting or opening the card", async () => {
     const props = renderBoard();
-    const edit = within(card('Launch reel')).getByRole('button', { name: 'Edit' });
-    focus(edit);
-    await userEvent.keyboard('{Enter}');
-    await userEvent.keyboard(' ');
-    expect(props.onEdit).toHaveBeenCalledTimes(2);
+    await menuItem('Launch reel', 'Edit');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(props.onOpen).not.toHaveBeenCalled();
+    expectNothingLifted();
+  });
+
+  it("edits from a card's menu", async () => {
+    const props = renderBoard();
+    await userEvent.click(await menuItem('Launch reel', 'Edit'));
     expect(props.onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
     expect(props.onOpen).not.toHaveBeenCalled();
     expectNothingLifted();
   });
 
-  it("opens the sheet on Enter on a card's Delete button, where the delete is confirmed", async () => {
+  it("opens the sheet from a card's Delete, where the delete is confirmed", async () => {
     const props = renderBoard();
-    focus(within(card('Launch reel')).getByRole('button', { name: 'Delete' }));
-    await userEvent.keyboard('{Enter}');
+    await userEvent.click(await menuItem('Launch reel', 'Delete'));
     expect(props.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
     expectNothingLifted();
   });
 
-  it("follows a card's link on Enter, without lifting or opening the card", async () => {
-    const props = renderBoard({
-      content: [item({ id: 'a', title: 'Launch reel', driveLink: 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345/view' })],
-    });
-    const link = within(card('Launch reel')).getByRole('link', { name: 'Open in Google Drive' });
-    // jsdom cannot navigate, so the click is recorded and stopped there.
-    const followed = vi.fn((e: Event) => e.preventDefault());
-    link.addEventListener('click', followed);
-    focus(link);
-    await userEvent.keyboard('{Enter}');
-    expect(followed).toHaveBeenCalled();
-    expect(props.onOpen).not.toHaveBeenCalled();
-    expectNothingLifted();
+  it("opens a card's link from its menu, without opening the card", async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      const props = renderBoard({
+        content: [item({ id: 'a', title: 'Launch reel', driveLink: 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345/view' })],
+      });
+      await userEvent.click(await menuItem('Launch reel', 'Open in Google Drive'));
+      expect(open).toHaveBeenCalledWith(expect.stringContaining('drive.google.com'), '_blank', 'noopener');
+      expect(props.onOpen).not.toHaveBeenCalled();
+      expectNothingLifted();
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it("moves a card from its menu, with no drag", async () => {
+    const props = renderBoard();
+    await userEvent.click(await menuItem('Launch reel', 'Move to Review'));
+    expect(props.onMove).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), 'review');
   });
 
   // The card is unmounted from one column and mounted in another, so focus
@@ -451,19 +474,18 @@ describe('ContentBoard — the copy in the hand', () => {
   afterEach(putDownAnyLiftedCard);
 
   // The copy's title has to wrap at the card's width, or the copy is a
-  // different height from the card it lands on.
-  it('has the same controls as the card it was lifted from', async () => {
-    renderBoard({ canDeleteItem: () => false });
+  // different height from the card it lands on. So the copy keeps the room
+  // the ⋮ menu takes, with nothing in it to press.
+  it('keeps the room of the card menu, with no controls in it', async () => {
+    renderBoard();
     focus(card('Launch reel'));
     await userEvent.keyboard(' ');
     const [lifted, copy] = screen
       .getAllByText('Launch reel')
       .map((title) => title.closest('[data-stage]') as HTMLElement);
-    const controls = (el: HTMLElement) =>
-      Array.from(el.querySelectorAll('a, button'), (c) => c.getAttribute('aria-label'));
-    expect(controls(copy)).toEqual(controls(lifted));
-    expect(controls(copy)).toContain('Edit');
-    expect(controls(copy)).not.toContain('Delete');
+    expect(lifted.querySelector('[data-menu-slot]')).not.toBeNull();
+    expect(copy.querySelector('[data-menu-slot]')).not.toBeNull();
+    expect(copy.querySelectorAll('a, button')).toHaveLength(0);
   });
 });
 
@@ -494,7 +516,7 @@ describe('ContentBoard — what a screen reader hears', () => {
     renderBoard({ content });
     say().onDragStart({ active: reel });
     expect(say().onDragOver({ active: reel, over: over('xK9fQ2') })).toBeUndefined();
-    expect(say().onDragOver({ active: reel, over: over('to-post') })).toBe('Launch reel is over To Post.');
+    expect(say().onDragOver({ active: reel, over: over('to-post') })).toBe('Launch reel is over To post.');
     // Another card in the same column is the same stage.
     expect(say().onDragOver({ active: reel, over: over('pL3mZ8') })).toBeUndefined();
     expect(say().onDragOver({ active: reel, over: null })).toBe('Launch reel is not over a stage.');
@@ -504,7 +526,7 @@ describe('ContentBoard — what a screen reader hears', () => {
   it('says what a drop did', () => {
     renderBoard({ content });
     expect(say().onDragEnd({ active: reel, over: over('pL3mZ8') }))
-      .toBe('Moved Launch reel from Editing to To Post.');
+      .toBe('Moved Launch reel from Editing to To post.');
     expect(say().onDragEnd({ active: reel, over: over('editing') })).toBe('Launch reel stays in Editing.');
     expect(say().onDragEnd({ active: reel, over: null })).toBe('Launch reel stays in Editing.');
   });
@@ -571,8 +593,8 @@ describe('ContentBoard — phone', () => {
   it('shows every stage as a tab and adds into the one selected', async () => {
     const props = renderBoard();
     expect(screen.getAllByRole('tab')).toHaveLength(5);
-    await userEvent.click(screen.getByRole('tab', { name: /To Post/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'New' }));
+    await userEvent.click(screen.getByRole('tab', { name: /To post/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'New post' }));
     expect(props.onAdd).toHaveBeenCalledWith('to-post', undefined);
   });
 

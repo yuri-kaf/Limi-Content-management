@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, PartyPopper, ArrowRight } from 'lucide-react';
+import { X, PartyPopper, ArrowRight } from '../../icons';
 import { Client, FolderColor, Lead, LeadLostReason } from '../../types';
 import { LOST_REASONS, sourceLabel } from '../../leads';
 import { folderColor } from '../../folderColors';

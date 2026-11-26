@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Film, Image as ImageIcon } from 'lucide-react';
+import { X, Film, Image as ImageIcon } from '../icons';
 import { Business, Campaign, ContentItem, ContentStatus, MediaType, Platform } from '../types';
 import { businessIdOf } from '../campaigns';
 import CampaignOptions from './CampaignOptions';
@@ -8,9 +8,14 @@ import {
   toDateInput,
 } from '../utils';
 import {
-  overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
+  overlay, modalTitle, btnIcon, label, labelAside, hint,
   input, textarea, chip, btnPrimary, btnGhost, faintText,
 } from '../ui';
+
+// modalPanel is a single scrolling column; a form this long wants its title and
+// its Save button to stay put while the fields scroll.
+const formPanel =
+  'w-full max-w-xl bg-canvas dark:bg-raised-dark rounded-dialog shadow-lift max-h-[90dvh] flex flex-col overflow-hidden animate-scale-in [will-change:transform,opacity]';
 
 export interface ContentFormData {
   title: string;
@@ -198,18 +203,19 @@ export default function AddContentModal({
       className={overlay}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className={modalPanel}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={modalTitle}>{isEdit ? 'Edit Content' : 'Add Content'}</h2>
+      <div className={formPanel} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit post' : 'Add post'}>
+        <div className="flex items-center justify-between pl-6 pr-3 pt-4 pb-2 flex-shrink-0">
+          <h2 className={modalTitle}>{isEdit ? 'Edit post' : 'Add post'}</h2>
           <button onClick={onClose} className={btnIcon} aria-label="Close">
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+         <div className="flex flex-col gap-4 px-6 pt-2 pb-5 overflow-y-auto overscroll-contain flex-1 min-h-0">
           <div>
-            <label className={label}>Type</label>
-            <div className="grid grid-cols-2 gap-2">
+            <span className={label} id="content-type-label">Type</span>
+            <div className="flex gap-2" role="group" aria-labelledby="content-type-label">
               {([
                 { value: 'video' as const, label: 'Video', Icon: Film },
                 { value: 'graphic' as const, label: 'Graphic', Icon: ImageIcon },
@@ -218,9 +224,9 @@ export default function AddContentModal({
                   key={value}
                   type="button"
                   onClick={() => { setMediaType(value); setImgError(false); }}
-                  className={`${chip(mediaType === value)} min-h-11`}
+                  className={chip(mediaType === value)}
                 >
-                  <Icon size={14} />
+                  <Icon size={16} />
                   {optionLabel}
                 </button>
               ))}
@@ -285,7 +291,7 @@ export default function AddContentModal({
           )}
 
           <div>
-            <label className={label} htmlFor="content-title">Content Title</label>
+            <label className={label} htmlFor="content-title">Title</label>
             <input
               id="content-title"
               type="text"
@@ -298,7 +304,7 @@ export default function AddContentModal({
           </div>
 
           <div>
-            <label className={label} htmlFor="content-link">Drive Link</label>
+            <label className={label} htmlFor="content-link">File link</label>
             <input
               id="content-link"
               type="text"
@@ -319,7 +325,7 @@ export default function AddContentModal({
 
           {thumbnailUrl && (
             <div
-              className="rounded-tile overflow-hidden border border-hairline dark:border-hairline-dark"
+              className="rounded-card overflow-hidden"
               style={{ aspectRatio: '16/9' }}
             >
               {!imgError ? (
@@ -336,8 +342,8 @@ export default function AddContentModal({
                   ) : (
                     <Film size={22} className={faintText} />
                   )}
-                  <span className={`text-[10px] px-4 text-center ${faintText}`}>
-                    No preview — check the file is shared as "anyone with the link"
+                  <span className={`text-[12px] px-4 text-center ${faintText}`}>
+                    No preview. Check the file is shared as "anyone with the link".
                   </span>
                 </div>
               )}
@@ -395,7 +401,7 @@ export default function AddContentModal({
 
           <div>
             <label className={label}>
-              Team Notes <span className={labelAside}>(internal only)</span>
+              Team notes <span className={labelAside}>(internal only)</span>
             </label>
             <textarea
               value={notes}
@@ -409,17 +415,19 @@ export default function AddContentModal({
 
           <div>
             <label className={label}>
-              Posting Schedule <span className={labelAside}>(optional)</span>
+              Schedule <span className={labelAside}>(optional)</span>
             </label>
             <div className="flex gap-2">
               <input
                 type="date"
+                aria-label="Schedule date"
                 value={schedDate}
                 onChange={(e) => setSchedDate(e.target.value)}
                 className={`${input} flex-1`}
               />
               <input
                 type="time"
+                aria-label="Schedule time"
                 value={schedTime}
                 onChange={(e) => setSchedTime(e.target.value)}
                 disabled={!schedDate}
@@ -428,16 +436,18 @@ export default function AddContentModal({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className={`${btnGhost} flex-1`}>
+         </div>
+
+          <div className="flex justify-end gap-2 px-6 py-3 border-t border-hairline dark:border-hairline-dark flex-shrink-0">
+            <button type="button" onClick={onClose} className={btnGhost}>
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !driveLink.trim()}
-              className={`${btnPrimary} flex-1`}
+              className={btnPrimary}
             >
-              {isEdit ? 'Save Changes' : 'Add Content'}
+              {isEdit ? 'Save' : 'Add post'}
             </button>
           </div>
         </form>

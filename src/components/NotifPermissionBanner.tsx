@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, X, Check } from '../icons';
 import { requestNotificationPermission } from '../hooks/useNotifications';
 import { card, heading, faintText, btnIcon, btnPrimarySm } from '../ui';
 
@@ -45,12 +45,10 @@ export default function NotifPermissionBanner() {
     return (
       <div
         role="status"
-        className="mb-5 rounded-card border border-success/30 dark:border-success-textdark/30 bg-success-soft dark:bg-success-softdark px-4 py-3 flex items-center gap-3"
+        className="mb-4 rounded-card bg-success-soft dark:bg-success-softdark px-4 py-3 flex items-center gap-3"
       >
-        <div className="w-7 h-7 rounded-tile bg-surface dark:bg-success-softhoverdark flex items-center justify-center flex-shrink-0">
-          <Check size={14} className="text-success-text dark:text-success-textdark" />
-        </div>
-        <p className="text-sm font-medium text-success-text dark:text-success-textdark">
+        <Check size={16} className="text-success-text dark:text-success-textdark flex-shrink-0" />
+        <p className="text-[13px] font-medium text-success-text dark:text-success-textdark">
           Reminders enabled — you'll be notified when it's time to post.
         </p>
       </div>
@@ -58,13 +56,11 @@ export default function NotifPermissionBanner() {
   }
 
   return (
-    <div className={`${card} mb-5 !border-brand/25 px-4 py-3.5 flex items-center gap-3`}>
-      <div className="w-8 h-8 rounded-tile bg-brand-soft dark:bg-brand-softdark flex items-center justify-center flex-shrink-0">
-        <Bell size={15} className="text-brand" />
-      </div>
+    <div className={`${card} mb-4 px-4 py-2.5 flex items-center gap-3`}>
+      <Bell size={18} className="text-ink-soft dark:text-ink-softdark flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className={`${heading} text-sm leading-tight`}>Enable post reminders</p>
-        <p className={`text-xs mt-0.5 leading-relaxed ${faintText}`}>
+        <p className={`${heading} text-[13px] leading-tight`}>Enable post reminders</p>
+        <p className={`text-[12px] mt-0.5 leading-snug ${faintText}`}>
           Get notified on this device when scheduled content is due to post.
         </p>
       </div>

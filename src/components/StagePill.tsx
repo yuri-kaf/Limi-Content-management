@@ -24,7 +24,7 @@ export default function StagePill({ status, count }: Props) {
   const dark = theme === 'dark';
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 h-[22px] rounded-tile text-[11px] font-medium whitespace-nowrap"
+      className="inline-flex items-center gap-1 px-2 h-5 rounded-chip text-[11px] font-medium whitespace-nowrap"
       style={{
         backgroundColor: dark ? stage.tintDark : stage.tint,
         color: dark ? stage.textDark : stage.text,

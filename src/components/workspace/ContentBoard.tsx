@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   Announcements,
   DndContext,
@@ -18,21 +18,20 @@ import {
   defaultDropAnimationSideEffects,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { Plus } from '../../icons';
 import { Business, Campaign, ContentItem, ContentStatus } from '../../types';
 import KanbanColumn from '../KanbanColumn';
 import CampaignOptions from '../CampaignOptions';
 import ContentCard from '../ContentCard';
 import { stageCardVars, stageDot } from '../../stageColors';
-import StageTabs from '../StageTabs';
 import BoardFilters from '../BoardFilters';
 import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { STAGES } from '../../utils';
 import { NO_CAMPAIGN, scopeContent } from '../../campaigns';
 import { ContentFilters, NO_FILTERS, activeFilterCount, filterContent } from '../../filters';
 import {
-  boardScroller, boardRow, boardColumn, boardSingle, columnHeader, columnBody, columnBodyPlain,
-  countChip, pageToolbar, faintText, btnPrimarySm,
+  boardScroller, boardRow, boardColumn, columnHeader, columnBody,
+  countChip, faintText, btnPrimarySm, focusRingInset, emptyState, emptyTitle, emptyBody,
 } from '../../ui';
 import ToolbarSelect from '../ToolbarSelect';
 
@@ -107,7 +106,7 @@ function ReadOnlyColumn({
           <span className={`${countChip} ml-auto`}>{items.length}</span>
         </div>
       )}
-      <div className={single ? columnBodyPlain : columnBody}>
+      <div className={columnBody}>
         {items.length === 0 ? (
           <div className="flex-1 flex items-start justify-center pt-8 px-4">
             <p className={`text-[12px] leading-relaxed text-center max-w-[26ch] ${faintText}`}>
@@ -147,8 +146,8 @@ const DROP_ANIMATION: DropAnimation = {
   }),
 };
 
-// What the drag copy's actions do. The copy is never pressed; it carries them
-// only to take up the room they take up on the card.
+
+// What the drag copy's actions do. The copy is never pressed.
 const doNothing = () => {};
 
 interface Props {
@@ -178,11 +177,17 @@ interface Props {
    * `content` does.
    */
   onMove: (item: ContentItem, status: ContentStatus) => Promise<unknown> | void;
+  /** The client's other views (Calendar, Campaigns...), drawn at the right end of the stage tabs. */
+  views?: ReactNode;
+  /** The business scope chips, drawn at the start of the filter row. */
+  scope?: ReactNode;
 }
+
+type View = ContentStatus | 'all';
 
 export default function ContentBoard({
   content, campaigns, businesses, isClientRole, canAdd, canEditItem, canDeleteItem,
-  campaignFilter = false, onOpen, onAdd, onEdit, onMove,
+  campaignFilter = false, onOpen, onAdd, onEdit, onMove, views, scope,
 }: Props) {
   const [filters, setFilters] = useState<ContentFilters>(NO_FILTERS);
   // The campaign the person picked. The filter actually applied is worked out
@@ -203,9 +208,10 @@ export default function ContentBoard({
   const [pending, setPending] = useState<Record<string, ContentStatus>>({});
   // The stage the live region last named for the card being carried.
   const spokenStage = useRef<ContentStatus | null>(null);
-  const [activeStage, setActiveStage] = useState<ContentStatus>(
-    isClientRole ? 'review' : 'editing'
-  );
+  // 'all' is the board, every stage side by side, on a desktop. A stage is
+  // that stage's posts as a grid. A phone has no room for the board, so there
+  // it starts on the first stage.
+  const [activeView, setActiveView] = useState<View>('all');
   // Must match the condition that renders the draggable board. Gating the
   // handlers more narrowly than the UI is how drag came to look simply dead.
   const canMove = !isClientRole;
@@ -371,12 +377,26 @@ export default function ContentBoard({
   };
 
   const stages = isClientRole ? CLIENT_STAGES : TEAM_STAGES;
-  // A stage the current role cannot see must not leave the phone board showing
-  // nothing with no tab selected.
-  const currentStage = stages.some((s) => s.id === activeStage) ? activeStage : stages[0].id;
-  const tabs = stages.map((s) => ({ id: s.id, label: s.tab, count: itemsIn(s.id).length }));
+  // A stage the current role cannot see, or the board on a phone, falls back
+  // to the first stage rather than showing nothing with no tab selected.
+  const view: View =
+    activeView === 'all'
+      ? isDesktop ? 'all' : stages[0].id
+      : stages.some((s) => s.id === activeView) ? activeView : isDesktop ? 'all' : stages[0].id;
+  const total = stages.reduce((n, s) => n + itemsIn(s.id).length, 0);
+  const tabs: { id: View; label: string; count: number }[] = [
+    ...(isDesktop ? [{ id: 'all' as View, label: 'All', count: total }] : []),
+    ...stages.map((s) => ({ id: s.id as View, label: s.tab, count: itemsIn(s.id).length })),
+  ];
 
-  function column(stage: StageDef, layout: 'column' | 'single') {
+  const moveFromMenu = isClientRole ? undefined : (item: ContentItem) => (status: ContentStatus) => {
+    const write = onMove(item, status);
+    if (!write) return;
+    setPending((moves) => ({ ...moves, [item.id]: status }));
+    write.finally(() => settle(item.id, status));
+  };
+
+  function column(stage: StageDef) {
     if (isClientRole) {
       return (
         <ReadOnlyColumn
@@ -387,7 +407,6 @@ export default function ContentBoard({
           onCardClick={onOpen}
           campaignOf={campaignOf}
           filtered={isFiltered}
-          layout={layout}
         />
       );
     }
@@ -404,89 +423,162 @@ export default function ContentBoard({
         onEditCard={onEdit}
         // Deleting happens in the detail sheet, where it can be confirmed.
         onDeleteCard={onOpen}
+        onMoveCard={moveFromMenu ? (item, status) => moveFromMenu(item)(status) : undefined}
         campaignOf={campaignOf}
         filtered={isFiltered}
-        // The phone layout mounts this one column alone, so a card lifted in
-        // it could only be dropped back where it started. Its cards stay put
-        // instead, and the detail sheet's stage picker moves them.
-        draggable={layout === 'column'}
-        layout={layout}
       />
     );
   }
 
-  const current = stages.find((s) => s.id === currentStage) ?? stages[0];
+  // One stage as a grid of cards: as many columns as fit, each card wide
+  // enough for its title. Nothing to drop on here, so cards move from their
+  // stage chip instead.
+  function grid(status: ContentStatus) {
+    const items = itemsIn(status);
+    const stage = stages.find((s) => s.id === status)!;
+    if (items.length === 0) {
+      return (
+        <div className={emptyState}>
+          <p className={emptyTitle}>{isFiltered ? 'Nothing matches the filter' : `Nothing in ${stage.label.toLowerCase()}`}</p>
+          <p className={emptyBody}>
+            {isFiltered
+              ? 'Clear the filter to see every post in this stage.'
+              : isClientRole
+                ? CLIENT_PURPOSE[status] ?? 'Nothing here right now.'
+                : STAGE_PURPOSE[status]}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-2 content-start">
+        {items.map((item) => (
+          <ContentCard
+            key={item.id}
+            item={item}
+            campaign={campaignOf(item)}
+            onCardClick={() => onOpen(item)}
+            onEdit={!isClientRole && canEditItem(item) ? () => onEdit(item) : undefined}
+            onDelete={!isClientRole && canDeleteItem(item) ? () => onOpen(item) : undefined}
+            onMove={moveFromMenu?.(item)}
+            surface="page"
+            showStage
+            draggable={false}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  const shownCount = view === 'all' ? total : itemsIn(view).length;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className={pageToolbar}>
-        <div className="ml-auto flex items-center gap-1.5 min-w-0">
-          {showCampaignFilter && (
-            <ToolbarSelect
-              aria-label="Campaign"
-              value={campaignId}
-              onChange={(e) => setPicked(e.target.value)}
-            >
-              <option value="">All campaigns</option>
-              <option value={NO_CAMPAIGN}>No campaign</option>
-              <CampaignOptions campaigns={campaigns} businesses={businesses} />
-            </ToolbarSelect>
-          )}
-          <BoardFilters value={filters} onChange={setFilters} />
+      {/* One row: the stages, with their counts, and the client's other views
+          at the right end. */}
+      <div className="flex items-stretch gap-2 pl-2 pr-3 h-12 flex-shrink-0 border-b border-hairline dark:border-hairline-dark">
+        <div role="tablist" aria-label="Stage" className="flex items-stretch min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
+          {tabs.map((t) => {
+            const on = t.id === view;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={on}
+                onClick={() => setActiveView(t.id)}
+                className={`relative inline-flex items-center gap-1.5 px-3 text-[13px] font-medium whitespace-nowrap transition-colors ${focusRingInset} ${
+                  on ? 'text-brand-text dark:text-brand-textdark' : 'text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-ink/[.04] dark:hover:bg-ink-dark/[.06]'
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`min-w-5 h-[18px] px-1.5 rounded-full text-[11px] font-semibold leading-[18px] text-center tabular-nums ${
+                    on ? 'bg-brand text-white' : 'bg-hover dark:bg-hover-dark text-ink-soft dark:text-ink-softdark'
+                  }`}
+                >
+                  {t.count}
+                </span>
+                {on && <span className="absolute left-2 right-2 bottom-0 h-[3px] rounded-t-[3px] bg-brand" aria-hidden="true" />}
+              </button>
+            );
+          })}
         </div>
+        {views}
+      </div>
+
+      {/* The filter row: business, campaign, filters, and the one action. */}
+      <div className="flex items-center gap-1.5 px-4 h-12 flex-shrink-0 overflow-x-auto [scrollbar-width:none]">
+        {scope}
+        {showCampaignFilter && (
+          <ToolbarSelect
+            aria-label="Campaign"
+            value={campaignId}
+            onChange={(e) => setPicked(e.target.value)}
+          >
+            <option value="">All campaigns</option>
+            <option value={NO_CAMPAIGN}>No campaign</option>
+            <CampaignOptions campaigns={campaigns} businesses={businesses} />
+          </ToolbarSelect>
+        )}
+        <BoardFilters value={filters} onChange={setFilters} />
+        <span className={`ml-auto pl-2 text-[12px] whitespace-nowrap ${faintText}`}>
+          {shownCount} {shownCount === 1 ? 'post' : 'posts'}
+        </span>
         {canAdd && (
           <button
-            onClick={() => onAdd(isDesktop ? 'editing' : currentStage, filedCampaign)}
+            onClick={() => onAdd(view === 'all' ? 'editing' : view, filedCampaign)}
             className={`${btnPrimarySm} flex-shrink-0`}
           >
-            <Plus size={14} />
-            New
+            <Plus size={18} />
+            New post
           </button>
         )}
       </div>
 
-      <DndContext
-        sensors={sensors}
-        accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={endDrag}
-      >
-        {isDesktop ? (
+      {view === 'all' ? (
+        <DndContext
+          sensors={sensors}
+          accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={endDrag}
+        >
           <div className={boardScroller}>
-            <div className={boardRow}>{stages.map((s) => column(s, 'column'))}</div>
+            <div className={boardRow}>{stages.map((s) => column(s))}</div>
           </div>
-        ) : (
-          <>
-            <StageTabs tabs={tabs} active={currentStage} onChange={setActiveStage} />
-            <div className={boardSingle}>{column(current, 'single')}</div>
-          </>
-        )}
 
-        <DragOverlay dropAnimation={reduceMotion ? null : DROP_ANIMATION}>
-          {/* A plain box around the card: dnd-kit measures the overlay's child,
-              transforms included, to place the drop. Measured on the tilted,
-              enlarged card it would land a few pixels off its slot and then
-              jump; measured on this box it lands exactly. */}
-          {activeItem ? (
-            <div>
-              <ContentCard
-                item={overStage ? { ...activeItem, status: overStage } : activeItem}
-                campaign={campaignOf(activeItem)}
-                // The card's own actions, as handlers that do nothing: the
-                // title then wraps at the card's width, so the copy is the
-                // card's height and lands without a jump. ContentCard keeps
-                // them out of sight on the copy.
-                onEdit={canEditItem(activeItem) ? doNothing : undefined}
-                onDelete={canDeleteItem(activeItem) ? doNothing : undefined}
-                isOverlay
-              />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay dropAnimation={reduceMotion ? null : DROP_ANIMATION}>
+            {/* A plain box around the card: dnd-kit measures the overlay's child,
+                transforms included, to place the drop. */}
+            {activeItem ? (
+              <div>
+                <ContentCard
+                  item={overStage ? { ...activeItem, status: overStage } : activeItem}
+                  campaign={campaignOf(activeItem)}
+                  // Handlers that do nothing, so the copy keeps the room of
+                  // the card's menu and its title wraps the same.
+                  onEdit={canEditItem(activeItem) ? doNothing : undefined}
+                  onDelete={canDeleteItem(activeItem) ? doNothing : undefined}
+                  onMove={doNothing}
+                  isOverlay
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-6">{grid(view)}</div>
+      )}
     </div>
   );
 }
+
+const STAGE_PURPOSE: Record<ContentStatus, string> = {
+  editing: 'Work in progress. Posts sit here while they are being made.',
+  review: 'Waiting on the client. Posts here are asking for a decision.',
+  'to-post': 'Approved and scheduled. Ready to go out.',
+  posted: 'Published. Kept for the record.',
+  backup: 'Ready but not planned. Spare posts wait here for a free slot.',
+};

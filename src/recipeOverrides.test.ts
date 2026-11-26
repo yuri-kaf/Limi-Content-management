@@ -18,6 +18,7 @@ const HOVER = /^(?:dark:)?hover:(?:text|bg|border)-/;
 const OWNED: Record<string, RegExp[]> = {
   btnIcon: [HOVER, /^(?:w|h|min-w|min-h)-/],
   btnIconDanger: [HOVER, /^(?:w|h|min-w|min-h)-/],
+  btnIconBar: [HOVER, /^(?:w|h|min-w|min-h)-/],
   btnGhost: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
   btnGhostDanger: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],
   btnPrimary: [HOVER, /^(?:h|min-h|px|py)-/, /^text-(?:xs|sm|base|\[\d)/],

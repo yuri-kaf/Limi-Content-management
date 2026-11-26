@@ -20,7 +20,7 @@ describe('StagePill', () => {
   it('renders a count when given one', () => {
     renderPill(<StagePill status="to-post" count={3} />);
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('To Post')).toBeInTheDocument();
+    expect(screen.getByText('To post')).toBeInTheDocument();
   });
 
   it('uses the light pair by default', () => {

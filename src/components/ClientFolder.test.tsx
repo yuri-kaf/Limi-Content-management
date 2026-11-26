@@ -92,13 +92,13 @@ describe('ClientFolder', () => {
   it('floats the pencil as a badge, without padding the tile for it', () => {
     setup(client([]), vi.fn());
     const [tile, pencil] = screen.getAllByRole('button');
-    expect(tile).toHaveClass('pt-4');
+    expect(tile).toHaveClass('py-2.5');
     expect(pencil.className).toContain(badgeBtn);
     expect(pencil.className).toContain(revealOnGroupHover);
   });
 
   it('keeps the tile at its usual padding for a viewer who may not edit', () => {
     setup(client([]));
-    expect(screen.getByRole('button')).toHaveClass('pt-4');
+    expect(screen.getByRole('button')).toHaveClass('py-2.5');
   });
 });

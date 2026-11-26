@@ -441,7 +441,7 @@ const updateContentTool = defineTool({
 const moveContentTool = defineTool({
   name: 'move_content',
   title: 'Move a post to another stage',
-  description: `Moves a post to Editing, Review, To Post, Posted or Backup (ready posts held back with no slot yet), and notes the move on its thread. ${WRITES}`,
+  description: `Moves a post to Editing, Review, To post, Posted or Backup (ready posts held back with no slot yet), and notes the move on its thread. ${WRITES}`,
   readOnly: false,
   destructive: true,
   input: z.object({ id: postId, stage }),

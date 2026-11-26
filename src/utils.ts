@@ -101,6 +101,13 @@ const ONEDRIVE_SHARE_NOTE =
 
 // Derived from the URL rather than stored on the item, so it is always correct
 // and legacy content needs no migration.
+/** The open action's wording: "Open in Google Drive", but "Open image", not "Open in Image". */
+export function openLabel(media: Pick<MediaInfo, 'provider' | 'label'>): string {
+  if (media.provider === 'image') return 'Open image';
+  if (media.provider === 'other') return 'Open link';
+  return `Open in ${media.label}`;
+}
+
 export function getMediaInfo(url: string): MediaInfo {
   const link = (url ?? '').trim();
   if (!link) return { provider: 'other', label: 'Link', previewUrl: null, downloadUrl: null };
@@ -299,7 +306,7 @@ export const STAGES: Stage[] = [
   { id: 'review', label: 'Review', color: '#0b6e99',
     tint: '#e7f3f8', text: '#0b6e99', tintDark: '#15303d', textDark: '#77bddd',
     cardTint: '#dcedf9', cardText: '#0a5f86', cardTintDark: '#16344a', cardTextDark: '#8cc8e6' },
-  { id: 'to-post', label: 'To Post', color: '#8a6100',
+  { id: 'to-post', label: 'To post', color: '#8a6100',
     tint: '#faf3dd', text: '#8a6100', tintDark: '#332711', textDark: '#dfab5f',
     cardTint: '#faefcc', cardText: '#7a5600', cardTintDark: '#3a2c10', cardTextDark: '#e8b96c' },
   { id: 'posted', label: 'Posted', color: '#2f6e4a',

@@ -23,7 +23,8 @@ import ContentDetailModal from '../components/ContentDetailModal';
 import BusinessModal from '../components/BusinessModal';
 import CampaignModal from '../components/CampaignModal';
 import ClientModal from '../components/ClientModal';
-import { faintText, shell, focusRing } from '../ui';
+import { faintText, viewPad, focusRing } from '../ui';
+import { ArrowLeft } from '../icons';
 
 type Store = ReturnType<typeof useClients>;
 
@@ -299,7 +300,6 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
           canManage={canManage}
           canEditItem={canChangeItem}
           canDeleteItem={canChangeItem}
-          onBack={() => navigate(workspacePath(client.id, 'campaigns', businessId))}
           onEdit={() => setCampaignForm({ campaign })}
           onSetStatus={(status) =>
             runWrite(() => setCampaignStatus(campaign.id, status), 'change the campaign status')
@@ -349,7 +349,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
       case 'calendar':
         return (
           <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className={`${shell} py-5`}>
+            <div className={`${viewPad} py-5`}>
               <ContentCalendar
                 content={visibleContent}
                 canAdd={canManage}
@@ -364,7 +364,7 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
       case 'ideas':
         return (
           <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className={`${shell} py-5`}>
+            <div className={`${viewPad} py-5`}>
               <IdeasView
                 clientId={client.id}
                 businesses={businesses}
@@ -409,34 +409,64 @@ function Workspace({ client, store }: { client: Client; store: Store }) {
             onAdd={(status, filed) => startAdd({ status, ...(filed ? { campaignId: filed } : {}) })}
             onEdit={setEditingItem}
             onMove={moveItem}
+            views={views}
+            scope={<BusinessScopeBar businesses={businesses} value={businessId} onChange={setScope} inline />}
           />
         );
     }
   }
 
+  const views = (
+    <WorkspaceTabs
+      tabs={tabs}
+      active={campaignId ? 'campaigns' : tab}
+      // The place already showing is not a new history entry; otherwise
+      // Back would step through every repeated click.
+      onSelect={(t) => {
+        if (t !== tab || campaignId) navigate(workspacePath(client.id, t, businessId));
+      }}
+      actions={
+        canManage ? (
+          <WorkspaceMenu
+            onEditClient={() => setEditingClient(true)}
+            onAddBusiness={hasBusinesses ? () => setBusinessForm({}) : undefined}
+            onNewCampaign={hasBusinesses ? () => setCampaignForm({}) : undefined}
+          />
+        ) : undefined
+      }
+    />
+  );
+  const onPosts = !campaignId && tab === 'content';
+
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <WorkspaceTabs
-        tabs={tabs}
-        active={campaignId ? 'campaigns' : tab}
-        // The place already showing is not a new history entry; otherwise
-        // Back would step through every repeated click.
-        onSelect={(t) => {
-          if (t !== tab || campaignId) navigate(workspacePath(client.id, t, businessId));
-        }}
-        actions={
-          canManage ? (
-            <WorkspaceMenu
-              onEditClient={() => setEditingClient(true)}
-              onAddBusiness={hasBusinesses ? () => setBusinessForm({}) : undefined}
-              onNewCampaign={hasBusinesses ? () => setCampaignForm({}) : undefined}
-            />
-          ) : undefined
-        }
-      />
+      {/* Posts draws its own top row: its stage tabs, then these views. Every
+          other view gets the same row with its name in place of the tabs. */}
+      {!onPosts && (
+        <div className="flex items-center gap-2 pl-5 pr-3 h-12 flex-shrink-0 border-b border-hairline dark:border-hairline-dark">
+          {campaignId ? (
+            // On a campaign the row's label is the way back to the list, not
+            // a second title above the campaign's own name.
+            <span className="flex-1 min-w-0">
+              <button
+                onClick={() => navigate(workspacePath(client.id, 'campaigns', businessId))}
+                className={`-ml-2 inline-flex items-center gap-1.5 h-8 pl-1.5 pr-3 rounded-full text-[15px] font-medium text-ink dark:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
+              >
+                <ArrowLeft size={18} />
+                Campaigns
+              </button>
+            </span>
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-[15px] font-medium text-ink dark:text-ink-dark">
+              {tabs.find((t) => t.id === tab)?.label}
+            </span>
+          )}
+          {views}
+        </div>
+      )}
       {/* Not on a campaign page: a campaign belongs to one business, so the
           chips would scope nothing there except where "All campaigns" leads. */}
-      {!campaignId && (
+      {!campaignId && !onPosts && (
         <BusinessScopeBar businesses={businesses} value={businessId} onChange={setScope} />
       )}
 

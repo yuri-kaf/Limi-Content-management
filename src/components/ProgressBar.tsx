@@ -32,7 +32,7 @@ export default function ProgressBar({ value, color, label, decorative = false }:
   return (
     <span
       {...semantics}
-      className="block h-1.5 w-full rounded-full bg-hairline dark:bg-hairline-dark overflow-hidden"
+      className="block h-1 w-full rounded-full bg-hairline dark:bg-hairline-dark overflow-hidden"
     >
       <span
         className="block h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"

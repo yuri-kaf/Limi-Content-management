@@ -1,12 +1,33 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CampaignModal from './CampaignModal';
+import { FeedbackProvider } from './m3/Feedback';
 import { Business, Campaign } from '../types';
 
 const BAKERY: Business = { id: 'b1', name: 'Bakery', color: 'orange', about: '', createdAt: 1 };
 const CAFE: Business = { id: 'b2', name: 'Cafe', color: 'green', about: '', createdAt: 2 };
 
 describe('CampaignModal', () => {
+  it('asks in a dialog before deleting, and deletes only once confirmed', async () => {
+    const onDelete = vi.fn();
+    const onClose = vi.fn();
+    const campaign: Campaign = {
+      id: 'c1', businessId: 'b1', name: 'Summer', brief: '', status: 'live', color: 'green',
+      deliverables: [], createdAt: 1,
+    };
+    render(
+      <FeedbackProvider>
+        <CampaignModal campaign={campaign} businesses={[BAKERY]} onClose={onClose} onSave={vi.fn()} onDelete={onDelete} />
+      </FeedbackProvider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Delete campaign/ }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete this campaign?');
+    expect(onDelete).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('hides the business choice when there is only one business', () => {
     render(<CampaignModal businesses={[BAKERY]} onClose={vi.fn()} onSave={vi.fn()} />);
     expect(screen.queryByLabelText('Business')).not.toBeInTheDocument();

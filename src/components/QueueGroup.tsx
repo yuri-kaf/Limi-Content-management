@@ -1,8 +1,8 @@
-import { Clock, RotateCcw, CalendarClock, CalendarPlus } from 'lucide-react';
+import { Clock, RotateCcw, CalendarClock, CalendarPlus, ChevronRight } from '../icons';
 import { TodayEntry, TodayGroups, isLate, slotLabel } from '../today';
 import StagePill from './StagePill';
 import FolderIcon from './FolderIcon';
-import { faintText, rowList, queueRow, countChip, sectionLabel } from '../ui';
+import { faintText, rowList, queueRow, countChip, heading } from '../ui';
 import { STAGES } from '../utils';
 import { enter, staggerStyle } from '../motion';
 
@@ -51,6 +51,7 @@ export function QueueRow({
   showSource?: boolean;
   /** Its place in the list, for the entrance stagger. */
   index?: number;
+  /** The next move, as a small tonal button at the row's end (wide screens). */
 }) {
   const slot = slotLabel(entry.item.scheduledAt, now);
   const late = isLate(entry.item, now);
@@ -116,6 +117,9 @@ export function QueueRow({
       <span className="flex-shrink-0">
         <StagePill status={entry.item.status} />
       </span>
+      {/* The row itself is the button. A chevron says so without a fake
+          second button repeating "Open" down the whole list. */}
+      <ChevronRight size={18} className="flex-shrink-0 text-ink-faint dark:text-ink-faintdark" />
     </button>
   );
 }
@@ -136,9 +140,9 @@ export function QueueGroup({
     <section id={section.id} className="mb-6 scroll-mt-4">
       {/* One line, not three. The label, the count and the explanation used to
           occupy a stacked header taller than two of the rows beneath it. */}
-      <div className="flex items-center gap-2 mb-1.5 px-1">
-        <Icon size={13} className={faintText} />
-        <span className={sectionLabel}>{section.label}</span>
+      <div className="flex items-center gap-2 mb-1 px-3">
+        <Icon size={15} className={faintText} />
+        <h2 className={`${heading} text-[14px]`}>{section.label}</h2>
         <span className={countChip}>{entries.length}</span>
         <span className={`hidden md:block text-[11px] truncate ${faintText}`}>{section.hint}</span>
       </div>

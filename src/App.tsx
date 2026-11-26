@@ -11,29 +11,30 @@ import UserManagementPage from './pages/UserManagementPage';
 import PublicReviewPage from './pages/PublicReviewPage';
 import LeadsPage from './pages/LeadsPage';
 import AppShell from './components/AppShell';
+import { FeedbackProvider } from './components/m3/Feedback';
 import Logo from './components/Logo';
-import { page, card, heading, bodyText, faintText, inset } from './ui';
+import { page, card, heading, bodyText, faintText } from './ui';
 
 const codeInline = 'bg-tint dark:bg-tint-dark px-1 rounded-chip text-ink-soft dark:text-ink-softdark';
 
 function FirebaseSetupGuide() {
   return (
     <div className={`${page} flex items-center justify-center p-4`}>
-      <div className={`${card} max-w-md w-full p-6`}>
+      <div className={`${card} !rounded-dialog max-w-md w-full p-6 sm:p-8`}>
         <div className="flex items-center gap-2.5 mb-5">
           <Logo variant="mark" size={32} />
-          <span className={`${heading} text-base`}>Limi · Setup required</span>
+          <h1 className={`${heading} text-[20px] font-normal`}>Set up Limi</h1>
         </div>
-        <p className={`text-sm mb-5 leading-relaxed ${bodyText}`}>
+        <p className={`text-[13px] mb-5 leading-relaxed ${bodyText}`}>
           Firebase is not configured yet. Complete these steps to connect your database:
         </p>
-        <ol className={`text-sm space-y-2 mb-5 ${bodyText}`}>
-          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">1.</span>Create a project at <span className="text-ink dark:text-ink-dark">console.firebase.google.com</span></li>
-          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">2.</span><span>Enable <strong className="text-ink dark:text-ink-dark">Firestore Database</strong> (start in test mode)</span></li>
-          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">3.</span>Go to Project Settings → Your apps → Web</li>
-          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-bold">4.</span>Copy your config and create a <code className={codeInline}>.env</code> file:</li>
+        <ol className={`text-[13px] space-y-2 mb-5 ${bodyText}`}>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-medium">1.</span>Create a project at <span className="text-ink dark:text-ink-dark">console.firebase.google.com</span></li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-medium">2.</span><span>Enable <strong className="text-ink dark:text-ink-dark">Firestore Database</strong> (start in test mode)</span></li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-medium">3.</span>Go to Project Settings → Your apps → Web</li>
+          <li className="flex gap-2"><span className="text-brand-text dark:text-brand-textdark font-medium">4.</span>Copy your config and create a <code className={codeInline}>.env</code> file:</li>
         </ol>
-        <pre className={`${inset} p-4 text-xs leading-relaxed overflow-x-auto ${bodyText}`}>
+        <pre className="bg-hover dark:bg-hover-dark rounded-tile p-4 text-[12px] leading-relaxed overflow-x-auto text-ink-soft dark:text-ink-softdark">
 {`VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
@@ -41,7 +42,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id`}
         </pre>
-        <p className={`text-xs mt-4 ${faintText}`}>
+        <p className={`text-[12px] mt-4 ${faintText}`}>
           Then restart the dev server with <code className={codeInline}>npm run dev</code>
         </p>
       </div>
@@ -95,6 +96,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <FeedbackProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -105,6 +107,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </FeedbackProvider>
     </ThemeProvider>
   );
 }

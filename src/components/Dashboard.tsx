@@ -30,15 +30,15 @@ function Stat({
   accent?: Accent;
 }) {
   return (
-    <div className={`${tile} p-4 sm:p-5`}>
+    <div className={`${tile} px-4 py-3`}>
       <div className="flex items-center gap-2">
         {accent && <AccentDot accent={accent} />}
-        <span className={`text-[11px] font-semibold uppercase tracking-wider ${faintText}`}>
+        <span className={`text-[12px] font-medium ${faintText}`}>
           {label}
         </span>
       </div>
-      <p className={`${heading} text-2xl sm:text-3xl mt-2 tabular-nums`}>{value}</p>
-      {hint && <p className={`text-xs mt-1 ${faintText}`}>{hint}</p>}
+      <p className={`${heading} text-[24px] leading-8 font-normal mt-1 tabular-nums`}>{value}</p>
+      {hint && <p className={`text-[12px] ${faintText}`}>{hint}</p>}
     </div>
   );
 }
@@ -52,14 +52,14 @@ function VolumeBars({ rows }: { rows: { label: string; value: number }[] }) {
       {rows.map((r) => (
         <div key={r.label} className="group">
           <div className="flex items-center justify-between gap-3 mb-1">
-            <span className={`text-xs truncate ${bodyText}`} title={r.label}>
+            <span className={`text-[12px] truncate ${bodyText}`} title={r.label}>
               {r.label}
             </span>
-            <span className={`text-xs font-semibold tabular-nums ${heading}`}>{r.value}</span>
+            <span className={`text-[12px] font-medium tabular-nums ${heading}`}>{r.value}</span>
           </div>
-          <div className="h-2 rounded-full bg-hairline dark:bg-hairline-dark overflow-hidden">
+          <div className="h-2 rounded-full bg-hover dark:bg-hover-dark overflow-hidden">
             <div
-              className="h-full rounded-full bg-brand transition-all duration-500 motion-reduce:transition-none"
+              className="h-full rounded-full bg-ink-faint dark:bg-ink-faintdark transition-all duration-500 motion-reduce:transition-none"
               style={{ width: `${(r.value / max) * 100}%` }}
               title={`${r.label}: ${r.value}`}
             />
@@ -80,7 +80,7 @@ function StageBreakdown({ items }: { items: ContentItem[] }) {
         return (
           <div key={s.id} className="flex flex-col gap-1.5">
             <div className={`h-1.5 rounded-full ${stageDot}`} style={stageCardVars(s.id)} />
-            <span className={`text-lg font-semibold tabular-nums ${heading}`}>{count}</span>
+            <span className={`text-[18px] font-medium tabular-nums ${heading}`}>{count}</span>
             {/* Label always present — colour never carries meaning alone. */}
             <span className={`text-[11px] ${faintText}`}>{s.label}</span>
           </div>
@@ -115,7 +115,7 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
 
   if (role === 'client') {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
         <Stat label="Posted this month" value={postedThisMonth} accent="posted" />
         <Stat
           label="Needs your review"
@@ -131,8 +131,8 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
   const isAdmin = role === 'admin';
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-4 mb-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="flex flex-col gap-2 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <Stat label="Posted this month" value={postedThisMonth} accent="posted" />
         <Stat
           label="Awaiting client"
@@ -149,39 +149,39 @@ export default function Dashboard({ clients, role }: { clients: Client[]; role: 
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className={`${tile} p-4 sm:p-5 lg:col-span-2`}>
-          <h3 className={`text-sm ${heading} mb-4`}>Content per client</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className={`${tile} p-4 lg:col-span-2`}>
+          <h3 className={`text-[14px] ${heading} mb-3`}>Content per client</h3>
           {volume.length === 0 ? (
-            <p className={`text-xs ${faintText}`}>Nothing to show yet.</p>
+            <p className={`text-[12px] ${faintText}`}>Nothing to show yet.</p>
           ) : (
             <VolumeBars rows={volume} />
           )}
         </div>
 
-        <div className={`${tile} p-4 sm:p-5 flex flex-col gap-4`}>
+        <div className={`${tile} p-4 flex flex-col gap-4`}>
           <div>
-            <h3 className={`text-sm ${heading} mb-3`}>Pipeline</h3>
+            <h3 className={`text-[14px] ${heading} mb-3`}>Pipeline</h3>
             <StageBreakdown items={all} />
           </div>
           {isAdmin && (
             <div className="pt-3 border-t border-hairline dark:border-hairline-dark">
-              <span className={`text-[11px] font-semibold uppercase tracking-wider ${faintText}`}>
+              <span className={`text-[12px] font-medium ${faintText}`}>
                 Client decline rate
               </span>
-              <p className={`${heading} text-2xl mt-1.5 tabular-nums`}>{declineRate}%</p>
-              <p className={`text-xs mt-0.5 ${faintText}`}>
+              <p className={`${heading} text-[22px] leading-7 font-normal mt-1 tabular-nums`}>{declineRate}%</p>
+              <p className={`text-[12px] mt-0.5 ${faintText}`}>
                 {decided.length ? `${declined} of ${decided.length} reviewed` : 'No decisions yet'}
               </p>
             </div>
           )}
           {!isAdmin && (
             <div className="pt-3 border-t border-hairline dark:border-hairline-dark">
-              <span className={`text-[11px] font-semibold uppercase tracking-wider ${faintText}`}>
+              <span className={`text-[12px] font-medium ${faintText}`}>
                 Ready to post
               </span>
-              <p className={`${heading} text-2xl mt-1.5 tabular-nums`}>{readyToPost}</p>
-              <p className={`text-xs mt-0.5 ${faintText}`}>Approved and queued</p>
+              <p className={`${heading} text-[22px] leading-7 font-normal mt-1 tabular-nums`}>{readyToPost}</p>
+              <p className={`text-[12px] mt-0.5 ${faintText}`}>Approved and queued</p>
             </div>
           )}
         </div>

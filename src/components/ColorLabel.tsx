@@ -19,7 +19,7 @@ export default function ColorLabel({ color, children, className = '', title }: P
   return (
     <span
       title={title}
-      className={`inline-flex items-center min-w-0 px-1.5 h-[18px] rounded-tile text-[10px] font-semibold whitespace-nowrap ${folderTint} ${className}`}
+      className={`inline-flex items-center min-w-0 px-1.5 h-5 rounded-chip text-[11px] font-medium whitespace-nowrap ${folderTint} ${className}`}
       style={folderColorVars(color)}
     >
       <span className="truncate">{children}</span>

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2 } from '../icons';
 import {
   Business, Campaign, CampaignDraft, CampaignStatus, Deliverable, FolderColor, MediaType,
 } from '../types';
 import { CAMPAIGN_STATUSES, endsBeforeStart } from '../campaigns';
 import { folderColor } from '../folderColors';
 import { generateId } from '../utils';
+import { useFeedback } from './m3/Feedback';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
@@ -58,6 +59,7 @@ export default function CampaignModal({
   campaign, businesses, defaultBusinessId, onClose, onSave, onDelete,
 }: Props) {
   const editing = !!campaign;
+  const { confirm } = useFeedback();
   const [name, setName] = useState(campaign?.name ?? '');
   const [chosenBusiness, setChosenBusiness] = useState(
     campaign?.businessId ?? defaultBusinessId ?? ''
@@ -136,11 +138,14 @@ export default function CampaignModal({
     if (result !== false) onClose();
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!campaign || !onDelete) return;
-    const ok = confirm(
-      `Delete "${campaign.name}"? Its content stays on the board — it just won't be grouped under this campaign any more.`
-    );
+    const ok = await confirm({
+      title: 'Delete this campaign?',
+      body: `"${campaign.name}" will be removed. Its content stays on the board; it just won't be grouped under this campaign any more.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
     if (!ok) return;
     onDelete();
     onClose();

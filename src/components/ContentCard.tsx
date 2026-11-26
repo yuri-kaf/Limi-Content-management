@@ -2,15 +2,17 @@ import { useCallback, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Campaign, ContentItem, ContentStatus } from '../types';
-import { getMediaInfo, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
-import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
+import { getMediaInfo, openLabel, mediaTypeOf, captionOf, PLATFORM_LABELS } from '../utils';
+import { stageCardVars, stageDot } from '../stageColors';
+import { STAGES } from '../utils';
 import { lift, focusRingInset } from '../ui';
+import Menu, { MenuEntry } from './m3/Menu';
 import { isLate } from '../today';
 import ColorLabel from './ColorLabel';
 import {
-  Film, GripVertical, ExternalLink, Pencil, Trash2, Calendar, AlertCircle,
-  Image as ImageIcon, Download,
-} from 'lucide-react';
+  Film, ExternalLink, Pencil, Trash2, AlertCircle,
+  Image as ImageIcon, Download, MoreVertical, ChevronDown,
+} from '../icons';
 
 interface Props {
   item: ContentItem;
@@ -19,6 +21,15 @@ interface Props {
   onCardClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Moves the card to another stage from its menu: one tap, no drag. */
+  onMove?: (status: ContentStatus) => void;
+  /**
+   * Where the card sits. 'lane' is a board column's grey lane, so the card is
+   * white; 'page' is the white page of a single-stage grid, so it is filled.
+   */
+  surface?: 'lane' | 'page';
+  /** Show the stage as a chip with its move menu (the grid, where no column names it). */
+  showStage?: boolean;
   /**
    * False where a card cannot move: on a client's read-only board, and on the
    * phone board, which mounts one column and so has nowhere to drop it. Such a
@@ -40,18 +51,6 @@ interface Props {
 // drag should still count as a click.
 const CLICK_SLOP = 4;
 
-// On the pastel fill a hover wash has to be lighter than the card, not darker.
-const iconBtn =
-  `w-[26px] h-[26px] inline-flex items-center justify-center rounded-tile text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-white/60 dark:hover:bg-black/20 transition-colors ${focusRingInset}`;
-
-// Chips sit one layer above the fill: translucent white in light, a darker wash
-// in dark. Their stage-coloured text clears AA on the fill itself, and the
-// wash only lightens (or, in dark, deepens) what it sits on.
-const chip = `bg-white/70 dark:bg-black/20 ${stageCardText}`;
-
-// The client's decision and an overdue date use colours measured against white,
-// so their chips are solid rather than translucent.
-const solidChip = 'bg-surface dark:bg-black/30';
 
 // The copy in the hand: tilted and raised, as if picked up. While a drop
 // settles, ContentBoard's drop animation puts `settling` on the overlay, and
@@ -59,27 +58,27 @@ const solidChip = 'bg-surface dark:bg-black/30';
 const inHand =
   'shadow-drag rotate-[1.5deg] scale-[1.02] transition-[transform,box-shadow] duration-200 ease-out-soft [.settling_&]:rotate-0 [.settling_&]:scale-100 [.settling_&]:shadow-lift';
 
-// The box both shells draw, filled with the card's stage pastel (its colours
-// ride along as custom properties, see stageColors.ts). flex-shrink-0 is not
-// cosmetic: the column body is a capped-height flex column, and flexbox
-// shrinks its children to fit before it will scroll — which clipped every
-// card's second title line. The focus ring is solid brand, 4.8:1 on the light
-// page and 3.6:1 on the dark one: at 40% it was 1.9:1 and 1.5:1, and less
-// against the fills, under the 3:1 a focus indicator needs.
-// In dark mode the lift's shadow is lost on the canvas, so the pastel fill
-// brightens a little under the pointer instead of a generic wash covering it.
-const cardBox = `group relative overflow-hidden flex-shrink-0 rounded-card ${stageCardFill} dark:[@media(hover:hover)]:hover:brightness-110 ${focusRingInset}`;
+// The box both shells draw. White on a board lane, filled on the white page;
+// no outline either way. flex-shrink-0 is not cosmetic: the column body is a
+// capped-height flex column, and flexbox shrinks its children to fit before it
+// will scroll, which clipped every card's last title line.
+const cardBox = (surface: 'lane' | 'page') =>
+  `group relative flex-shrink-0 rounded-card ${
+    surface === 'lane'
+      ? 'bg-canvas dark:bg-hover-dark shadow-rest dark:shadow-none'
+      : 'bg-raised dark:bg-raised-dark [@media(hover:hover)]:hover:bg-hover/70 dark:[@media(hover:hover)]:hover:bg-hover-dark'
+  } ${focusRingInset}`;
 
 interface ShellProps {
-  /** The card's stage, which picks the pastel it is filled with. */
   status: ContentStatus;
+  surface: 'lane' | 'page';
   onOpen?: () => void;
   children: React.ReactNode;
 }
 
 // The box around a card that can be dragged, and everything about the drag.
 function SortableShell({
-  id, status, isOverlay, onOpen, children,
+  id, status, surface, isOverlay, onOpen, children,
 }: ShellProps & { id: string; isOverlay?: boolean }) {
   const pressedAt = useRef<{ x: number; y: number } | null>(null);
 
@@ -167,7 +166,7 @@ function SortableShell({
       ref={setCardRef}
       style={style}
       data-stage={status}
-      className={`${cardBox} ${isOverlay ? inHand : lift}`}
+      className={`${cardBox(surface)} ${isOverlay ? inHand : lift}`}
       onClick={handleClick}
       {...dragProps}
     >
@@ -179,7 +178,7 @@ function SortableShell({
 // The box around a card that cannot move: a button in all but tag, since a
 // <button> may not hold the links inside the card. A click opens it like any
 // card on the board, so it lifts like one, under a pointer rather than a grab.
-function StaticShell({ status, onOpen, children }: ShellProps) {
+function StaticShell({ status, surface, onOpen, children }: ShellProps) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     // A key pressed on one of the card's own links belongs to that link.
     if (e.target !== e.currentTarget) return;
@@ -196,7 +195,7 @@ function StaticShell({ status, onOpen, children }: ShellProps) {
       tabIndex={0}
       style={stageCardVars(status)}
       data-stage={status}
-      className={`${cardBox} ${lift} cursor-pointer`}
+      className={`${cardBox(surface)} ${lift} cursor-pointer`}
       onClick={onOpen}
       onKeyDown={handleKeyDown}
     >
@@ -206,19 +205,20 @@ function StaticShell({ status, onOpen, children }: ShellProps) {
 }
 
 export default function ContentCard({
-  item, campaign, onCardClick, onEdit, onDelete, draggable = true, isOverlay,
+  item, campaign, onCardClick, onEdit, onDelete, onMove, surface = 'lane', showStage = false,
+  draggable = true, isOverlay,
 }: Props) {
   const [imgError, setImgError] = useState(false);
   const media = getMediaInfo(item.driveLink);
   const thumbnailUrl = media.previewUrl;
+  // OneDrive, the team's usual store, never gives a preview without a signed-in
+  // Microsoft user, so most cards have none. A card is text first and shows a
+  // picture only where the link can give one (Drive, YouTube, Dropbox, images).
   const hasPreview = !!thumbnailUrl && !imgError;
   const isGraphic = mediaTypeOf(item) === 'graphic';
   const caption = captionOf(item);
   const platforms = item.platforms ?? [];
-
-  // Pressing a control must never begin a drag, and its click must not bubble
-  // up and open the sheet.
-  const stopDrag = (e: React.PointerEvent) => e.stopPropagation();
+  const stage = STAGES.find((s) => s.id === item.status);
 
   const hasSchedule = !!item.scheduledAt && item.scheduledAt > 0;
   const scheduledLabel = hasSchedule
@@ -227,29 +227,49 @@ export default function ContentCard({
 
   // A post whose slot has passed and which never went out is the one thing on
   // this board that is actually wrong, so it is the one thing allowed to shout.
-  // Late by the queue's rule: a slot earlier today is still "today".
   const overdue = isLate(item, Date.now());
 
-  // The client's decision used to be visible only inside the detail sheet,
-  // which meant scanning a Review column told you nothing about what was
-  // actually waiting on you. Pending renders as absence: it is the normal state,
-  // and a badge on every card would carry no information.
+  // Pending renders as absence: it is the normal state.
   const reviewBadge =
     item.clientReview === 'declined'
-      ? { text: 'Declined', className: 'text-brand-text dark:text-brand-textdark' }
+      ? { text: 'Changes asked', className: 'bg-brand-soft dark:bg-brand-softdark text-brand-on dark:text-brand-ondark' }
       : item.clientReview === 'approved'
-        ? { text: 'Approved', className: 'text-success-text dark:text-success-textdark' }
+        ? { text: 'Approved', className: 'bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark' }
         : null;
+
+  const moveItems: MenuEntry[] = onMove
+    ? STAGES.filter((s) => s.id !== item.status).map((s) => ({
+        key: `move-${s.id}`,
+        label: `Move to ${s.label}`,
+        icon: <span className={`w-2 h-2 rounded-full ${stageDot}`} style={stageCardVars(s.id)} />,
+        onSelect: () => onMove(s.id),
+      }))
+    : [];
+  const actionItems: MenuEntry[] = [
+    ...(item.driveLink
+      ? [{ key: 'open', label: openLabel(media), icon: <ExternalLink size={18} />, onSelect: () => window.open(item.driveLink, '_blank', 'noopener') }]
+      : []),
+    ...(isGraphic && media.downloadUrl
+      ? [{ key: 'dl', label: 'Download image', icon: <Download size={18} />, onSelect: () => window.open(media.downloadUrl!, '_blank', 'noopener') }]
+      : []),
+    ...(onEdit ? [{ key: 'edit', label: 'Edit', icon: <Pencil size={18} />, onSelect: onEdit }] : []),
+    ...(onDelete ? [{ key: 'del', label: 'Delete', icon: <Trash2 size={18} />, danger: true, onSelect: onDelete }] : []),
+  ];
+  const menuItems: MenuEntry[] = [
+    ...moveItems,
+    ...(moveItems.length && actionItems.length ? (['divider'] as MenuEntry[]) : []),
+    ...actionItems,
+  ];
+
+  // Pressing a control must never begin a drag, and its click must not bubble
+  // up and open the sheet.
+  const stopDrag = (e: React.PointerEvent) => e.stopPropagation();
+  const stopKeys = (e: React.KeyboardEvent) => e.stopPropagation();
 
   const face = (
     <div className="flex items-start gap-2.5 p-2.5">
-      {/* An image earns the 16:9 frame; the absence of one does not. Without
-          a preview this collapses to a type marker the size of a favicon. */}
-      {hasPreview ? (
-        <div
-          className="relative flex-shrink-0 rounded-tile overflow-hidden bg-white/50 dark:bg-black/20"
-          style={{ width: 64, aspectRatio: '16/9' }}
-        >
+      {hasPreview && (
+        <div className="flex-shrink-0 w-9 h-11 rounded-[6px] overflow-hidden bg-hover dark:bg-pressed-dark">
           <img
             src={thumbnailUrl!}
             alt=""
@@ -257,145 +277,110 @@ export default function ContentCard({
             draggable={false}
             onError={() => setImgError(true)}
           />
-          {/* The grip is a hint, not the hit area — hence pointer-events-none. */}
-          {draggable && !isOverlay && (
-            <div
-              className="absolute inset-0 hidden lg:flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-              aria-hidden="true"
-            >
-              <GripVertical size={13} className="text-white/80" />
-            </div>
-          )}
         </div>
-      ) : (
-        <span
-          className={`flex-shrink-0 w-7 h-7 rounded-tile inline-flex items-center justify-center ${chip}`}
-          title={isGraphic ? 'Graphic' : 'Video'}
-        >
-          {isGraphic ? <ImageIcon size={14} /> : <Film size={14} />}
-        </span>
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-1">
-          <p className="text-[13px] font-medium text-ink dark:text-ink-dark leading-snug flex-1 min-w-0 line-clamp-2">
+        <div className="flex items-start gap-1">
+          <p className="flex-1 min-w-0 text-[13px] font-medium leading-[18px] text-ink dark:text-ink-dark line-clamp-3 break-words">
             {item.title}
           </p>
-          {/* Pointer-only, revealed on hover. On a phone the card itself is
-              the target and the detail sheet carries the same four actions
-              at a size a thumb can hit. On the drag copy the row keeps its
-              width, so the title wraps as it does on the card, but a hover
-              over the copy reveals nothing. */}
-          <div
-            className={`hidden lg:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0 ${
-              isOverlay ? 'invisible' : ''
-            }`}
-          >
-            <a
-              href={item.driveLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              draggable={false}
-              className={iconBtn}
-              onPointerDown={stopDrag}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Open in ${media.label}`}
-            >
-              <ExternalLink size={13} />
-            </a>
-            {isGraphic && media.downloadUrl && (
-              <a
-                href={media.downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                draggable={false}
-                className={iconBtn}
-                onPointerDown={stopDrag}
-                onClick={(e) => e.stopPropagation()}
-                aria-label="Download image"
-              >
-                <Download size={13} />
-              </a>
-            )}
-            {onEdit && (
-              <button
-                onPointerDown={stopDrag}
-                onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className={iconBtn}
-                aria-label="Edit"
-              >
-                <Pencil size={13} />
-              </button>
-            )}
-            {/* brand-textdark, not the brand red: on the dark fills, under the
-                button's hover wash, the brand red is only about 3.1:1. */}
-            {onDelete && (
-              <button
-                onPointerDown={stopDrag}
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className={`${iconBtn} hover:!text-brand-text dark:hover:!text-brand-textdark`}
-                aria-label="Delete"
-              >
-                <Trash2 size={13} />
-              </button>
-            )}
-          </div>
+          {/* The drag copy keeps the menu's room, so its title wraps as the
+              card's does and it lands without a jump. */}
+          {menuItems.length > 0 && isOverlay && (
+            <span data-menu-slot className="-mr-1 -mt-0.5 w-6 h-6 flex-shrink-0" aria-hidden="true" />
+          )}
+          {menuItems.length > 0 && !isOverlay && (
+            <span data-menu-slot onPointerDown={stopDrag} onKeyDown={stopKeys} className="-mr-1 -mt-0.5 flex-shrink-0">
+              <Menu
+                label={`${item.title} actions`}
+                align="end"
+                minWidth={200}
+                items={menuItems}
+                trigger={(p) => (
+                  <button
+                    {...p}
+                    ref={p.ref}
+                    className={`w-6 h-6 [@media(hover:none)]:w-8 [@media(hover:none)]:h-8 rounded-full inline-flex items-center justify-center text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-ink/[.08] dark:hover:bg-ink-dark/[.1] transition-[opacity,color] [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100 aria-expanded:opacity-100 ${focusRingInset}`}
+                    aria-label={`${item.title} actions`}
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                )}
+              />
+            </span>
+          )}
         </div>
 
-        {/* ink-soft, not ink-faint: faint falls below 4.5:1 on every fill, in both themes. */}
-        {caption && (
-          <p className="text-[11px] mt-0.5 line-clamp-1 leading-relaxed text-ink-soft dark:text-ink-softdark">
-            {caption}
-          </p>
+        {surface === 'page' && caption && (
+          <p className="mt-0.5 text-[12px] leading-4 line-clamp-2 text-ink-soft dark:text-ink-softdark">{caption}</p>
         )}
 
-        {/* The campaign, then signals ordered by how much each should change
-            your plans: the client's decision, then the schedule, then where
-            it is going. */}
-        {(campaign || reviewBadge || scheduledLabel || platforms.length > 0) && (
-          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-            {/* Capped at 96px: in a 280px column beside a thumbnail, anything
-                wider pushes an "Approved" badge onto a second line. The full
-                name is on hover. The hairline ring is for a campaign in its
-                card's own hue, purple on the Editing fill say, which would
-                otherwise disappear into it. */}
-            {campaign && (
-              <ColorLabel
-                color={campaign.color}
-                className="max-w-[96px] ring-1 ring-black/5 dark:ring-white/10"
-                title={campaign.name}
-              >
-                {campaign.name}
-              </ColorLabel>
-            )}
-            {reviewBadge && (
-              <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-chip ${solidChip} ${reviewBadge.className}`}
-              >
-                {reviewBadge.text}
+        <div className="flex items-center gap-x-1.5 gap-y-1 mt-1 flex-wrap text-[11px] leading-4 text-ink-soft dark:text-ink-softdark">
+          {showStage && stage && (
+            onMove && !isOverlay ? (
+              <span onPointerDown={stopDrag} onKeyDown={stopKeys}>
+                <Menu
+                  label="Move to stage"
+                  minWidth={180}
+                  items={STAGES.map((s) => ({
+                    key: s.id,
+                    label: s.label,
+                    icon: <span className={`w-2 h-2 rounded-full ${stageDot}`} style={stageCardVars(s.id)} />,
+                    checked: s.id === item.status,
+                    onSelect: () => s.id !== item.status && onMove(s.id),
+                  }))}
+                  trigger={(p) => (
+                    <button
+                      {...p}
+                      ref={p.ref}
+                      className={`inline-flex items-center gap-1 h-5 [@media(hover:none)]:h-7 pl-1.5 pr-0.5 rounded-full bg-canvas dark:bg-hover-dark ring-1 ring-ink/10 dark:ring-ink-dark/10 text-ink dark:text-ink-dark font-medium hover:bg-hover dark:hover:bg-pressed-dark ${focusRingInset}`}
+                      aria-label={`Stage: ${stage.label}. Change stage`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${stageDot}`} style={stageCardVars(item.status)} />
+                      {stage.label}
+                      <ChevronDown size={14} />
+                    </button>
+                  )}
+                />
               </span>
-            )}
-            {scheduledLabel && (
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-chip ${
-                  overdue ? `${solidChip} text-brand-text dark:text-brand-textdark` : chip
-                }`}
-                title={overdue ? 'This slot was on an earlier day and it has not been posted' : undefined}
-              >
-                {overdue ? <AlertCircle size={10} /> : <Calendar size={10} />}
-                {scheduledLabel}
+            ) : (
+              <span className="inline-flex items-center gap-1 font-medium text-ink dark:text-ink-dark">
+                <span className={`w-1.5 h-1.5 rounded-full ${stageDot}`} style={stageCardVars(item.status)} />
+                {stage.label}
               </span>
-            )}
-            {platforms.map((p) => (
-              <span
-                key={p}
-                className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-chip ${chip}`}
-              >
-                {PLATFORM_LABELS[p]}
-              </span>
-            ))}
-          </div>
-        )}
+            )
+          )}
+          <span title={isGraphic ? 'Graphic' : 'Video'} className="inline-flex">
+            {isGraphic ? <ImageIcon size={14} aria-label="Graphic" /> : <Film size={14} aria-label="Video" />}
+          </span>
+          {scheduledLabel && (
+            <span
+              className={`inline-flex items-center gap-0.5 whitespace-nowrap ${
+                overdue ? 'text-brand-text dark:text-brand-textdark font-medium' : ''
+              }`}
+              title={overdue ? 'This slot was on an earlier day and it has not been posted' : undefined}
+            >
+              {overdue && <AlertCircle size={13} />}
+              {scheduledLabel}
+            </span>
+          )}
+          {reviewBadge && (
+            <span className={`inline-flex items-center h-[18px] px-1.5 rounded-chip font-medium whitespace-nowrap ${reviewBadge.className}`}>
+              {reviewBadge.text}
+            </span>
+          )}
+          {campaign && (
+            <ColorLabel color={campaign.color} className="max-w-[110px]" title={campaign.name}>
+              {campaign.name}
+            </ColorLabel>
+          )}
+          {platforms.length > 0 && (
+            <span className="whitespace-nowrap" title={platforms.map((p) => PLATFORM_LABELS[p]).join(', ')}>
+              {platforms.map((p) => PLATFORM_SHORT[p]).join(' · ')}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -404,10 +389,12 @@ export default function ContentCard({
   // it, and a hook cannot be skipped conditionally, so a card that must stay
   // put gets a shell that never calls it.
   return draggable ? (
-    <SortableShell id={item.id} status={item.status} isOverlay={isOverlay} onOpen={onCardClick}>
+    <SortableShell id={item.id} status={item.status} surface={surface} isOverlay={isOverlay} onOpen={onCardClick}>
       {face}
     </SortableShell>
   ) : (
-    <StaticShell status={item.status} onOpen={onCardClick}>{face}</StaticShell>
+    <StaticShell status={item.status} surface={surface} onOpen={onCardClick}>{face}</StaticShell>
   );
 }
+
+const PLATFORM_SHORT: Record<string, string> = { instagram: 'IG', facebook: 'FB', tiktok: 'TT' };

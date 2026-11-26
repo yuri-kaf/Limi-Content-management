@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Target, X, ExternalLink, MessageCircle } from 'lucide-react';
+import { Plus, Search, Target, X, ExternalLink, MessageCircle } from '../icons';
+import { useFeedback } from '../components/m3/Feedback';
 import { Lead, LeadLostReason, LeadPotential, LeadSource, LeadStatus } from '../types';
 import { useClients, useLeads } from '../store';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,8 +19,8 @@ import {
   FollowUpPicker, LeadStatusSelect, PotentialStars, SourceIcon,
 } from '../components/leads/LeadBits';
 import {
-  shellPad, heading, faintText, bodyText, btnPrimarySm, btnGhostSm, btnIcon, segmented, segItem,
-  rowList, emptyState, emptyTitle, emptyBody, card, scopeChip, focusRing, focusRingInset,
+  shellPad, faintText, bodyText, btnPrimarySm, btnGhostSm, btnIcon, workspaceTab, workspaceTabList,
+  rowList, emptyState, emptyTitle, emptyBody, card, chip, focusRingInset, input,
 } from '../ui';
 
 const PAGE = 100;
@@ -58,6 +59,7 @@ const EMPTY: Record<LeadView, { title: string; body: string }> = {
 // stays one tap away.
 export default function LeadsPage() {
   const navigate = useNavigate();
+  const { confirm } = useFeedback();
   const [params, setParams] = useSearchParams();
   const { currentUser } = useAuth();
   const { clients } = useClients();
@@ -241,31 +243,30 @@ export default function LeadsPage() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className={`${shellPad} max-w-[1240px] py-6`}>
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <h1 className={`${heading} text-lg`}>Leads</h1>
-            <p className={`text-[13px] mt-0.5 ${faintText}`}>
-              {loading
-                ? 'Loading…'
-                : [
-                    `${counts.active} in progress`,
-                    dueCount > 0 && `${dueCount} to follow up`,
-                    addedToday > 0 && `${addedToday} added today`,
-                    onboardedThisMonth > 0 && `${onboardedThisMonth} onboarded this month`,
-                  ].filter(Boolean).join(' · ')}
-            </p>
-          </div>
+        {/* Header: the top bar already names the page, so this is just the
+            numbers and the one action. */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <p className={`text-[13px] min-w-0 ${faintText}`}>
+            {loading
+              ? 'Loading…'
+              : [
+                  `${counts.active} in progress`,
+                  dueCount > 0 && `${dueCount} to follow up`,
+                  addedToday > 0 && `${addedToday} added today`,
+                  onboardedThisMonth > 0 && `${onboardedThisMonth} onboarded this month`,
+                ].filter(Boolean).join(' · ')}
+          </p>
           <button onClick={() => setModal({ mode: 'new' })} className={`${btnPrimarySm} flex-shrink-0 whitespace-nowrap`} title="New lead (N)" aria-label="New lead">
-            <Plus size={14} />
+            <Plus size={16} />
             <span className="hidden sm:inline">New lead</span>
             <span className="sm:hidden">New</span>
           </button>
         </div>
 
-        {/* Tabs: where each lead stands. Scrolls sideways on a phone. */}
-        <div className="overflow-x-auto [scrollbar-width:none] -mx-1 px-1 mb-3">
-          <div className={segmented} role="tablist" aria-label="Lead views">
+        {/* Tabs: where each lead stands. Underlined, like the client page's tabs;
+            scrolls sideways on a phone. */}
+        <div className="border-b border-hairline dark:border-hairline-dark mb-3">
+          <div className={`${workspaceTabList} h-11`} role="tablist" aria-label="Lead views">
             {LEAD_VIEWS.map((v) => {
               const active = view === v.id;
               const urgent = v.id === 'follow-up' && counts[v.id] > 0;
@@ -275,12 +276,12 @@ export default function LeadsPage() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setView(v.id)}
-                  className={segItem(active)}
+                  className={workspaceTab(active)}
                 >
                   {v.label}
                   <span
-                    className={`tabular-nums text-[11px] font-semibold ${
-                      urgent ? 'text-brand-text dark:text-brand-textdark' : faintText
+                    className={`tabular-nums text-[11px] ${
+                      urgent ? 'text-brand-text dark:text-brand-textdark font-semibold' : active ? '' : faintText
                     }`}
                   >
                     {counts[v.id]}
@@ -294,7 +295,7 @@ export default function LeadsPage() {
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
           <label className="relative w-full sm:flex-1 sm:max-w-sm">
-            <Search size={14} className={`absolute left-2.5 top-1/2 -translate-y-1/2 ${faintText}`} aria-hidden="true" />
+            <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${faintText}`} aria-hidden="true" />
             <input
               ref={searchRef}
               type="search"
@@ -302,7 +303,7 @@ export default function LeadsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name, @handle, phone, note"
               aria-label="Search leads"
-              className={`w-full h-9 [@media(hover:none)]:h-11 pl-8 pr-3 rounded-tile bg-canvas dark:bg-canvas-dark border border-hairline dark:border-hairline-dark text-[12px] text-ink dark:text-ink-dark placeholder-ink-faint dark:placeholder-ink-faintdark ${focusRing}`}
+              className={`${input} !min-h-8 h-8 [@media(hover:none)]:h-10 !pl-9 !rounded-full text-[13px]`}
             />
           </label>
           <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 sm:mx-0 sm:px-0 [&>*]:flex-shrink-0">
@@ -333,7 +334,7 @@ export default function LeadsPage() {
         {/* Status chips within the tab */}
         {chipStatuses.length > 1 && (
           <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:flex-wrap -mx-1 px-1 mb-3" role="group" aria-label="Status">
-            <button onClick={() => setStatusFilter('all')} aria-pressed={statusFilter === 'all'} className={scopeChip(statusFilter === 'all')}>
+            <button onClick={() => setStatusFilter('all')} aria-pressed={statusFilter === 'all'} className={`${chip(statusFilter === 'all')} whitespace-nowrap flex-shrink-0`}>
               All <span className="tabular-nums">{filteredBase.length}</span>
             </button>
             {chipStatuses.map((s) => {
@@ -343,7 +344,7 @@ export default function LeadsPage() {
                   key={s.id}
                   onClick={() => setStatusFilter(statusFilter === s.id ? 'all' : s.id)}
                   aria-pressed={statusFilter === s.id}
-                  className={scopeChip(statusFilter === s.id)}
+                  className={`${chip(statusFilter === s.id)} whitespace-nowrap flex-shrink-0`}
                   title={s.hint}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.text }} aria-hidden="true" />
@@ -410,20 +411,28 @@ export default function LeadsPage() {
           <>
             <ul className={rowList} aria-label="Leads">
               {/* Column heads, and select-all, where there is room for both. */}
-              <li className="hidden md:flex items-center gap-3 px-3 h-9 bg-tint dark:bg-tint-dark" aria-hidden="true">
+              <li className="hidden md:flex items-center gap-3 px-3 h-8 border-b border-hairline dark:border-hairline-dark mb-1">
                 <input
                   type="checkbox"
                   checked={allShownSelected}
                   onChange={() =>
                     setSelected(allShownSelected ? new Set() : new Set(shown.map((l) => l.id)))
                   }
-                  tabIndex={-1}
-                  className="w-4 h-4 accent-ink dark:[color-scheme:dark]"
+                  aria-label="Select all shown leads"
+                  className="w-4 h-4 accent-brand dark:[color-scheme:dark]"
                 />
                 <span className="w-8" />
-                <span className={`w-[28%] text-[11px] font-medium ${faintText}`}>Business</span>
-                <span className={`flex-1 text-[11px] font-medium ${faintText}`}>Note</span>
-                <span className={`text-[11px] font-medium ${faintText} pr-1`}>Status · potential · follow-up</span>
+                <div className="flex-1 min-w-0 flex items-center gap-4">
+                  <span className={`w-[28%] text-[12px] font-medium ${faintText}`}>Business</span>
+                  <span className={`flex-1 text-[12px] font-medium ${faintText}`}>Note</span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className={`w-[118px] pl-2.5 text-[12px] font-medium ${faintText}`}>Status</span>
+                    <span className={`w-[72px] text-[12px] font-medium ${faintText}`}>Potential</span>
+                    <span className={`w-[118px] pl-2.5 text-[12px] font-medium ${faintText}`}>Follow up</span>
+                    <span className={`hidden lg:inline w-14 text-right text-[12px] font-medium ${faintText}`}>Updated</span>
+                    <span className="w-[68px]" />
+                  </div>
+                </div>
               </li>
               {shown.map((lead) => (
                 <LeadRow
@@ -484,7 +493,13 @@ export default function LeadsPage() {
           onOnboard={() => setOnboarding(openLeadObj)}
           onOpenClient={(id) => navigate(`/client/${id}`)}
           onDelete={async () => {
-            if (!confirm(`Delete "${openLeadObj.name}" for good? Marking it Denied keeps it on record instead.`)) return;
+            const yes = await confirm({
+              title: `Delete ${openLeadObj.name}?`,
+              body: 'This removes the lead and its history for good. Marking it Denied keeps it on record instead.',
+              confirmLabel: 'Delete lead',
+              danger: true,
+            });
+            if (!yes) return;
             const ok = await runWrite(() => deleteLead(openLeadObj.id), 'delete the lead');
             if (ok) openLead(null);
           }}
@@ -547,8 +562,8 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
 
   return (
     <li
-      className={`group flex items-start md:items-center gap-3 px-3 py-2.5 md:py-2 min-h-[56px] cursor-pointer transition-colors hover:bg-hover dark:hover:bg-hover-dark ${
-        selected ? 'bg-hover dark:bg-hover-dark' : ''
+      className={`group flex items-start md:items-center gap-3 px-3 py-2.5 md:py-1.5 min-h-[52px] rounded-card cursor-pointer transition-colors hover:bg-raised dark:hover:bg-raised-dark ${
+        selected ? 'bg-brand-soft/40 dark:bg-brand-softdark/40' : ''
       }`}
       onClick={onOpen}
     >
@@ -558,15 +573,15 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
         onChange={onToggle}
         onClick={(e) => e.stopPropagation()}
         aria-label={`Select ${lead.name}`}
-        className="hidden md:block w-4 h-4 accent-ink dark:[color-scheme:dark] flex-shrink-0"
+        className="hidden md:block w-4 h-4 accent-brand dark:[color-scheme:dark] flex-shrink-0"
       />
       <div
-        className={`w-8 h-8 mt-0.5 md:mt-0 rounded-tile border border-hairline dark:border-hairline-dark flex items-center justify-center flex-shrink-0 ${
-          due ? 'bg-warning-soft dark:bg-warning-softdark text-warning-text dark:text-warning-textdark' : 'bg-tint dark:bg-tint-dark text-ink-soft dark:text-ink-softdark'
+        className={`w-8 h-8 mt-0.5 md:mt-0 rounded-full flex items-center justify-center flex-shrink-0 ${
+          due ? 'bg-warning-soft dark:bg-warning-softdark text-warning-text dark:text-warning-textdark' : 'bg-hover dark:bg-hover-dark text-ink-soft dark:text-ink-softdark'
         }`}
         title={due ? 'Follow-up due' : undefined}
       >
-        <SourceIcon source={lead.source} size={15} />
+        <SourceIcon source={lead.source} size={16} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
@@ -577,7 +592,7 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
                 e.stopPropagation();
                 onOpen();
               }}
-              className={`text-[13px] font-semibold truncate text-left rounded-chip ${focusRingInset} ${
+              className={`text-[13px] font-medium truncate text-left rounded-chip ${focusRingInset} ${
                 closed && lead.status === 'denied' ? 'text-ink-soft dark:text-ink-softdark' : 'text-ink dark:text-ink-dark'
               }`}
             >
@@ -598,7 +613,7 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
           <span className="flex md:w-[118px]">
             <LeadStatusSelect value={lead.status} onChange={onStatus} leadName={lead.name} fill />
           </span>
-          <span className="hidden md:inline-flex"><PotentialStars value={lead.potential} onChange={onPotential} size={13} /></span>
+          <span className="hidden md:inline-flex md:w-[72px]"><PotentialStars value={lead.potential} onChange={onPotential} size={13} /></span>
           <span className="flex md:w-[118px]">
             {!closed && (
               <FollowUpPicker

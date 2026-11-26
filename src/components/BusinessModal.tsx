@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2 } from '../icons';
 import { Business, BusinessDraft, FolderColor } from '../types';
 import { folderColor } from '../folderColors';
+import { useFeedback } from './m3/Feedback';
 import ColorSwatchPicker from './ColorSwatchPicker';
 import {
   overlay, modalPanel, modalTitle, btnIcon, label, labelAside, hint,
@@ -26,6 +27,7 @@ export default function BusinessModal({
   business, deleteBlocker = null, onClose, onSave, onDelete,
 }: Props) {
   const editing = !!business;
+  const { confirm } = useFeedback();
   const [name, setName] = useState(business?.name ?? '');
   // folderColor() mends a stored value that is not one of the ten.
   const [color, setColor] = useState<FolderColor>(folderColor(business?.color).id);
@@ -47,9 +49,15 @@ export default function BusinessModal({
     if (result !== false) onClose();
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!business || !onDelete || deleteBlocker) return;
-    if (!confirm(`Delete "${business.name}"? This can't be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete this business?',
+      body: `"${business.name}" will be removed for good.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     onDelete();
     onClose();
   }

@@ -101,13 +101,15 @@ describe('OverviewTab', () => {
     expect(within(region).getByText('C')).toBeInTheDocument();
   });
 
-  it("shows each stage's count in that stage's colour", () => {
+  it("shows each stage's count beside that stage's dot", () => {
     renderOverview(client([BAKERY], [item({ id: 'a', status: 'review' }), item({ id: 'b', status: 'review' })]));
     const pipeline = screen.getByRole('region', { name: 'Pipeline' });
     const review = [...pipeline.querySelectorAll<HTMLElement>('[data-stage]')].find(
       (el) => el.dataset.stage === 'review'
     )!;
     expect(review).toHaveTextContent('Review2');
-    expect(review.style.getPropertyValue('--sc-tint')).toBe('#dcedf9');
+    // A neutral tile: the stage's colour is only its dot.
+    expect(review).toHaveClass('bg-raised');
+    expect(review.querySelector<HTMLElement>('[style]')!.style.getPropertyValue('--sc-dot')).not.toBe('');
   });
 });

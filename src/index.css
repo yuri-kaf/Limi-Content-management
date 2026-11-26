@@ -15,7 +15,10 @@ body {
   /* Tokens, not literals: these used to hardcode #f9f9f9 / #080808, and the
      dark value was a canvas colour the palette no longer has. */
   @apply bg-canvas text-ink dark:bg-canvas-dark dark:text-ink-dark;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Google Sans Flex', 'Google Sans', Roboto, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: .005em;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -26,10 +29,31 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Scrollbar — dark */
+/* Material Symbols glyphs (src/icons.tsx). Sized by the component; this keeps
+   a glyph square and on the text's centre line, and stops it ever wrapping. */
+.material-symbols-rounded {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+  overflow: hidden;
+  flex: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  user-select: none;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-rounded::before {
+  content: attr(data-icon);
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d8d7d2; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #d6d5da; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #b3b2ac; }
 
 html.dark ::-webkit-scrollbar-thumb { background: #3a3a3a; }

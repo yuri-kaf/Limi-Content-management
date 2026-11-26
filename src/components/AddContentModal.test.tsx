@@ -24,8 +24,8 @@ const FILED = {
 } as ContentItem;
 
 async function fillRequired() {
-  await userEvent.type(screen.getByLabelText('Content Title'), 'Menu carousel');
-  await userEvent.type(screen.getByLabelText('Drive Link'), 'https://example.com/menu.png');
+  await userEvent.type(screen.getByLabelText('Title'), 'Menu carousel');
+  await userEvent.type(screen.getByLabelText('File link'), 'https://example.com/menu.png');
 }
 
 describe('AddContentModal — filing', () => {
@@ -40,9 +40,9 @@ describe('AddContentModal — filing', () => {
     await userEvent.selectOptions(screen.getByLabelText(/Campaign/), 'c1');
     expect(screen.getByLabelText('Business')).toHaveValue('b2');
     await userEvent.selectOptions(screen.getByLabelText(/Fills/), 'd1');
-    await userEvent.type(screen.getByLabelText('Content Title'), 'Menu carousel');
-    await userEvent.type(screen.getByLabelText('Drive Link'), 'https://example.com/menu.png');
-    await userEvent.click(screen.getByRole('button', { name: 'Add Content' }));
+    await userEvent.type(screen.getByLabelText('Title'), 'Menu carousel');
+    await userEvent.type(screen.getByLabelText('File link'), 'https://example.com/menu.png');
+    await userEvent.click(screen.getByRole('button', { name: 'Add post' }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b2', campaignId: 'c1', deliverableId: 'd1', mediaType: 'graphic',
@@ -71,9 +71,9 @@ describe('AddContentModal — filing', () => {
 
   it('reports no campaign as null, so an edit can take an item out of one', async () => {
     const onSubmit = renderModal({ businesses: [BAKERY], campaigns: [] });
-    await userEvent.type(screen.getByLabelText('Content Title'), 'Plain post');
-    await userEvent.type(screen.getByLabelText('Drive Link'), 'https://example.com/x.png');
-    await userEvent.click(screen.getByRole('button', { name: 'Add Content' }));
+    await userEvent.type(screen.getByLabelText('Title'), 'Plain post');
+    await userEvent.type(screen.getByLabelText('File link'), 'https://example.com/x.png');
+    await userEvent.click(screen.getByRole('button', { name: 'Add post' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b1', campaignId: null, deliverableId: null,
     }));
@@ -81,8 +81,8 @@ describe('AddContentModal — filing', () => {
 
   it('leaves the filing alone on an edit that never touches it', async () => {
     const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [SUMMER], existingItem: FILED });
-    await userEvent.type(screen.getByLabelText('Content Title'), ' v2');
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.type(screen.getByLabelText('Title'), ' v2');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     const data = onSubmit.mock.calls[0][0];
     expect('businessId' in data).toBe(false);
     expect('campaignId' in data).toBe(false);
@@ -92,7 +92,7 @@ describe('AddContentModal — filing', () => {
   it('stamps the first business on an item that has none, even on an untouched edit', async () => {
     const unfiledLegacy = { ...FILED, businessId: undefined, campaignId: undefined, deliverableId: undefined };
     const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [SUMMER], existingItem: unfiledLegacy });
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit.mock.calls[0][0].businessId).toBe('b1');
   });
 
@@ -112,14 +112,14 @@ describe('AddContentModal — filing', () => {
     rerender(modal([SUMMER]));
     // Once the list arrives the picker shows the stored campaign, not "No campaign".
     expect(screen.getByLabelText(/Campaign/)).toHaveValue('c1');
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect('campaignId' in onSubmit.mock.calls[0][0]).toBe(false);
   });
 
   it('takes an item out of its campaign when No campaign is chosen', async () => {
     const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [SUMMER], existingItem: FILED });
     await userEvent.selectOptions(screen.getByLabelText(/Campaign/), '');
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b2', campaignId: null, deliverableId: null,
     }));
@@ -130,7 +130,7 @@ describe('AddContentModal — filing', () => {
     const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [SUMMER], existingItem: unfiled });
     await userEvent.selectOptions(screen.getByLabelText(/Campaign/), 'c1');
     await userEvent.selectOptions(screen.getByLabelText(/Fills/), 'd1');
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       mediaType: 'video', campaignId: 'c1', deliverableId: 'd1',
     }));
@@ -142,7 +142,7 @@ describe('AddContentModal — filing', () => {
     });
     expect(screen.getByLabelText(/Fills/)).toHaveValue('d1');
     await fillRequired();
-    await userEvent.click(screen.getByRole('button', { name: 'Add Content' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add post' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b2', campaignId: 'c1', deliverableId: 'd1', mediaType: 'graphic',
     }));
@@ -151,7 +151,7 @@ describe('AddContentModal — filing', () => {
   it('files new content under the business in scope when no campaign is chosen', async () => {
     const onSubmit = renderModal({ businesses: [BAKERY, CAFE], campaigns: [], defaultBusinessId: 'b2' });
     await fillRequired();
-    await userEvent.click(screen.getByRole('button', { name: 'Add Content' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add post' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b2', campaignId: null, deliverableId: null,
     }));
@@ -196,7 +196,7 @@ describe('AddContentModal', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scheduledAt }));
   });

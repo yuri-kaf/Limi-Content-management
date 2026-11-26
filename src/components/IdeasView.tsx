@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Lightbulb, Plus, X, Link as LinkIcon, Check, Ban, Trash2, ArrowRight } from 'lucide-react';
+import { useFeedback } from './m3/Feedback';
+import { Lightbulb, Plus, X, Link as LinkIcon, Check, Ban, Trash2, ArrowRight } from '../icons';
 import { Business, FolderColor, Idea, IdeaStatus } from '../types';
 import { businessIdOf } from '../campaigns';
 import { useIdeas } from '../store';
@@ -7,7 +8,7 @@ import { runWrite } from '../utils';
 import CommentThread from './CommentThread';
 import ColorLabel from './ColorLabel';
 import {
-  overlay, modalPanel, modalTitle, btnIcon, btnPrimary, btnGhost, label, labelAside, hint,
+  overlay, modalPanel, modalTitle, btnIcon, btnPrimary, btnPrimarySm, btnGhost, label, labelAside, hint,
   input, textarea, card, heading, bodyText, faintText, readout,
   emptyState, emptyTitle, emptyBody, focusRing,
 } from '../ui';
@@ -23,7 +24,7 @@ const STATUS_META: Record<IdeaStatus, { label: string; color: FolderColor }> = {
 // A small icon action on an idea. Each one colours itself on hover by what it does.
 // 36px for a pointer, 44px on touch, where a finger has to find it.
 const ideaAction =
-  `min-w-9 min-h-9 [@media(hover:none)]:min-w-[44px] [@media(hover:none)]:min-h-[44px] inline-flex items-center justify-center rounded-tile text-ink-faint dark:text-ink-faintdark transition-colors ${focusRing}`;
+  `min-w-9 min-h-9 [@media(hover:none)]:min-w-[44px] [@media(hover:none)]:min-h-[44px] inline-flex items-center justify-center rounded-full text-ink-faint dark:text-ink-faintdark transition-colors ${focusRing}`;
 
 function IdeaForm({
   onClose,
@@ -104,7 +105,7 @@ function IdeaForm({
               onChange={(e) => setLinks(e.target.value)}
               placeholder={'https://drive.google.com/...\nhttps://example.com/reference'}
               rows={3}
-              className={`${textarea} font-mono !text-xs`}
+              className={`${textarea} font-mono !text-[12px]`}
             />
             <p className={hint}>References, Drive files, anything worth pointing at.</p>
           </div>
@@ -147,29 +148,43 @@ export default function IdeasView({
     : allIdeas;
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { confirm, prompt } = useFeedback();
 
   async function handleDecision(idea: Idea, status: IdeaStatus) {
-    const note =
-      status === 'declined'
-        ? prompt('Why is this being declined? (optional — the client will see it)') ?? ''
-        : '';
+    let note = '';
+    if (status === 'declined') {
+      const answer = await prompt({
+        title: 'Decline this idea?',
+        label: 'Why? Optional, and the client will see it',
+        confirmLabel: 'Decline',
+        multiline: true,
+      });
+      if (answer === null) return;
+      note = answer;
+    }
     await runWrite(() => setIdeaStatus(idea.id, status, note), 'update the idea');
   }
 
   async function handleDelete(idea: Idea) {
-    if (!confirm(`Delete "${idea.title}"? This can't be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete this idea?',
+      body: `"${idea.title}" will be removed for good.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     await runWrite(() => deleteIdea(idea.id), 'delete the idea');
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className={`${heading} text-sm`}>Ideas</h2>
-          <p className={`text-xs mt-0.5 ${faintText}`}>{ideas.length} submitted</p>
+          <h2 className="sr-only">Ideas</h2>
+          <p className={`text-[13px] ${faintText}`}>{ideas.length} submitted</p>
         </div>
-        <button onClick={() => setShowForm(true)} className={btnPrimary}>
-          <Plus size={15} />
+        <button onClick={() => setShowForm(true)} className={btnPrimarySm}>
+          <Plus size={16} />
           New idea
         </button>
       </div>
@@ -180,9 +195,7 @@ export default function IdeasView({
         </div>
       ) : ideas.length === 0 ? (
         <div className={emptyState}>
-          <div className={`${card} w-12 h-12 flex items-center justify-center`}>
-            <Lightbulb size={20} className={faintText} />
-          </div>
+          <Lightbulb size={28} className={faintText} />
           <p className={emptyTitle}>No ideas yet</p>
           <p className={emptyBody}>
             Anything worth making — a concept, a reference, a rough thought — starts here.
@@ -198,7 +211,7 @@ export default function IdeasView({
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={`${heading} text-sm`}>{idea.title}</h3>
+                      <h3 className={`${heading} text-[14px]`}>{idea.title}</h3>
                       <ColorLabel color={meta.color}>{meta.label}</ColorLabel>
                       {idea.convertedContentId && (
                         <span className={`text-[11px] ${faintText}`}>· on the board</span>
@@ -212,7 +225,7 @@ export default function IdeasView({
                       })}
                     </p>
                     {idea.description && (
-                      <p className={`text-sm mt-2 leading-relaxed whitespace-pre-wrap ${bodyText}`}>
+                      <p className={`text-[13px] mt-2 leading-relaxed whitespace-pre-wrap ${bodyText}`}>
                         {idea.description}
                       </p>
                     )}
@@ -225,9 +238,9 @@ export default function IdeasView({
                             href={l}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-1.5 text-xs truncate transition-colors ${faintText} hover:text-brand-text dark:hover:text-brand-textdark rounded-chip ${focusRing}`}
+                            className={`flex items-center gap-1.5 text-[12px] truncate transition-colors ${faintText} hover:text-brand-text dark:hover:text-brand-textdark rounded-chip ${focusRing}`}
                           >
-                            <LinkIcon size={11} className="flex-shrink-0" />
+                            <LinkIcon size={14} className="flex-shrink-0" />
                             <span className="truncate">{l}</span>
                           </a>
                         ))}
@@ -245,7 +258,7 @@ export default function IdeasView({
                           className={`${ideaAction} hover:text-success-text dark:hover:text-success-textdark hover:bg-success-soft dark:hover:bg-success-softdark`}
                           aria-label="Accept"
                         >
-                          <Check size={14} />
+                          <Check size={18} />
                         </button>
                       )}
                       {idea.status !== 'declined' && (
@@ -254,7 +267,7 @@ export default function IdeasView({
                           className={`${ideaAction} hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark`}
                           aria-label="Decline"
                         >
-                          <Ban size={14} />
+                          <Ban size={18} />
                         </button>
                       )}
                       <button
@@ -262,7 +275,7 @@ export default function IdeasView({
                         className={`${ideaAction} hover:text-brand-text dark:hover:text-brand-textdark hover:bg-brand-soft dark:hover:bg-brand-softdark`}
                         aria-label="Delete"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   )}
@@ -273,17 +286,17 @@ export default function IdeasView({
                     onClick={() => setExpanded(isOpen ? null : idea.id)}
                     aria-expanded={isOpen}
                     aria-controls={`idea-discussion-${idea.id}`}
-                    className={`inline-flex items-center min-h-8 -mx-1 px-1 rounded-tile text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark ${focusRing}`}
+                    className={`inline-flex items-center min-h-8 -mx-1 px-1 rounded-full text-[12px] transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark ${focusRing}`}
                   >
                     {isOpen ? 'Hide discussion' : 'Discussion'}
                   </button>
                   {canTriage && idea.status === 'accepted' && !idea.convertedContentId && (
                     <button
                       onClick={() => onConvert(idea)}
-                      className={`flex items-center gap-1.5 text-xs font-semibold text-brand-text dark:text-brand-textdark hover:underline underline-offset-2 rounded-chip ${focusRing}`}
+                      className={`flex items-center gap-1.5 text-[12px] font-medium text-brand-text dark:text-brand-textdark hover:underline underline-offset-2 rounded-chip ${focusRing}`}
                     >
                       Make content
-                      <ArrowRight size={12} />
+                      <ArrowRight size={16} />
                     </button>
                   )}
                 </div>

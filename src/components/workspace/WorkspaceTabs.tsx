@@ -1,86 +1,79 @@
-import { ReactNode, useLayoutEffect, useRef, useState } from 'react';
+import { ReactNode } from 'react';
 import { TabDef, WorkspaceTab } from '../../workspace';
-import { workspaceTab, workspaceTabList, workspaceTabRow } from '../../ui';
+import { CalendarDays, ChevronDown, Columns3, Info, Lightbulb, Megaphone } from '../../icons';
+import Menu from '../m3/Menu';
+import { focusRing } from '../../ui';
 
 interface Props {
   tabs: TabDef[];
   active: WorkspaceTab;
   onSelect: (tab: WorkspaceTab) => void;
-  /** Right-aligned controls, outside the scrolling list so a menu can drop out of the bar. */
+  /** Controls after the views: the client's ⋮ menu. */
   actions?: ReactNode;
 }
 
-interface Bar {
-  left: number;
-  width: number;
-}
+const ICONS: Record<WorkspaceTab, typeof Columns3> = {
+  content: Columns3,
+  calendar: CalendarDays,
+  campaigns: Megaphone,
+  ideas: Lightbulb,
+  overview: Info,
+};
 
-// A client's places, in one row under the breadcrumb. Each one is its own URL,
-// so this is navigation with the current place marked, not a tablist: a
-// tablist promises arrow keys and tab panels, and someone who tries them would
-// get nothing. The row replaces the old Board / Calendar / Ideas switch, which
-// lived in the board's own toolbar and so could not hold anything that was not
-// a view of the board.
-//
-// One underline slides between the places rather than each tab drawing its
-// own, so moving to another tab reads as moving along the row. It is placed
-// from the current tab's measured box; where nothing can be measured (jsdom,
-// or before layout), the current tab keeps an underline of its own.
+// The client's views, at the right end of the page's top row. Posts is where
+// the day is spent, so its stage tabs own the row and these stay compact: an
+// icon and a word, the current one in the red container. Below xl only the
+// icons show, each still named for a screen reader and on hover.
 export default function WorkspaceTabs({ tabs, active, onSelect, actions }: Props) {
-  const listRef = useRef<HTMLElement>(null);
-  const tabRefs = useRef(new Map<WorkspaceTab, HTMLButtonElement>());
-  const [bar, setBar] = useState<Bar | null>(null);
-  // The ids, not the array: a caller that rebuilds the array every render must
-  // not re-run the measurement every render.
-  const tabKey = tabs.map((t) => t.id).join(',');
-
-  useLayoutEffect(() => {
-    function measure() {
-      const el = tabRefs.current.get(active);
-      const next = el && el.offsetWidth > 0 ? { left: el.offsetLeft, width: el.offsetWidth } : null;
-      // The same box keeps the same object, or every resize would re-render.
-      setBar((prev) =>
-        prev && next && prev.left === next.left && prev.width === next.width ? prev : next
-      );
-    }
-    measure();
-    const list = listRef.current;
-    if (!list || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    // The row is flex-1, so a late web font widens the labels without resizing
-    // it. Watch the tabs too, or the underline keeps the fallback font's width.
-    tabRefs.current.forEach((tab) => observer.observe(tab));
-    return () => observer.disconnect();
-  }, [active, tabKey]);
-
+  const current = tabs.find((t) => t.id === active) ?? tabs[0];
+  const CurrentIcon = ICONS[current.id];
   return (
-    <div className={workspaceTabRow}>
-      <nav ref={listRef} aria-label="Client workspace" className={`${workspaceTabList} relative`}>
-        {tabs.map((t) => (
+    <nav aria-label="Client views" className="flex items-center gap-0.5 flex-shrink-0">
+      {/* A phone has room for the stage tabs or the views, not both: there the
+          views fold into one menu showing where you are. */}
+      <span className="md:hidden">
+        <Menu
+          label="Client views"
+          align="end"
+          items={tabs.map((t) => {
+            const Icon = ICONS[t.id];
+            return { key: t.id, label: t.label, icon: <Icon size={20} />, checked: t.id === active, onSelect: () => onSelect(t.id) };
+          })}
+          trigger={(p) => (
+            <button
+              {...p}
+              ref={p.ref}
+              aria-label={`View: ${current.label}`}
+              className={`inline-flex items-center gap-0.5 h-10 pl-2.5 pr-1.5 rounded-full text-ink-soft dark:text-ink-softdark hover:bg-ink/[.06] ${focusRing}`}
+            >
+              <CurrentIcon size={20} />
+              <ChevronDown size={18} />
+            </button>
+          )}
+        />
+      </span>
+      {tabs.map((t) => {
+        const on = t.id === active;
+        const Icon = ICONS[t.id];
+        return (
           <button
             key={t.id}
-            ref={(el) => {
-              if (el) tabRefs.current.set(t.id, el);
-              else tabRefs.current.delete(t.id);
-            }}
             onClick={() => onSelect(t.id)}
-            aria-current={t.id === active ? 'page' : undefined}
-            className={workspaceTab(t.id === active, !!bar)}
+            aria-current={on ? 'page' : undefined}
+            aria-label={t.label}
+            title={t.label}
+            className={`hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 xl:px-3 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${focusRing} ${
+              on
+                ? 'bg-brand-soft dark:bg-brand-softdark text-brand-on dark:text-brand-ondark'
+                : 'text-ink-soft dark:text-ink-softdark hover:bg-ink/[.06] dark:hover:bg-ink-dark/[.08] hover:text-ink dark:hover:text-ink-dark'
+            }`}
           >
-            {t.label}
+            <Icon size={18} filled={on} />
+            <span className="hidden xl:inline">{t.label}</span>
           </button>
-        ))}
-        {bar && (
-          <span
-            data-testid="tab-indicator"
-            aria-hidden="true"
-            className="absolute bottom-0 h-0.5 rounded-full bg-ink dark:bg-ink-dark pointer-events-none transition-[left,width] duration-200 ease-out-soft"
-            style={{ left: bar.left, width: bar.width }}
-          />
-        )}
-      </nav>
-      {actions && <div className="flex items-center flex-shrink-0">{actions}</div>}
-    </div>
+        );
+      })}
+      {actions && <span className="ml-1 flex items-center">{actions}</span>}
+    </nav>
   );
 }

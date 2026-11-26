@@ -1,9 +1,9 @@
-import { Megaphone, Plus } from 'lucide-react';
+import { Megaphone, Plus } from '../../icons';
 import { Business, Campaign, ContentItem } from '../../types';
 import { CAMPAIGN_GROUP_ORDER, campaignStatusMeta, sortCampaigns } from '../../campaigns';
 import CampaignCard from './CampaignCard';
 import {
-  shellPad, heading, faintText, card, sectionLabel, countChip, emptyState, emptyTitle, emptyBody,
+  viewPad, faintText, sectionLabel, countChip, emptyState, emptyTitle, emptyBody,
   btnPrimarySm,
 } from '../../ui';
 
@@ -32,11 +32,11 @@ export default function CampaignsTab({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shellPad} max-w-[1100px] py-6`}>
-        <div className="flex items-start justify-between gap-3 mb-5">
+      <div className={`${viewPad} max-w-[1100px] py-6`}>
+        <div className="flex items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className={`${heading} text-lg`}>Campaigns</h1>
-            <p className={`text-[13px] mt-0.5 ${faintText}`}>
+            <h1 className="sr-only">Campaigns</h1>
+            <p className={`text-[13px] ${faintText}`}>
               {campaigns.length === 0
                 ? 'Group the content a push needs, and see what is still missing.'
                 : `${campaigns.length} campaign${campaigns.length === 1 ? '' : 's'}`}
@@ -44,7 +44,7 @@ export default function CampaignsTab({
           </div>
           {canManage && (
             <button onClick={onNew} className={`${btnPrimarySm} flex-shrink-0`}>
-              <Plus size={14} />
+              <Plus size={16} />
               New campaign
             </button>
           )}
@@ -52,9 +52,7 @@ export default function CampaignsTab({
 
         {campaigns.length === 0 ? (
           <div className={emptyState}>
-            <div className={`${card} w-12 h-12 flex items-center justify-center`}>
-              <Megaphone size={20} className={faintText} />
-            </div>
+            <Megaphone size={28} className={faintText} />
             <p className={emptyTitle}>No campaigns yet</p>
             <p className={emptyBody}>
               {setupNeeded

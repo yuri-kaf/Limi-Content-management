@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users } from '../icons';
 import { Client } from '../types';
 import { useClients } from '../store';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,8 +10,9 @@ import NotifPermissionBanner from '../components/NotifPermissionBanner';
 import { useNotifications } from '../hooks/useNotifications';
 import Dashboard from '../components/Dashboard';
 import { runWrite } from '../utils';
+import { useFeedback } from '../components/m3/Feedback';
 import {
-  shell, heading, faintText, card, emptyState, emptyTitle, emptyBody, btnWarningSm, btnPrimarySm,
+  shell, heading, faintText, emptyState, emptyTitle, emptyBody, btnWarningSm, btnPrimary, btnPrimarySm,
 } from '../ui';
 
 // The brand, theme toggle, Team link and sign-out all live in AppShell's
@@ -24,6 +25,7 @@ export default function ClientsPage() {
     pendingBusinessMigration, migrateBusinesses,
   } = useClients();
   const { currentUser } = useAuth();
+  const { notify } = useFeedback();
   const [showModal, setShowModal] = useState(false);
   // The client being edited, or null when the modal is creating a new one.
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -33,7 +35,7 @@ export default function ClientsPage() {
     setMigrating(true);
     await runWrite(async () => {
       const moved = await migrateLegacyCaptions();
-      alert(`Moved ${moved} caption${moved === 1 ? '' : 's'} into the new Caption field.`);
+      notify(`Moved ${moved} caption${moved === 1 ? '' : 's'} into the new Caption field.`);
     }, 'migrate the captions');
     setMigrating(false);
   }
@@ -42,7 +44,7 @@ export default function ClientsPage() {
     setMigrating(true);
     await runWrite(async () => {
       const moved = await migrateLegacyContent();
-      alert(`Moved ${moved} content item${moved === 1 ? '' : 's'} into the new structure.`);
+      notify(`Moved ${moved} content item${moved === 1 ? '' : 's'} into the new structure.`);
     }, 'migrate the content');
     setMigrating(false);
   }
@@ -51,7 +53,7 @@ export default function ClientsPage() {
     setMigrating(true);
     await runWrite(async () => {
       const stamped = await migrateBusinesses();
-      alert(
+      notify(
         `Every client now has a business. ${stamped} existing content item${stamped === 1 ? ' was' : 's were'} filed under ${stamped === 1 ? 'its' : 'their'} client's first business.`
       );
     }, 'set up businesses');
@@ -75,7 +77,7 @@ export default function ClientsPage() {
 
   const totalContent = visibleClients.reduce((sum, c) => sum + c.content.length, 0);
 
-  const banner = 'mb-5 rounded-card border border-warning/30 dark:border-warning-textdark/25 bg-warning-soft dark:bg-warning-softdark p-4';
+  const banner = 'mb-4 rounded-card bg-warning-soft dark:bg-warning-softdark p-4';
   const bannerBtn = `mt-3 ${btnWarningSm}`;
 
   return (
@@ -86,10 +88,10 @@ export default function ClientsPage() {
 
       {isAdmin && pendingMigration.length === 0 && pendingCaptionMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
+          <h2 className="text-[14px] font-medium text-warning-text dark:text-warning-textdark">
             Captions need moving
           </h2>
-          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
+          <p className="text-[12px] text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             {pendingCaptionMigration.length} item
             {pendingCaptionMigration.length === 1 ? '' : 's'} still keep their caption in the
             old notes field. Moving them frees up Team Notes for internal remarks the client
@@ -103,10 +105,10 @@ export default function ClientsPage() {
 
       {isAdmin && pendingMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
+          <h2 className="text-[14px] font-medium text-warning-text dark:text-warning-textdark">
             Content needs migrating
           </h2>
-          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
+          <p className="text-[12px] text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             {pendingMigration.length} client{pendingMigration.length === 1 ? '' : 's'} still
             store content in the old format. Move it to the new structure to enable comments,
             versions and per-item permissions. Your existing data is copied, not deleted, so
@@ -123,10 +125,10 @@ export default function ClientsPage() {
           not hold it back for everyone else. */}
       {isAdmin && pendingBusinessMigration.length > 0 && (
         <div className={banner}>
-          <h2 className="text-sm font-semibold text-warning-text dark:text-warning-textdark">
+          <h2 className="text-[14px] font-medium text-warning-text dark:text-warning-textdark">
             Set up businesses
           </h2>
-          <p className="text-xs text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
+          <p className="text-[12px] text-ink-soft dark:text-ink-softdark mt-1 leading-relaxed">
             A client can now run more than one business, each with its own content and
             campaigns. {pendingBusinessMigration.length} client
             {pendingBusinessMigration.length === 1 ? ' needs' : 's need'} a first business, named
@@ -139,33 +141,26 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {!loading && visibleClients.length > 0 && currentUser && (
-        <Dashboard clients={visibleClients} role={currentUser.role} />
-      )}
-
-      {/* Page header */}
-      <div className="flex items-start justify-between mb-5 sm:mb-6">
-        <div>
-          <h1 className={`${heading} text-lg`}>
-            {isClientRole ? 'My Boards' : 'Clients'}
-          </h1>
+      {/* Page header: one line, the title with its count, and the action. */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h1 className={`${heading} text-[22px] leading-8 font-normal`}>
+          {isClientRole ? 'My boards' : 'Clients'}
           {!loading && visibleClients.length > 0 && (
-            <p className={`text-[13px] mt-0.5 ${faintText}`}>
+            <span className={`block sm:inline text-[14px] sm:ml-3 ${faintText}`}>
               {visibleClients.length} client{visibleClients.length !== 1 ? 's' : ''}
               {!isClientRole && (
                 <>
-                  &nbsp;&middot;&nbsp;
+                  {' · '}
                   {totalContent} piece{totalContent !== 1 ? 's' : ''} of content
                 </>
               )}
-            </p>
+            </span>
           )}
-        </div>
+        </h1>
         {canAddClient && (
-          <button onClick={() => setShowModal(true)} className={btnPrimarySm}>
-            <Plus size={14} />
-            <span className="hidden sm:inline">New client</span>
-            <span className="sm:hidden">New</span>
+          <button onClick={() => setShowModal(true)} className={btnPrimary}>
+            <Plus size={16} />
+            New client
           </button>
         )}
       </div>
@@ -177,9 +172,7 @@ export default function ClientsPage() {
         </div>
       ) : visibleClients.length === 0 ? (
         <div className={emptyState}>
-          <div className={`${card} w-12 h-12 flex items-center justify-center`}>
-            <Users size={20} className={faintText} />
-          </div>
+          <Users size={28} className={faintText} />
           <p className={emptyTitle}>
             {isClientRole ? 'No boards assigned yet' : 'No clients yet'}
           </p>
@@ -196,9 +189,9 @@ export default function ClientsPage() {
           )}
         </div>
       ) : (
-        // Folders in a grid, like Finder or OneDrive: as many columns as fit,
-        // each at least 132px, entering in a quick stagger.
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-x-3 gap-y-4 sm:gap-x-4">
+        // Compact client tiles: as many columns as fit, each at least 240px,
+        // entering in a quick stagger.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2">
           {visibleClients.map((client, i) => (
             <div key={client.id} className={enter} style={staggerStyle(i)}>
               <ClientFolder
@@ -207,6 +200,12 @@ export default function ClientsPage() {
               />
             </div>
           ))}
+        </div>
+      )}
+
+      {!loading && visibleClients.length > 0 && currentUser && (
+        <div className="mt-6">
+          <Dashboard clients={visibleClients} role={currentUser.role} />
         </div>
       )}
 

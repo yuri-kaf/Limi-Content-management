@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from '../../icons';
 import { Campaign, ContentItem } from '../../types';
 import {
   campaignProgress, campaignStatusMeta, deliverableProgress, formatDateRange,
@@ -29,14 +29,14 @@ export default function CampaignCard({ campaign, content, businessName, onOpen }
       onClick={onOpen}
       className={`${cardInteractive} w-full text-left overflow-hidden flex ${focusRing}`}
     >
-      {/* The campaign's colour as a spine, the way a coloured tab marks a binder. */}
-      <span
-        className="w-1 flex-shrink-0"
-        style={{ backgroundColor: folderColor(campaign.color).swatch }}
-        aria-hidden="true"
-      />
       <span className="flex-1 min-w-0 p-3.5 flex flex-col gap-2">
         <span className="flex items-start gap-2">
+          {/* The campaign's colour, as one flat dot. */}
+          <span
+            className="w-2.5 h-2.5 rounded-full mt-[5px] flex-shrink-0"
+            style={{ backgroundColor: folderColor(campaign.color).swatch }}
+            aria-hidden="true"
+          />
           <span className={`${heading} text-[14px] leading-snug flex-1 min-w-0 line-clamp-2`}>
             {campaign.name}
           </span>
@@ -45,7 +45,7 @@ export default function CampaignCard({ campaign, content, businessName, onOpen }
 
         {(dates || businessName) && (
           <span className={`flex items-center gap-1.5 text-[11px] min-w-0 ${faintText}`}>
-            {dates && <CalendarDays size={11} className="flex-shrink-0" />}
+            {dates && <CalendarDays size={13} className="flex-shrink-0" />}
             {dates && <span className="flex-shrink-0">{dates}</span>}
             {dates && businessName && <span className="opacity-50">·</span>}
             {businessName && <span className="truncate">{businessName}</span>}

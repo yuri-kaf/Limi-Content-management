@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { THEME_BAR } from '../ui';
 
 type Theme = 'dark' | 'light';
 
@@ -27,6 +28,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.remove('dark');
     }
     localStorage.setItem('limi_theme', theme);
+    // The phone's status bar takes the colour of the app's top bar.
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', THEME_BAR[theme]);
   }, [theme]);
 
   function toggleTheme() {

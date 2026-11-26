@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BusinessModal from './BusinessModal';
+import { FeedbackProvider } from './m3/Feedback';
 import { Business } from '../types';
 
 const CAFE: Business = { id: 'b2', name: 'Cafe', color: 'green', about: '', createdAt: 2 };
@@ -24,6 +25,7 @@ describe('BusinessModal', () => {
   it('explains why a business cannot be deleted, and will not delete it', async () => {
     const onDelete = vi.fn();
     const confirmSpy = vi.spyOn(window, 'confirm');
+    const dialog = () => screen.queryByRole('alertdialog');
     render(
       <BusinessModal
         business={CAFE}
@@ -39,6 +41,7 @@ describe('BusinessModal', () => {
     expect(button).toHaveAccessibleDescription('It still holds 2 content items.');
     await userEvent.click(button);
     expect(confirmSpy).not.toHaveBeenCalled();
+    expect(dialog()).not.toBeInTheDocument();
     expect(onDelete).not.toHaveBeenCalled();
   });
 
@@ -53,10 +56,28 @@ describe('BusinessModal', () => {
 
   it('deletes after confirmation when nothing blocks it', async () => {
     const onDelete = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    render(<BusinessModal business={CAFE} onClose={vi.fn()} onSave={vi.fn()} onDelete={onDelete} />);
+    render(
+      <FeedbackProvider>
+        <BusinessModal business={CAFE} onClose={vi.fn()} onSave={vi.fn()} onDelete={onDelete} />
+      </FeedbackProvider>
+    );
     await userEvent.click(screen.getByRole('button', { name: /Delete business/ }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete this business?');
+    expect(onDelete).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalled();
+  });
+
+  it('keeps the business when the confirmation is cancelled', async () => {
+    const onDelete = vi.fn();
+    render(
+      <FeedbackProvider>
+        <BusinessModal business={CAFE} onClose={vi.fn()} onSave={vi.fn()} onDelete={onDelete} />
+      </FeedbackProvider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Delete business/ }));
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+    expect(onDelete).not.toHaveBeenCalled();
   });
 
   it('offers no delete while creating', () => {

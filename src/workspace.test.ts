@@ -3,7 +3,7 @@ import { campaignPath, parseTab, resolveScope, tabsFor, workspacePath } from './
 describe('tabsFor', () => {
   it('gives the team every tab', () => {
     expect(tabsFor('admin').map((t) => t.id))
-      .toEqual(['overview', 'content', 'campaigns', 'calendar', 'ideas']);
+      .toEqual(['content', 'calendar', 'campaigns', 'ideas', 'overview']);
     expect(tabsFor('social-media-manager')).toHaveLength(5);
   });
 

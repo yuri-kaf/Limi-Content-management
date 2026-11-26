@@ -8,11 +8,11 @@ export interface TabDef {
 }
 
 const ALL_TABS: TabDef[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'content', label: 'Content' },
-  { id: 'campaigns', label: 'Campaigns' },
+  { id: 'content', label: 'Posts' },
   { id: 'calendar', label: 'Calendar' },
+  { id: 'campaigns', label: 'Campaigns' },
   { id: 'ideas', label: 'Ideas' },
+  { id: 'overview', label: 'Overview' },
 ];
 
 // Content is where people land: it is what opening a client meant before tabs

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, LayoutGrid, ListChecks, Pencil, Plus } from 'lucide-react';
+import { LayoutGrid, ListChecks, Pencil, Plus } from '../../icons';
 import { Business, Campaign, CampaignStatus, ContentItem, ContentStatus } from '../../types';
 import {
   CAMPAIGN_STATUSES, DeliverableProgress, campaignProgress, campaignStatusMeta,
@@ -11,8 +11,8 @@ import ProgressBar from '../ProgressBar';
 import StagePill from '../StagePill';
 import ContentBoard from './ContentBoard';
 import {
-  shellPad, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
-  btnGhost, focusRing,
+  viewPad, heading, faintText, sectionLabel, readout, rowList, segmented, segItem,
+  btnGhostSm, focusRing,
 } from '../../ui';
 import ToolbarSelect from '../ToolbarSelect';
 
@@ -24,7 +24,6 @@ interface Props {
   canManage: boolean;
   canEditItem: (item: ContentItem) => boolean;
   canDeleteItem: (item: ContentItem) => boolean;
-  onBack: () => void;
   onEdit: () => void;
   onSetStatus: (status: CampaignStatus) => void;
   onOpenItem: (item: ContentItem) => void;
@@ -41,7 +40,7 @@ function ItemChip({ item, onOpen }: { item: ContentItem; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className={`inline-flex items-center gap-1.5 h-7 max-w-[260px] pl-0.5 pr-2 rounded-tile border border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark hover:bg-hover dark:hover:bg-hover-dark text-[12px] text-ink dark:text-ink-dark transition-colors ${focusRing}`}
+      className={`inline-flex items-center gap-1.5 h-7 max-w-[260px] pl-1 pr-2.5 rounded-full bg-hover dark:bg-hover-dark hover:bg-pressed dark:hover:bg-pressed-dark text-[12px] text-ink dark:text-ink-dark transition-colors ${focusRing}`}
     >
       <StagePill status={item.status} />
       <span className="truncate">{item.title}</span>
@@ -61,7 +60,7 @@ function DeliverableRow({
   const { deliverable, items, posted, planned } = slot;
   const toMake = Math.max(0, deliverable.target - items.length);
   return (
-    <div className="px-3 py-2.5 flex flex-col gap-2">
+    <div className="px-3.5 py-3 flex flex-col gap-2 rounded-card bg-raised dark:bg-raised-dark">
       <div className="flex items-center gap-3">
         <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-ink dark:text-ink-dark">
           {deliverable.label}
@@ -89,9 +88,9 @@ function DeliverableRow({
             <button
               onClick={onAdd}
               aria-label={`Add to ${deliverable.label}`}
-              className={`inline-flex items-center gap-1 h-7 px-2 rounded-tile border border-dashed border-hairline dark:border-hairline-dark text-[12px] text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
+              className={`inline-flex items-center gap-1 h-7 pl-2 pr-2.5 rounded-full text-[12px] font-medium text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
             >
-              <Plus size={12} />
+              <Plus size={16} />
               Add
             </button>
             <span className={`text-[11px] ${faintText}`}>{toMake} still to make</span>
@@ -104,7 +103,7 @@ function DeliverableRow({
 
 export default function CampaignPage({
   campaign, content, businesses, canManage, canEditItem, canDeleteItem,
-  onBack, onEdit, onSetStatus, onOpenItem, onAddContent, onEditItem, onMoveItem,
+  onEdit, onSetStatus, onOpenItem, onAddContent, onEditItem, onMoveItem,
 }: Props) {
   // Plan first: the checklist is what this page adds. The board is the same
   // kanban as the Content tab, narrowed to this campaign, at full height.
@@ -124,14 +123,9 @@ export default function CampaignPage({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="flex-shrink-0 border-b border-hairline dark:border-hairline-dark px-4 pt-3 pb-2.5 flex flex-col gap-2.5">
-        <button
-          onClick={onBack}
-          className={`self-start inline-flex items-center gap-1 min-h-8 text-[12px] font-medium ${faintText} hover:text-ink dark:hover:text-ink-dark transition-colors rounded-tile ${focusRing}`}
-        >
-          <ArrowLeft size={13} />
-          All campaigns
-        </button>
+      {/* The way back lives in the row above ("Campaigns"), so the campaign's
+          name is the only title here. */}
+      <div className="flex-shrink-0 border-b border-hairline dark:border-hairline-dark px-5 pt-4 pb-3 flex flex-col gap-2.5">
 
         <div className="flex items-start gap-3 flex-wrap">
           <span
@@ -143,7 +137,7 @@ export default function CampaignPage({
               lets the row wrap, and on a phone a long name ran underneath the
               status and Edit controls. */}
           <div className="flex-1 min-w-48">
-            <h1 className={`${heading} text-lg leading-snug break-words`}>{campaign.name}</h1>
+            <h1 className={`${heading} text-[20px] leading-7 break-words`}>{campaign.name}</h1>
             <p className={`text-[12px] mt-0.5 ${faintText}`}>{subtitle}</p>
           </div>
           <div className="flex items-center gap-2 ml-auto">
@@ -161,8 +155,8 @@ export default function CampaignPage({
             <ColorLabel color={status.color}>{status.label}</ColorLabel>
           )}
           {canManage && (
-            <button onClick={onEdit} className={btnGhost}>
-              <Pencil size={13} />
+            <button onClick={onEdit} className={btnGhostSm}>
+              <Pencil size={16} />
               Edit
             </button>
           )}
@@ -178,11 +172,11 @@ export default function CampaignPage({
 
         <div className={`${segmented} self-start`}>
           <button onClick={() => setView('plan')} aria-pressed={view === 'plan'} className={segItem(view === 'plan')}>
-            <ListChecks size={13} />
+            <ListChecks size={16} />
             Plan
           </button>
           <button onClick={() => setView('board')} aria-pressed={view === 'board'} className={segItem(view === 'board')}>
-            <LayoutGrid size={13} />
+            <LayoutGrid size={16} />
             Board
             <span className="tabular-nums opacity-70">{own.length}</span>
           </button>
@@ -207,7 +201,7 @@ export default function CampaignPage({
         />
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className={`${shellPad} max-w-[820px] py-6 flex flex-col gap-6`}>
+          <div className={`${viewPad} max-w-[820px] py-6 flex flex-col gap-6`}>
             <section aria-label="Brief">
               <h2 className={`${sectionLabel} mb-1.5`}>Brief</h2>
               {campaign.brief ? (

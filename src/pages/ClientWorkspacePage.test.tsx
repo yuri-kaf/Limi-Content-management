@@ -155,15 +155,15 @@ describe('ClientWorkspacePage', () => {
     const user = userEvent.setup();
     renderAt('/client/A?item=X');
     await user.click(within(sheet('Post X')).getByRole('button', { name: 'Edit' }));
-    expect(screen.getByLabelText('Content Title')).toHaveValue('Post X');
+    expect(screen.getByLabelText('Title')).toHaveValue('Post X');
 
     // ⌘K → a content hit in the same client, while the form is open.
     go('/client/A?item=Y');
     await user.click(within(sheet('Post Y')).getByRole('button', { name: 'Edit' }));
 
-    expect(screen.getAllByLabelText('Content Title')).toHaveLength(1);
-    expect(screen.getByLabelText('Content Title')).toHaveValue('Post Y');
-    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    expect(screen.getAllByLabelText('Title')).toHaveLength(1);
+    expect(screen.getByLabelText('Title')).toHaveValue('Post Y');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(h.fns.store.updateContent).toHaveBeenCalledWith(
       'A', 'Y',
       expect.objectContaining({ title: 'Post Y', driveLink: 'https://example.com/Y.mp4' })
@@ -173,7 +173,7 @@ describe('ClientWorkspacePage', () => {
   it('shows each item’s own review link, not the one made for the previous item', async () => {
     const user = userEvent.setup();
     renderAt('/client/A?item=X');
-    await user.click(within(sheet('Post X')).getByRole('button', { name: /create review link/i }));
+    await user.click(within(sheet('Post X')).getByRole('button', { name: /copy review link/i }));
     expect(await within(sheet('Post X')).findByText('https://limi.example/review/X')).toBeInTheDocument();
 
     go('/client/A?item=Y');
@@ -188,7 +188,7 @@ describe('ClientWorkspacePage', () => {
     }];
     renderAt('/client/A/ideas');
     await user.click(screen.getByRole('button', { name: /make content/i }));
-    await user.click(screen.getByRole('button', { name: 'Add Content' }));
+    await user.click(screen.getByRole('button', { name: 'Add post' }));
     await vi.waitFor(() => expect(h.fns.store.addContent).toHaveBeenCalled());
     expect(h.fns.store.addContent).toHaveBeenCalledWith(
       'A', expect.objectContaining({ title: 'Idea one' }), { convertsIdeaId: 'i1' }
@@ -226,9 +226,9 @@ describe('ClientWorkspacePage', () => {
     expect(screen.queryByRole('heading', { level: 2, name: 'Post X' })).toBeNull();
   });
 
-  it('shows Content for an unknown tab', () => {
+  it('shows Posts for an unknown tab', () => {
     renderAt('/client/A/nope');
-    expect(screen.getByRole('button', { name: 'Content' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Posts' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('gives every place a top-level heading', () => {

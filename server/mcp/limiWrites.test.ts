@@ -98,7 +98,7 @@ describe('moveContent', () => {
     expect(google.calls[0]).toMatchObject({ path: 'clients/shopit/content/momo', mask: ['status'] });
     expect(google.doc('clients/shopit/content/momo')!.status).toBe('to-post');
     expect(commentsOf(google, 'clients/shopit/content/momo')).toEqual([
-      expect.objectContaining({ kind: 'system', body: 'moved this to To Post' }),
+      expect.objectContaining({ kind: 'system', body: 'moved this to To post' }),
     ]);
   });
 
@@ -112,7 +112,7 @@ describe('moveContent', () => {
 
 describe('stageLabel', () => {
   it('uses the app labels', () => {
-    expect(stageLabel('to-post')).toBe('To Post');
+    expect(stageLabel('to-post')).toBe('To post');
   });
 });
 

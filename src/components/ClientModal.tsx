@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../icons';
 import { Client, FolderColor } from '../types';
 import { folderColor } from '../folderColors';
 import ColorSwatchPicker from './ColorSwatchPicker';

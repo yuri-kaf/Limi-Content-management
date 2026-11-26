@@ -1,4 +1,4 @@
-import { Home, LayoutGrid, Target, User } from 'lucide-react';
+import { Home, LayoutGrid, Target, User } from '../icons';
 import { faintText, focusRingInset } from '../ui';
 
 const TABS = [
@@ -21,7 +21,7 @@ interface Props {
 export default function BottomNav({ activePath, showLeads = false, onNavigate }: Props) {
   return (
     <nav
-      className="lg:hidden flex-shrink-0 flex items-stretch border-t border-hairline dark:border-hairline-dark bg-canvas dark:bg-canvas-dark"
+      className="lg:hidden flex-shrink-0 flex items-stretch bg-tint dark:bg-tint-dark"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Sections"
     >
@@ -32,12 +32,18 @@ export default function BottomNav({ activePath, showLeads = false, onNavigate }:
             key={t.path}
             onClick={() => onNavigate(t.path)}
             aria-current={active ? 'page' : undefined}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 h-14 transition-colors ${focusRingInset} ${
-              active ? 'text-brand-text dark:text-brand-textdark' : faintText
+            className={`group flex-1 flex flex-col items-center justify-center gap-1 h-16 transition-colors ${focusRingInset} ${
+              active ? 'text-ink dark:text-ink-dark font-semibold' : `${faintText} font-medium`
             }`}
           >
-            <t.icon size={19} strokeWidth={active ? 2.4 : 1.8} />
-            <span className="text-[10px] font-semibold tracking-wide">{t.label}</span>
+            <span
+              className={`flex items-center justify-center w-16 h-8 rounded-full transition-colors ${
+                active ? 'bg-brand-soft dark:bg-brand-softdark text-brand-on dark:text-brand-ondark' : ''
+              }`}
+            >
+              <t.icon size={24} filled={active} />
+            </span>
+            <span className="text-[12px] leading-4">{t.label}</span>
           </button>
         );
       })}

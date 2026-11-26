@@ -8,80 +8,80 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        // Google Sans Flex, as in Watchtower HQ: the Material 3 face.
+        sans: ['"Google Sans Flex"', '"Google Sans"', 'Roboto', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Notion register: pure white page, warm near-black ink, a single
-        // off-white tint for sidebar and insets. Every text tier below clears
-        // WCAG AA (4.5:1) on `canvas`, `tint` and `hover`, in both themes, and
-        // each tier is 1.3x the contrast of the next — see src/color.test.ts.
-        canvas: { DEFAULT: '#ffffff', dark: '#191919' },
-        // `surface` is the same as canvas in this register: cards are defined
-        // by a hairline, not by being a different colour. The name is kept so
-        // existing components need no edit.
-        surface: { DEFAULT: '#ffffff', dark: '#191919' },
-        // Sidebar, insets, read-only prose blocks. `raised` is an alias kept
-        // for the same reason as `surface`.
-        tint: { DEFAULT: '#f7f7f5', dark: '#252525' },
-        raised: { DEFAULT: '#f7f7f5', dark: '#252525' },
-        hover: { DEFAULT: '#efefed', dark: '#2f2f2f' },
-        hairline: { DEFAULT: '#eae9e5', dark: '#333333' },
+        // Material 3, neutral register (see docs/council/2026-11-24-m3-redesign).
+        // Pure white work area, light grey chrome, Limi red as the one brand
+        // colour. Every text tier clears WCAG AA on canvas, tint, raised and
+        // hover in both themes (src/color.test.ts).
+        canvas: { DEFAULT: '#ffffff', dark: '#141316' },
+        surface: { DEFAULT: '#ffffff', dark: '#141316' },
+        // App chrome: the rail, the top bar and the drawer sit on this.
+        tint: { DEFAULT: '#f3f3f4', dark: '#1c1b1f' },
+        // Surface container low: cards and filled fields on white.
+        raised: { DEFAULT: '#f6f6f7', dark: '#211f24' },
+        // Surface container high: tonal buttons, hovered rows, selected chips.
+        hover: { DEFAULT: '#eaeaec', dark: '#2b292f' },
+        // Outline variant: the few rules that remain (dividers, tab rows).
+        hairline: { DEFAULT: '#e1e0e4', dark: '#36343a' },
+        // Outline: the edge of outlined controls (segmented buttons).
+        outline: { DEFAULT: '#8b8990', dark: '#938f99' },
+        // Surface container highest: a tonal button under the pointer.
+        pressed: { DEFAULT: '#e0e0e3', dark: '#36343a' },
         ink: {
-          DEFAULT: '#37352f',
-          soft: '#52514c',
-          faint: '#6b6a65',
-          dark: '#e9e9e7',
-          softdark: '#b4b4b0',
-          faintdark: '#999995',
+          DEFAULT: '#1d1b1f',
+          soft: '#47464c',
+          faint: '#5f5d64',
+          dark: '#e6e1e6',
+          softdark: '#cac5cd',
+          faintdark: '#a9a4ac',
         },
-        // DEFAULT is for fills and icons. Red words use `text`/`textdark`:
-        // #dc2626 as text is under AA on brand-soft and on every dark surface.
+        // DEFAULT is for fills and icons. Red words use `text`/`textdark`.
+        // `soft` is the primary container (active nav, selected states) and
+        // `on` the text that sits on it.
         brand: {
           DEFAULT: '#dc2626',
-          hover: '#b91c1c',
-          soft: '#fdf2f2',
-          softdark: '#2a1414',
-          softhover: '#fbe4e4',
-          softhoverdark: '#3a1a1a',
+          hover: '#c81e1e',
+          soft: '#fde8e7',
+          softdark: '#3d1715',
+          softhover: '#fbd8d6',
+          softhoverdark: '#4b1d1a',
           text: '#b91c1c',
-          textdark: '#f87171',
+          textdark: '#ffb4ab',
+          on: '#8a1212',
+          ondark: '#ffdad6',
         },
-        // Keyboard focus: the ink, not the brand red, so a focused field never
-        // reads as an invalid one. Red stays reserved for errors.
-        focus: { DEFAULT: '#37352f', dark: '#e9e9e7' },
-        // Semantic tones, shaped like brand: DEFAULT/hover are fills under
-        // white text, soft/softhover the tinted washes, text/textdark the words.
-        // src/color.test.ts asserts every pair against AA.
+        // Inverse surface: the snackbar.
+        inverse: { DEFAULT: '#322f35', on: '#f5eff7', primary: '#ffb4ab', dark: '#e6e1e6', ondark: '#322f35' },
+        focus: { DEFAULT: '#1d1b1f', dark: '#e6e1e6' },
         success: {
-          DEFAULT: '#047857',
-          hover: '#065f46',
-          soft: '#ecfdf5',
-          softdark: '#13271d',
-          softhover: '#d1fae5',
-          softhoverdark: '#1a3527',
-          text: '#047857',
-          textdark: '#34d399',
+          DEFAULT: '#146c2e',
+          hover: '#0f5524',
+          soft: '#d7f0dd',
+          softdark: '#12301b',
+          softhover: '#c4e8cd',
+          softhoverdark: '#183d23',
+          text: '#146c2e',
+          textdark: '#7fd99a',
         },
         warning: {
-          DEFAULT: '#b45309',
-          hover: '#92400e',
-          soft: '#fffbeb',
-          softdark: '#2a2210',
-          softhover: '#fef3c7',
-          softhoverdark: '#3a2c10',
-          text: '#92400e',
-          textdark: '#fbbf24',
+          DEFAULT: '#8f5f00',
+          hover: '#7a5300',
+          soft: '#fbebc6',
+          softdark: '#2e2410',
+          softhover: '#f7e0a8',
+          softhoverdark: '#3b2e12',
+          text: '#7a5300',
+          textdark: '#f5c451',
         },
-        // A neutral role tint (the Social Media Manager chip). The Review
-        // stage's pill pair, so the app keeps one blue.
         info: {
-          soft: '#e7f3f8',
-          softdark: '#15303d',
-          text: '#0b6e99',
-          textdark: '#77bddd',
+          soft: '#dcecf7',
+          softdark: '#14303f',
+          text: '#0b5d8a',
+          textdark: '#8ccdf2',
         },
-        // Stage text colours. The tint/text pairs used by the pills live in
-        // STAGES in src/utils.ts, because they are applied as inline styles.
         stage: {
           editing: '#6940a5',
           review: '#0b6e99',
@@ -90,30 +90,28 @@ export default {
         },
       },
       borderRadius: {
-        // Softer than the Notion register's 4/6px, to sit with the pastel
-        // cards: 12px for cards, panels and dialogs, 6px for controls, 4px for
-        // the chips inside them.
+        // Material 3 shape scale: 12px cards, 8px fields and filter chips,
+        // 6px small tags, 28px dialogs. Buttons are pills (rounded-full).
         card: '12px',
-        tile: '6px',
-        chip: '4px',
+        tile: '8px',
+        chip: '6px',
+        dialog: '28px',
       },
       boxShadow: {
-        // Static surfaces are defined by a hairline, not a shadow. `shadow-card`
-        // is deliberately flattened rather than removed so existing components
-        // that reference it become flat instead of losing a class silently.
+        // Elevation only on things that float: menus, dialogs, the FAB, a card
+        // in the hand. Static surfaces are told apart by fill, not by shadow.
         card: 'none',
-        lift: '0 4px 12px rgba(15,15,15,0.10), 0 1px 3px rgba(15,15,15,0.06)',
-        // A card under the pointer: just enough to read as raised off the page.
-        // Not named `hover`: a colour of that name exists, and shadow-hover
-        // would then also set the shadow's colour to it.
-        float: '0 6px 16px -4px rgba(15,15,15,0.12), 0 2px 4px rgba(15,15,15,0.05)',
-        // A card in the hand, mid-drag.
-        drag: '0 18px 36px -10px rgba(15,15,15,0.25), 0 4px 10px rgba(15,15,15,0.08)',
+        // A white card resting on a grey board lane: just enough to sit on it.
+        rest: '0 1px 2px rgba(0,0,0,.06)',
+        e1: '0 1px 2px rgba(0,0,0,.14), 0 1px 3px 1px rgba(0,0,0,.06)',
+        lift: '0 4px 8px 3px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.16)',
+        float: '0 1px 2px rgba(0,0,0,.14), 0 2px 6px 2px rgba(0,0,0,.08)',
+        drag: '0 8px 12px 6px rgba(0,0,0,.10), 0 4px 4px rgba(0,0,0,.16)',
         pill: 'none',
       },
       // One curve for everything that moves: quick to start, soft to land.
       transitionTimingFunction: {
-        'out-soft': 'cubic-bezier(.2,.8,.2,1)',
+        'out-soft': 'cubic-bezier(.2,0,0,1)',
       },
       // No `to` frame on purpose: the browser fills it in from the element's
       // own opacity and transform, so an entrance ends wherever the element
@@ -129,10 +127,10 @@ export default {
       // has played, so an element's own hover and press transforms are never
       // overridden by a finished entrance.
       animation: {
-        'fade-in': 'fade-in 160ms cubic-bezier(.2,.8,.2,1) backwards',
-        'fade-up': 'fade-up 220ms cubic-bezier(.2,.8,.2,1) backwards',
-        'scale-in': 'scale-in 180ms cubic-bezier(.2,.8,.2,1) backwards',
-        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,.8,.2,1) backwards',
+        'fade-in': 'fade-in 160ms cubic-bezier(.2,0,0,1) backwards',
+        'fade-up': 'fade-up 220ms cubic-bezier(.2,0,0,1) backwards',
+        'scale-in': 'scale-in 180ms cubic-bezier(.2,0,0,1) backwards',
+        'sheet-up': 'sheet-up 240ms cubic-bezier(.2,0,0,1) backwards',
       },
     },
   },

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Business, Idea } from '../types';
 
@@ -19,6 +19,7 @@ vi.mock('../store', () => ({
 }));
 
 import IdeasView from './IdeasView';
+import { FeedbackProvider } from './m3/Feedback';
 import { focusRing } from '../ui';
 
 const BAKERY: Business = { id: 'b1', name: 'Bakery', color: 'orange', about: '', createdAt: 1 };
@@ -89,5 +90,42 @@ describe('IdeasView — controls', () => {
         'min-w-9', 'min-h-9', '[@media(hover:none)]:min-w-[44px]', '[@media(hover:none)]:min-h-[44px]'
       );
     }
+  });
+});
+
+describe('IdeasView — decisions', () => {
+  beforeEach(() => {
+    ideasApi.setIdeaStatus.mockClear();
+    ideasApi.deleteIdea.mockClear();
+    ideasApi.ideas = [idea('a', 'Old idea')];
+  });
+  const view = () =>
+    render(
+      <FeedbackProvider>
+        <IdeasView clientId="acme" businesses={[BAKERY]} canTriage onConvert={vi.fn()} />
+      </FeedbackProvider>
+    );
+
+  it('asks for a reason in a dialog when declining, and passes it on', async () => {
+    view();
+    await userEvent.click(screen.getByRole('button', { name: 'Decline' }));
+    await userEvent.type(screen.getByLabelText(/Why/), 'Off brand');
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Decline' }));
+    expect(ideasApi.setIdeaStatus).toHaveBeenCalledWith('a', 'declined', 'Off brand');
+  });
+
+  it('leaves the idea alone when the decline dialog is cancelled', async () => {
+    view();
+    await userEvent.click(screen.getByRole('button', { name: 'Decline' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(ideasApi.setIdeaStatus).not.toHaveBeenCalled();
+  });
+
+  it('deletes only after the dialog is confirmed', async () => {
+    view();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(ideasApi.deleteIdea).not.toHaveBeenCalled();
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
+    expect(ideasApi.deleteIdea).toHaveBeenCalledWith('a');
   });
 });

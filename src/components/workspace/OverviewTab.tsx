@@ -1,14 +1,14 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../icons';
 import { Business, Campaign, Client, ContentItem } from '../../types';
 import { businessIdOf, businessSummary, sortCampaigns } from '../../campaigns';
 import { buildToday, todayTotal } from '../../today';
 import { STAGES } from '../../utils';
 import { QUEUE_SECTIONS, QueueGroup } from '../QueueGroup';
-import { stageCardFill, stageCardText, stageCardVars } from '../../stageColors';
+import { stageDot, stageCardVars } from '../../stageColors';
 import { enter, staggerStyle } from '../../motion';
 import BusinessCard from './BusinessCard';
 import CampaignCard from './CampaignCard';
-import { shellPad, heading, faintText, sectionLabel, countChip, focusRing } from '../../ui';
+import { viewPad, heading, faintText, sectionLabel, countChip, focusRing } from '../../ui';
 
 interface Props {
   client: Client;
@@ -57,7 +57,7 @@ export default function OverviewTab({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shellPad} max-w-[1100px] py-6 flex flex-col gap-7`}>
+      <div className={`${viewPad} max-w-[1100px] py-6 flex flex-col gap-7`}>
         {multi && (
           <section aria-label="Businesses" className={enter} style={staggerStyle(0)}>
             <div className="flex items-center gap-2 mb-2 px-1">
@@ -80,9 +80,9 @@ export default function OverviewTab({
               {canManage && (
                 <button
                   onClick={onAddBusiness}
-                  className={`min-h-[76px] rounded-card border border-dashed border-hairline dark:border-hairline-dark inline-flex items-center justify-center gap-2 text-[13px] font-medium text-ink-faint dark:text-ink-faintdark hover:text-ink dark:hover:text-ink-dark hover:bg-tint dark:hover:bg-tint-dark transition-colors ${focusRing}`}
+                  className={`min-h-[76px] rounded-card bg-raised dark:bg-raised-dark inline-flex items-center justify-center gap-2 text-[13px] font-medium text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
                 >
-                  <Plus size={15} />
+                  <Plus size={18} />
                   Add business
                 </button>
               )}
@@ -90,22 +90,25 @@ export default function OverviewTab({
           </section>
         )}
 
-        {/* The four counts in the board's own colours, so they read as its
-            four columns. */}
+        {/* One count per board stage, each marked with its stage dot. On a
+            phone all five share one row (labels only, so each fits whole)
+            rather than leaving Backup alone on a second row. */}
         <section
           aria-label="Pipeline"
-          className={`grid grid-cols-2 sm:grid-cols-5 gap-3 ${enter}`}
+          className={`grid grid-cols-5 gap-1.5 sm:gap-3 ${enter}`}
           style={staggerStyle(1)}
         >
           {STAGES.map((s) => (
             <div
               key={s.id}
               data-stage={s.id}
-              className={`rounded-card p-3.5 ${stageCardFill}`}
-              style={stageCardVars(s.id)}
+              className="min-w-0 rounded-card px-1 py-2.5 sm:px-3.5 sm:py-3 text-center sm:text-left bg-raised dark:bg-raised-dark"
             >
-              <span className={`text-[12px] font-medium ${stageCardText}`}>{s.label}</span>
-              <p className={`${heading} text-2xl mt-1 tabular-nums`}>
+              <span className="flex items-center justify-center sm:justify-start gap-1.5 min-w-0 whitespace-nowrap text-[11px] sm:text-[12px] font-medium text-ink-soft dark:text-ink-softdark">
+                <span className={`hidden sm:block w-2 h-2 flex-shrink-0 rounded-full ${stageDot}`} style={stageCardVars(s.id)} />
+                <span>{s.label}</span>
+              </span>
+              <p className={`${heading} text-xl sm:text-2xl mt-1 tabular-nums`}>
                 {content.filter((i) => i.status === s.id).length}
               </p>
             </div>

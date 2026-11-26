@@ -9,79 +9,56 @@ import { Business } from '../../types';
 const BAKERY: Business = { id: 'b1', name: 'Bakery', color: 'orange', about: '', createdAt: 1 };
 const CAFE: Business = { id: 'b2', name: 'Cafe', color: 'green', about: '', createdAt: 2 };
 
+// The inline view buttons, leaving out the phone's single "View: ..." trigger.
+const views = (nav: HTMLElement) =>
+  within(nav).getAllByRole('button')
+    .map((t) => t.getAttribute('aria-label'))
+    .filter((n) => n && !n.startsWith('View:'));
+
 describe('WorkspaceTabs', () => {
-  it('marks the current place and reports the one chosen', async () => {
+  it('marks the current view and reports the one chosen', async () => {
     const onSelect = vi.fn();
     render(<WorkspaceTabs tabs={tabsFor('admin')} active="content" onSelect={onSelect} />);
-    expect(screen.getByRole('button', { name: 'Content' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Posts' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Overview' })).not.toHaveAttribute('aria-current');
     await userEvent.click(screen.getByRole('button', { name: 'Campaigns' }));
     expect(onSelect).toHaveBeenCalledWith('campaigns');
   });
 
-  it('shows a client only their three places', () => {
+  it('names every view for the team, in order', () => {
+    render(<WorkspaceTabs tabs={tabsFor('admin')} active="calendar" onSelect={vi.fn()} />);
+    const nav = screen.getByRole('navigation', { name: 'Client views' });
+    expect(views(nav)).toEqual(['Posts', 'Calendar', 'Campaigns', 'Ideas', 'Overview']);
+    // The phone's one-button form says where you are.
+    expect(within(nav).getByRole('button', { name: 'View: Calendar' })).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: 'Calendar' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('shows a client only their three views', () => {
     render(<WorkspaceTabs tabs={tabsFor('client')} active="content" onSelect={vi.fn()} />);
-    const nav = screen.getByRole('navigation', { name: 'Client workspace' });
-    expect(within(nav).getAllByRole('button').map((t) => t.textContent))
-      .toEqual(['Content', 'Calendar', 'Ideas']);
+    const nav = screen.getByRole('navigation', { name: 'Client views' });
+    expect(views(nav)).toEqual(['Posts', 'Calendar', 'Ideas']);
   });
 
-  it('slides one underline to the current place once the tabs can be measured', () => {
-    // jsdom lays nothing out, so give every tab an 80px box, side by side.
-    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(80);
-    const left = vi
-      .spyOn(HTMLElement.prototype, 'offsetLeft', 'get')
-      .mockImplementation(function (this: HTMLElement) {
-        const tabs = [...(this.parentElement?.querySelectorAll(':scope > button') ?? [])];
-        return tabs.indexOf(this) * 80;
-      });
-    try {
-      render(<WorkspaceTabs tabs={tabsFor('admin')} active="campaigns" onSelect={vi.fn()} />);
-      const index = tabsFor('admin').findIndex((t) => t.id === 'campaigns');
-      const bar = screen.getByTestId('tab-indicator');
-      expect(bar.style.width).toBe('80px');
-      expect(bar.style.left).toBe(`${index * 80}px`);
-    } finally {
-      width.mockRestore();
-      left.mockRestore();
-    }
-  });
-
-  it('re-measures when a tab itself changes size, not only the row', () => {
-    // A late web font widens the labels without resizing the flex-1 row, so
-    // each tab has to be watched as well.
-    const watched: Element[] = [];
-    const original = globalThis.ResizeObserver;
-    globalThis.ResizeObserver = class {
-      observe(el: Element) { watched.push(el); }
-      unobserve() {}
-      disconnect() {}
-    } as unknown as typeof ResizeObserver;
-    try {
-      render(<WorkspaceTabs tabs={tabsFor('client')} active="content" onSelect={vi.fn()} />);
-      const nav = screen.getByRole('navigation', { name: 'Client workspace' });
-      expect(watched).toContain(nav);
-      for (const tab of within(nav).getAllByRole('button')) expect(watched).toContain(tab);
-    } finally {
-      globalThis.ResizeObserver = original;
-    }
-  });
-
-  it('keeps the underline on the tab itself where nothing can be measured', () => {
-    render(<WorkspaceTabs tabs={tabsFor('admin')} active="content" onSelect={vi.fn()} />);
-    expect(screen.queryByTestId('tab-indicator')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Content' }).className).toContain('border-ink');
+  it('puts the actions after the views', () => {
+    render(
+      <WorkspaceTabs tabs={tabsFor('admin')} active="content" onSelect={vi.fn()} actions={<button>More</button>} />
+    );
+    const nav = screen.getByRole('navigation', { name: 'Client views' });
+    expect(within(nav).getByRole('button', { name: 'More' })).toBeInTheDocument();
   });
 });
 
 describe('WorkspaceMenu', () => {
-  const list = () => screen.queryByRole('group', { name: 'Client actions' });
+  const list = () => screen.queryByRole('menu', { name: 'Client actions' });
 
   it('runs the chosen action and closes', async () => {
     const onAddBusiness = vi.fn();
     render(<WorkspaceMenu onEditClient={vi.fn()} onAddBusiness={onAddBusiness} onNewCampaign={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Client actions' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Add business' }));
+    expect(within(list()!).getAllByRole('menuitem').map((m) => m.textContent))
+      .toEqual(['New campaign', 'Add business', 'Edit client']);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Add business' }));
     expect(onAddBusiness).toHaveBeenCalled();
     expect(list()).not.toBeInTheDocument();
   });
@@ -89,15 +66,15 @@ describe('WorkspaceMenu', () => {
   it('leaves out actions that are not available yet', async () => {
     render(<WorkspaceMenu onEditClient={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Client actions' }));
-    expect(within(list()!).getAllByRole('button').map((m) => m.textContent)).toEqual(['Edit client']);
+    expect(within(list()!).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Edit client']);
   });
 
   it('closes on Escape and hands focus back to its button', async () => {
     render(<WorkspaceMenu onEditClient={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: 'Client actions' });
     await userEvent.click(trigger);
-    await userEvent.tab();
-    expect(screen.getByRole('button', { name: 'Edit client' })).toHaveFocus();
+    // The menu takes focus on the first item when it opens.
+    expect(screen.getByRole('menuitem', { name: 'Edit client' })).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(list()).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();

@@ -2,7 +2,6 @@ import type { ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Sidebar from './Sidebar';
-import { btnIcon } from '../ui';
 import { NavModel } from '../nav';
 
 const nav: NavModel = {
@@ -19,13 +18,8 @@ function setup(over: Partial<ComponentProps<typeof Sidebar>> = {}) {
     nav,
     activeClientId: undefined,
     activePath: '/',
-    userEmail: 'u@x.com',
-    theme: 'light' as const,
     collapsed: false,
     onNavigate: vi.fn(),
-    onToggleTheme: vi.fn(),
-    onToggleCollapsed: vi.fn(),
-    onSignOut: vi.fn(),
     ...over,
   };
   render(<Sidebar {...props} />);
@@ -61,33 +55,27 @@ describe('Sidebar', () => {
     expect(props.onNavigate).toHaveBeenCalledWith('/client/acme');
   });
 
-  // In the 48px rail the brand row keeps its 44px height and holds one
-  // control: the logo mark, which turns into the expand icon under the pointer
-  // or keyboard focus, as in Linear.
-  it('makes the rail brand row one expand button that shows the logo', () => {
-    setup({ collapsed: true });
-    const button = screen.getByRole('button', { name: 'Expand sidebar' });
-    const header = button.parentElement!;
-    expect(header).toHaveClass('h-11');
-    expect(header).not.toHaveClass('flex-col');
-    expect(header.children).toHaveLength(1);
-    expect(button.querySelectorAll('svg, img').length).toBeGreaterThanOrEqual(2);
+  // The Material rail: each place is an icon in a pill with its name under
+  // it, the current one in the red container.
+  it('names each place under its icon in the rail, and marks the current one', () => {
+    setup({ collapsed: true, activePath: '/leads', leadsDue: 2 });
+    const leads = screen.getByRole('button', { name: 'Leads, 2 follow-ups due' });
+    expect(leads).toHaveAttribute('aria-current', 'page');
+    expect(leads).toHaveTextContent('Leads');
+    expect(within(leads).getByText('2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Today' })).not.toHaveAttribute('aria-current');
   });
 
-  it('draws the footer buttons at btnIcon size, with no dead overrides', () => {
+  it('has no account or theme controls: those live in the top bar', () => {
     setup();
-    for (const name of ['Toggle theme', 'Sign out']) {
-      expect(screen.getByRole('button', { name }).className).toBe(btnIcon);
-    }
+    expect(screen.queryByRole('button', { name: /sign out|theme/i })).not.toBeInTheDocument();
   });
 
-  // 28px beside the brand on the desktop sidebar, but the phone drawer's close
-  // button keeps btnIcon's 36px.
-  it('keeps the collapse button small only on the desktop sidebar', () => {
-    setup();
-    const button = screen.getByRole('button', { name: 'Collapse sidebar' });
-    expect(button).toHaveClass('lg:!w-7', 'lg:!h-7');
-    expect(button).not.toHaveClass('!w-7');
+  it('closes from its own button in the phone drawer', async () => {
+    const onClose = vi.fn();
+    setup({ onClose });
+    await userEvent.click(screen.getByRole('button', { name: 'Close navigation' }));
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('renders no client labels when collapsed to the rail', () => {
@@ -131,16 +119,11 @@ describe('Sidebar', () => {
     expect(within(bolt).queryByText('B')).not.toBeInTheDocument();
   });
 
-  it('names the page buttons in the rail, where only their icons show', () => {
-    setup({ collapsed: true });
-    for (const name of ['Today', 'Clients', 'Team']) {
-      expect(screen.getByRole('button', { name })).toHaveAttribute('title', name);
-    }
-  });
-
-  it('leaves the page buttons to their written names when expanded', () => {
-    // A tooltip there would only repeat the word beside the icon.
+  it('leaves the page buttons to their written names', () => {
+    // A tooltip there would only repeat the word beside or under the icon.
     setup();
     expect(screen.getByRole('button', { name: 'Today' })).not.toHaveAttribute('title');
+    setup({ collapsed: true });
+    expect(screen.getAllByRole('button', { name: 'Today' })[1]).not.toHaveAttribute('title');
   });
 });

@@ -1,22 +1,21 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Eye, EyeOff, KeyRound, Pencil, Trash2, X, Sun, Moon, Users } from 'lucide-react';
+import { Plus, Eye, EyeOff, KeyRound, Pencil, Trash2, X, Users, MoreVertical, ChevronDown } from '../icons';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useUsers } from '../store';
 import { useClients } from '../store';
 import { AppUser, UserRole } from '../types';
 import { runWrite } from '../utils';
-import Logo from '../components/Logo';
+import Menu from '../components/m3/Menu';
+import { useFeedback } from '../components/m3/Feedback';
 import {
-  page, card, tile, inset, heading, bodyText, faintText, badge, label, labelAside, hint, input,
-  overlay, modalPanel, modalTitle, btnPrimary, btnGhost, btnIcon, btnIconDanger, focusRing,
-  btnGhostSm,
+  shellPad, card, heading, bodyText, faintText, label, labelAside, hint, input, overlay,
+  modalPanel, modalTitle, btnPrimary, btnPrimarySm, btnGhost, btnIcon, rowList, emptyState,
+  emptyTitle, emptyBody, focusRing,
 } from '../ui';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'admin', label: 'Admin' },
-  { value: 'social-media-manager', label: 'Social Media Manager' },
+  { value: 'social-media-manager', label: 'Social media manager' },
   { value: 'client', label: 'Client' },
 ];
 
@@ -40,7 +39,7 @@ const ROLE_TONE: Record<UserRole, { chip: string; avatar: string }> = {
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
-  'social-media-manager': 'Social Media Manager',
+  'social-media-manager': 'Social media manager',
   client: 'Client',
 };
 
@@ -91,8 +90,8 @@ function UserForm({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className={modalPanel}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={modalTitle}>{initial ? 'Edit User' : 'Add User'}</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className={modalTitle}>{initial ? 'Edit member' : 'Add member'}</h2>
           <button onClick={onClose} className={btnIcon} aria-label="Close">
             <X size={18} />
           </button>
@@ -100,7 +99,7 @@ function UserForm({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={label}>Full Name</label>
+            <label className={label}>Full name</label>
             <input
               type="text"
               value={name}
@@ -133,7 +132,7 @@ function UserForm({
               overwrite from the browser — those go through a reset email. */}
           {!isEdit && (
             <div>
-              <label className={label}>Initial Password</label>
+              <label className={label}>Initial password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -177,13 +176,13 @@ function UserForm({
           {role === 'client' && clients.length > 0 && (
             <div>
               <label className={label}>
-                Assigned Clients <span className={labelAside}>({assignedClientIds.length} selected)</span>
+                Assigned clients <span className={labelAside}>({assignedClientIds.length} selected)</span>
               </label>
-              <div className={`${inset} flex flex-col gap-0.5 max-h-40 overflow-y-auto p-2`}>
+              <div className="bg-raised dark:bg-raised-dark rounded-tile flex flex-col gap-0.5 max-h-40 overflow-y-auto p-2">
                 {clients.map((c) => (
                   <label
                     key={c.id}
-                    className="flex items-center gap-2.5 cursor-pointer py-1.5 px-1.5 rounded-lg hover:bg-surface dark:hover:bg-surface-dark transition-colors"
+                    className="flex items-center gap-2.5 cursor-pointer py-1.5 px-1.5 rounded-tile hover:bg-hover dark:hover:bg-hover-dark transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -191,7 +190,7 @@ function UserForm({
                       onChange={() => toggleClient(c.id)}
                       className="accent-brand w-4 h-4"
                     />
-                    <span className={`text-sm ${bodyText}`}>{c.name}</span>
+                    <span className={`text-[13px] ${bodyText}`}>{c.name}</span>
                   </label>
                 ))}
               </div>
@@ -207,7 +206,7 @@ function UserForm({
               disabled={!name.trim() || !email.trim() || (!isEdit && password.length < 6)}
               className={`${btnPrimary} flex-1`}
             >
-              {initial ? 'Save Changes' : 'Add User'}
+              {initial ? 'Save changes' : 'Add member'}
             </button>
           </div>
         </form>
@@ -217,16 +216,14 @@ function UserForm({
 }
 
 export default function UserManagementPage() {
-  const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { confirm, notify } = useFeedback();
   const { users, loading, addUser, updateUser, deleteUser, sendReset } = useUsers();
   const { clients } = useClients();
   const isAdmin = currentUser?.role === 'admin';
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
 
   async function handleAdd(data: UserFormData) {
     const ok = await runWrite(() => addUser(data), 'add the user');
@@ -252,164 +249,166 @@ export default function UserManagementPage() {
 
   async function handleSendReset(user: AppUser) {
     const ok = await runWrite(() => sendReset(user.email), 'send the reset email');
-    if (ok) {
-      setResetSentTo(user.id);
-      setTimeout(() => setResetSentTo((id) => (id === user.id ? null : id)), 4000);
-    }
+    if (ok) notify(`Reset email sent to ${user.email}`);
+  }
+
+  async function handleRole(user: AppUser, role: UserRole) {
+    if (role === user.role) return;
+    const ok = await runWrite(() => updateUser(user.id, { role }), 'change the role');
+    if (ok) notify(`${user.name} is now ${ROLE_LABELS[role].toLowerCase()}`);
   }
 
   async function handleDelete(user: AppUser) {
     const adminCount = users.filter((u) => u.role === 'admin').length;
     if (user.role === 'admin' && adminCount <= 1) {
-      alert('Cannot delete the only admin.');
+      notify('There must be at least one admin, so the only admin cannot be removed.');
       return;
     }
-    const confirmed = confirm(
-      `Remove ${user.name}? They lose access immediately.\n\nTheir sign-in record stays in Firebase Authentication and grants nothing on its own — delete it from the Firebase console if you want it gone entirely.`
-    );
+    const confirmed = await confirm({
+      title: `Remove ${user.name}?`,
+      body: 'They lose access immediately. Their sign-in record stays in Firebase Authentication and grants nothing on its own: delete it from the Firebase console if you want it gone entirely.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
     if (!confirmed) return;
     await runWrite(() => deleteUser(user.id), 'delete the user');
   }
 
   return (
-    <div className={page}>
-      {/* Header — mirrors the clients page so the two never drift apart */}
-      <header
-        className="bg-canvas/85 dark:bg-canvas-dark/85 backdrop-blur-xl sticky top-0 z-10"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Logo variant="mark" size={28} />
-            <span className={`${heading} text-[15px]`}>Limi</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className={btnIcon} aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
-            <button onClick={() => navigate('/')} className={`${btnGhostSm}`}>
-              Home
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
-        {/* Page header */}
-        <div className="flex items-start justify-between gap-4 mb-5 sm:mb-8">
-          <div>
-            <button
-              onClick={() => navigate('/')}
-              className={`flex items-center gap-1.5 text-xs mb-2 transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark rounded-chip ${focusRing}`}
-            >
-              <ArrowLeft size={13} />
-              Back
-            </button>
-            <h1 className={`${heading} text-lg sm:text-xl`}>Team</h1>
-            {!loading && (
-              <p className={`text-sm mt-0.5 ${faintText}`}>
-                {users.length} member{users.length !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* The shell's top bar already names the page, so this starts with the
+          count and the one action. */}
+      <main className={`${shellPad} max-w-3xl py-5 pb-24 sm:pb-8`}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <p className={`text-[13px] ${faintText}`}>
+            {loading ? 'Loading…' : `${users.length} member${users.length !== 1 ? 's' : ''}`}
+          </p>
           {isAdmin && (
-            <button onClick={() => setShowAddForm(true)} className={btnPrimary}>
-              <Plus size={15} />
-              <span className="hidden sm:inline">Add Member</span>
-              <span className="sm:hidden">Add</span>
+            <button onClick={() => setShowAddForm(true)} className={btnPrimarySm}>
+              <Plus size={16} />
+              Add member
             </button>
           )}
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="w-5 h-5 border-2 border-hairline dark:border-hairline-dark border-t-brand rounded-full animate-spin" />
+          <div className={rowList} aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-3 h-[60px]">
+                <div className="w-10 h-10 rounded-full bg-raised dark:bg-raised-dark animate-pulse" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-2.5 w-1/4 rounded bg-raised dark:bg-raised-dark animate-pulse" />
+                  <div className="h-2 w-1/3 rounded bg-raised dark:bg-raised-dark animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className={`${tile} w-16 h-16 flex items-center justify-center mb-4`}>
-              <Users size={24} className={faintText} />
+          <div className={emptyState}>
+            <div className={`${card} w-12 h-12 flex items-center justify-center`}>
+              <Users size={22} className={faintText} />
             </div>
-            <h2 className={`${heading} text-base mb-2`}>No team members yet</h2>
-            <p className={`text-sm max-w-xs leading-relaxed ${faintText}`}>
-              Add your first member to give them access to the boards.
-            </p>
+            <p className={emptyTitle}>No team members yet</p>
+            <p className={emptyBody}>Add a member to give them access to the boards.</p>
+            {isAdmin && (
+              <button onClick={() => setShowAddForm(true)} className={`${btnPrimarySm} mt-2`}>
+                <Plus size={16} /> Add member
+              </button>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <ul className={rowList} aria-label="Team members">
             {users.map((user) => {
               const tone = ROLE_TONE[user.role];
               const isMe = user.id === currentUser?.id;
+              const canEditRole = isAdmin && !isMe;
+
+              const roleChip = (
+                <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[12px] font-medium whitespace-nowrap">
+                  {ROLE_LABELS[user.role]}
+                  {canEditRole && <ChevronDown size={14} aria-hidden="true" />}
+                </span>
+              );
 
               return (
-                <div
+                <li
                   key={user.id}
-                  className={`${card} p-4 flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap`}
+                  className="flex items-center gap-3 px-3 py-2 min-h-[60px] rounded-card hover:bg-raised dark:hover:bg-raised-dark transition-colors"
                 >
-                  {/* Avatar */}
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${tone.avatar}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[14px] font-medium ${tone.avatar}`}
+                    aria-hidden="true"
                   >
                     {user.name.charAt(0).toUpperCase()}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm ${heading}`}>{user.name}</span>
-                      {isMe && (
-                        <span
-                          className={`${badge} border border-hairline dark:border-hairline-dark ${faintText}`}
-                        >
-                          You
+                    <p className={`text-[13px] truncate ${heading}`}>
+                      {user.name}
+                      {isMe && <span className={`ml-1.5 font-normal ${faintText}`}>(you)</span>}
+                    </p>
+                    <p className={`sm:hidden text-[12px] ${faintText}`}>{ROLE_LABELS[user.role]}</p>
+                    <p className={`text-[12px] truncate ${bodyText}`}>
+                      {user.email}
+                      {user.role === 'client' && user.assignedClientIds?.length > 0 && (
+                        <span className={faintText}>
+                          {' '}· {user.assignedClientIds.length} client
+                          {user.assignedClientIds.length !== 1 ? 's' : ''} assigned
                         </span>
                       )}
-                      <span className={`${badge} ${tone.chip}`}>{ROLE_LABELS[user.role]}</span>
-                    </div>
-                    <p className={`text-xs mt-0.5 truncate ${bodyText}`}>{user.email}</p>
-                    {user.role === 'client' && user.assignedClientIds?.length > 0 && (
-                      <p className={`text-[11px] mt-0.5 ${faintText}`}>
-                        {user.assignedClientIds.length} client
-                        {user.assignedClientIds.length !== 1 ? 's' : ''} assigned
-                      </p>
-                    )}
+                    </p>
                   </div>
 
-                  {/* Actions (admin only) */}
-                  {isAdmin && (
-                    <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-                      {/* Passwords are hashed by Firebase Auth and can't be read
-                          back by anyone, so the only lever is a reset email. */}
-                      <button
-                        onClick={() => handleSendReset(user)}
-                        disabled={resetSentTo === user.id}
-                        className={`${btnGhostSm}`}
-                      >
-                        <KeyRound size={12} />
-                        {resetSentTo === user.id ? 'Reset sent' : 'Send reset'}
-                      </button>
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className={btnIcon}
-                        aria-label={`Edit ${user.name}`}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      {!isMe && (
+                  {/* The role: a chip, and for an admin looking at someone else, its menu. */}
+                  {canEditRole ? (
+                    <Menu
+                      label={`Role of ${user.name}`}
+                      minWidth={200}
+                      items={ROLE_OPTIONS.map((r) => ({
+                        key: r.value,
+                        label: r.label,
+                        checked: r.value === user.role,
+                        onSelect: () => handleRole(user, r.value),
+                      }))}
+                      trigger={(t) => (
                         <button
-                          onClick={() => handleDelete(user)}
-                          className={btnIconDanger}
-                          aria-label={`Remove ${user.name}`}
+                          type="button"
+                          {...t}
+                          aria-label={`Role of ${user.name}: ${ROLE_LABELS[user.role]}, change`}
+                          className={`hidden sm:inline-flex rounded-full flex-shrink-0 hover:brightness-95 dark:hover:brightness-110 ${tone.chip} ${focusRing}`}
                         >
-                          <Trash2 size={14} />
+                          {roleChip}
                         </button>
                       )}
-                    </div>
+                    />
+                  ) : (
+                    <span className={`hidden sm:inline-flex rounded-full flex-shrink-0 ${tone.chip}`}>{roleChip}</span>
                   )}
-                </div>
+
+                  {/* Passwords are hashed by Firebase Auth and can't be read back by
+                      anyone, so the only lever is a reset email. */}
+                  {isAdmin && (
+                    <Menu
+                      label={`Actions for ${user.name}`}
+                      align="end"
+                      items={[
+                        { key: 'edit', label: 'Edit', icon: <Pencil size={18} />, onSelect: () => setEditingUser(user) },
+                        { key: 'reset', label: 'Send password reset', icon: <KeyRound size={18} />, onSelect: () => handleSendReset(user) },
+                        ...(!isMe
+                          ? ['divider' as const, { key: 'remove', label: 'Remove', icon: <Trash2 size={18} />, danger: true, onSelect: () => handleDelete(user) }]
+                          : []),
+                      ]}
+                      trigger={(t) => (
+                        <button type="button" {...t} className={`${btnIcon} flex-shrink-0`} aria-label={`Actions for ${user.name}`}>
+                          <MoreVertical size={18} />
+                        </button>
+                      )}
+                    />
+                  )}
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </main>
 

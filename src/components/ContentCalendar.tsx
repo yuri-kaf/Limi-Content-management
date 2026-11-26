@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from '../icons';
 import { ContentItem } from '../types';
-import { stageCardFill, stageCardText, stageCardVars } from '../stageColors';
+import { stageCardVars, stageDot } from '../stageColors';
 import { btnIcon, card, faintText, heading, focusRing, focusRingInset, todayMark } from '../ui';
 import { toDateInput } from '../utils';
 
@@ -49,32 +49,29 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
   const monthLabel = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-1">
+        <span className={`${heading} text-[16px] mr-auto`}>{monthLabel}</span>
         <button onClick={prevMonth} className={btnIcon} aria-label="Previous month">
-          <ChevronLeft size={16} />
+          <ChevronLeft size={18} />
         </button>
-        <span className={`${heading} text-sm`}>{monthLabel}</span>
         <button onClick={nextMonth} className={btnIcon} aria-label="Next month">
-          <ChevronRight size={16} />
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* One block with hairline rules between the days, not a box per day:
-          the 1px gaps show the hairline background through. */}
+      {/* One soft block, no outlines: the days are told apart by a hairline
+          between them, and the neighbouring months by a quieter fill. */}
       <div className={`${card} overflow-hidden`}>
-        <div className="grid grid-cols-7 border-b border-hairline dark:border-hairline-dark">
+        <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
-            <div
-              key={d}
-              className={`text-center text-[11px] font-medium py-2 uppercase tracking-wider ${faintText}`}
-            >
+            <div key={d} className={`text-center text-[12px] font-medium py-2 ${faintText}`}>
               {d}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-hairline dark:bg-hairline-dark">
+        <div className="grid grid-cols-7 gap-px bg-hairline dark:bg-hairline-dark border-t border-hairline dark:border-hairline-dark">
           {cells.map((d) => {
             const outside = d.getMonth() !== month;
             const isToday = isSameDay(d, today);
@@ -87,9 +84,9 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                 data-outside={outside ? '' : undefined}
                 aria-current={isToday ? 'date' : undefined}
                 onClick={() => canAdd && onDayClick(d)}
-                className={`group min-h-[88px] p-1.5 flex flex-col gap-1 transition-colors duration-100 ${
-                  outside ? 'bg-tint dark:bg-tint-dark' : 'bg-surface dark:bg-surface-dark'
-                } ${canAdd ? 'cursor-pointer hover:bg-hover dark:hover:bg-hover-dark' : ''}`}
+                className={`group min-h-[64px] sm:min-h-[92px] p-1 sm:p-1.5 flex flex-col gap-1 transition-colors duration-100 ${
+                  outside ? 'bg-raised dark:bg-raised-dark' : 'bg-canvas dark:bg-canvas-dark'
+                } ${canAdd ? 'cursor-pointer hover:bg-hover/60 dark:hover:bg-hover-dark/60' : ''}`}
               >
                 <div className="flex items-center justify-between">
                   {/* The number is drawing; the date is read out in full. */}
@@ -118,27 +115,33 @@ export default function ContentCalendar({ content, canAdd, onDayClick, onItemCli
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onDayClick(d); }}
                       aria-label={`Add post on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
-                      className={`w-6 h-6 [@media(hover:none)]:w-8 [@media(hover:none)]:h-8 inline-flex items-center justify-center rounded-tile opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,background-color,color] ${faintText} hover:text-ink dark:hover:text-ink-dark hover:bg-canvas dark:hover:bg-canvas-dark ${focusRing}`}
+                      className={`hidden sm:inline-flex w-6 h-6 [@media(hover:none)]:w-8 [@media(hover:none)]:h-8 items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,background-color,color] ${faintText} hover:text-ink dark:hover:text-ink-dark hover:bg-ink/[.08] dark:hover:bg-ink-dark/[.08] ${focusRing}`}
                     >
-                      <Plus size={12} />
+                      <Plus size={16} />
                     </button>
                   )}
                 </div>
 
-                {/* Each post in its stage's card colours, as on the board. */}
-                {dayItems.slice(0, 3).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
-                    className={`w-full text-left px-1.5 py-0.5 rounded-chip text-[11px] font-medium truncate transition-[filter] duration-100 hover:brightness-95 dark:hover:brightness-110 ${focusRingInset} ${stageCardFill} ${stageCardText}`}
-                    style={stageCardVars(item.status)}
-                    title={item.title}
-                  >
-                    {item.title}
-                  </button>
-                ))}
+                {/* Each post a compact chip: its stage's dot and its title. On
+                    a phone the cell is too narrow for a title, so the dot is
+                    the chip. */}
+                <div className="flex flex-wrap sm:flex-col gap-0.5">
+                  {dayItems.slice(0, 3).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
+                      aria-label={item.title}
+                      className={`inline-flex items-center justify-center sm:justify-start gap-1.5 min-w-5 h-5 sm:w-full px-1 rounded-chip text-left text-[11px] font-medium text-ink dark:text-ink-dark hover:bg-ink/[.08] dark:hover:bg-ink-dark/[.1] transition-colors ${focusRingInset}`}
+                      style={stageCardVars(item.status)}
+                      title={item.title}
+                    >
+                      <span aria-hidden="true" className={`w-2 h-2 rounded-full flex-shrink-0 ${stageDot}`} />
+                      <span aria-hidden="true" className="hidden sm:block truncate">{item.title}</span>
+                    </button>
+                  ))}
+                </div>
                 {dayItems.length > 3 && (
-                  <span className={`text-[11px] px-1 ${faintText}`}>+{dayItems.length - 3} more</span>
+                  <span className={`text-[11px] px-1 ${faintText}`}>+{dayItems.length - 3}<span className="hidden sm:inline"> more</span></span>
                 )}
               </div>
             );

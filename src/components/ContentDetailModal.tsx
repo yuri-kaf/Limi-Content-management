@@ -1,24 +1,29 @@
 import { useState } from 'react';
 import {
-  X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Play, Image as ImageIcon,
+  X, Copy, Check, ExternalLink, Calendar, Pencil, Trash2, Film, Image as ImageIcon,
   CheckCircle, XCircle, Clock, Download, History, Link2,
-} from 'lucide-react';
+} from '../icons';
 import CommentThread from './CommentThread';
+import StagePill from './StagePill';
+import { useFeedback } from './m3/Feedback';
 import { ClientReview, ContentItem, ContentStatus } from '../types';
 import {
-  getMediaInfo, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS, isLocalOrigin, STAGES,
+  getMediaInfo, openLabel, mediaTypeOf, captionOf, teamNotesOf, PLATFORM_LABELS, isLocalOrigin, STAGES,
 } from '../utils';
 import {
-  sheetOverlay, sheetPanelWide, sheetBody, sheetPane, heading, faintText, bodyText, badge,
-  sectionLabel, readout, readoutScroll, textarea, btnGhost, btnGhostDanger, btnPrimary, btnSuccess,
-  btnDanger, btnIcon, focusRing, focusRingInset,
+  sheetOverlay, sheetPanelWide, sheetBody, sheetPane, faintText, bodyText, badge,
+  sectionLabel, readout, readoutScroll, textarea, btnGhost, btnGhostDanger, btnSuccess,
+  btnDanger, btnGhostSm, btnIcon, focusRing, modalTitle, segmented, segItem,
 } from '../ui';
+
+// On a phone the footer is icon buttons around one wide Open button.
+const iconOnPhone = 'max-sm:!w-12 max-sm:!px-0 flex-shrink-0';
 
 type CopyTarget = 'caption' | 'hashtags' | 'both';
 
 // Small quiet action next to a section heading (Copy, + tags, Create link).
 const inlineAction =
-  `inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand-text dark:hover:text-brand-textdark transition-colors rounded-chip ${focusRing}`;
+  `inline-flex items-center gap-1.5 h-6 px-2 -mr-2 text-[12px] font-medium text-ink-faint dark:text-ink-faintdark hover:text-brand-text dark:hover:text-brand-textdark hover:bg-hover dark:hover:bg-hover-dark transition-colors rounded-full ${focusRing}`;
 
 interface Props {
   clientId: string;
@@ -58,11 +63,12 @@ export default function ContentDetailModal({
   const [imgError, setImgError] = useState(false);
   const [copied, setCopied] = useState<CopyTarget | null>(null);
   const [shareUrl, setShareUrl] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { confirm } = useFeedback();
   const [declineNote, setDeclineNote] = useState(item.reviewNote ?? '');
   const [decliningMode, setDecliningMode] = useState(false);
 
   const media = getMediaInfo(item.driveLink);
+  const openText = openLabel(media);
   const thumbnailUrl = media.previewUrl;
   const isGraphic = mediaTypeOf(item) === 'graphic';
   const caption = captionOf(item);
@@ -70,7 +76,6 @@ export default function ContentDetailModal({
   const teamNotes = teamNotesOf(item);
   const platforms = item.platforms ?? [];
   const versions = item.versions ?? [];
-  const stage = STAGES.find((s) => s.id === item.status);
   // A cross-origin frame reports a successful load even when what it rendered
   // is a permission wall, so failure can't be detected here. Signpost the way
   // out instead — but only for the providers where sharing is the likely cause;
@@ -85,12 +90,14 @@ export default function ContentDetailModal({
     setTimeout(() => setCopied(null), 2000);
   }
 
-  function handleDeleteClick() {
-    if (confirmDelete) {
-      onDelete();
-    } else {
-      setConfirmDelete(true);
-    }
+  async function handleDeleteClick() {
+    const ok = await confirm({
+      title: 'Delete this post?',
+      body: `"${item.title}" will be removed from the board. This can't be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (ok) onDelete();
   }
 
   function handleApprove() {
@@ -102,6 +109,13 @@ export default function ContentDetailModal({
     onReview?.('declined', declineNote.trim() || undefined);
     onClose();
   }
+
+  // What the left pane can actually show. A file with nothing to embed (OneDrive
+  // above all) gets a compact file panel, never an empty 16:9 box.
+  const showVideo = !!media.embedUrl && media.embedKind === 'video' && !isGraphic;
+  const showFrame = !!media.embedUrl && media.embedKind === 'iframe';
+  const showImage = !showVideo && !showFrame && !!thumbnailUrl && !imgError;
+  const showFile = !showVideo && !showFrame && !showImage;
 
   const hasSchedule = item.scheduledAt && item.scheduledAt > 0;
   const scheduledLabel = hasSchedule
@@ -116,32 +130,40 @@ export default function ContentDetailModal({
     : null;
 
   const reviewStatusEl = (() => {
+    const base = 'inline-flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full text-[12px] font-medium';
     if (item.clientReview === 'approved') {
       return (
-        <div className="flex items-center gap-1.5 text-success-text dark:text-success-textdark">
-          <CheckCircle size={13} />
-          <span className="text-xs font-semibold">Client Approved</span>
+        <div className="flex flex-col gap-2">
+          <span className={`${base} self-start bg-success-soft dark:bg-success-softdark text-success-text dark:text-success-textdark`}>
+            <CheckCircle size={14} />
+            Client approved
+          </span>
         </div>
       );
     }
     if (item.clientReview === 'declined') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 text-brand-text dark:text-brand-textdark">
-            <XCircle size={13} />
-            <span className="text-xs font-semibold">Client Declined</span>
-          </div>
+          <span className={`${base} self-start bg-brand-soft dark:bg-brand-softdark text-brand-on dark:text-brand-ondark`}>
+            <XCircle size={14} />
+            Client asked for changes
+          </span>
           {item.reviewNote && <p className={readoutScroll}>"{item.reviewNote}"</p>}
         </div>
       );
     }
     return (
-      <div className={`flex items-center gap-1.5 ${faintText}`}>
-        <Clock size={13} />
-        <span className="text-xs font-semibold">Pending Client Review</span>
-      </div>
+      <span className={`${base} self-start bg-hover dark:bg-hover-dark ${bodyText}`}>
+        <Clock size={14} />
+        Waiting for client review
+      </span>
     );
   })();
+
+  const copyIcon = (which: CopyTarget) =>
+    copied === which
+      ? <Check size={14} className="text-success-text dark:text-success-textdark" />
+      : <Copy size={14} />;
 
   return (
     <div
@@ -157,100 +179,108 @@ export default function ContentDetailModal({
       >
         {/* Grabber (phones only) */}
         <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-hairline dark:bg-hairline-dark" />
+          <div className="w-10 h-1 rounded-full bg-outline/60 dark:bg-outline-dark/60" />
         </div>
 
-        {/* Pinned header. The old layout scrolled the whole panel, so the title
-            and the close button slid away as soon as you read anything. */}
-        <header className="flex items-start gap-3 px-5 py-3.5 border-b border-hairline dark:border-hairline-dark">
+        {/* Pinned header: the title and the close button stay put while the
+            panes scroll. */}
+        <header className="flex items-start gap-3 pl-6 pr-3 pt-4 pb-3">
           <div className="flex-1 min-w-0">
-            <h2 className={`${heading} text-base leading-snug line-clamp-2`}>{item.title}</h2>
-            {stage && (
-              <span
-                className={`${badge} mt-1.5`}
-                style={{ backgroundColor: `${stage.color}1f`, color: stage.color }}
-              >
+            <h2 className={`${modalTitle} line-clamp-2`}>{item.title}</h2>
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              <StagePill status={item.status} />
+              {platforms.map((p) => (
                 <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: stage.color }}
-                />
-                {stage.label}
-              </span>
-            )}
+                  key={p}
+                  className={`${badge} h-5 bg-hover dark:bg-hover-dark text-ink-soft dark:text-ink-softdark`}
+                >
+                  {PLATFORM_LABELS[p]}
+                </span>
+              ))}
+              {scheduledLabel && (
+                <span className={`inline-flex items-center gap-1 text-[12px] ml-1 ${faintText}`}>
+                  <Calendar size={14} className="flex-shrink-0" />
+                  {scheduledLabel}
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} className={`${btnIcon} flex-shrink-0`} aria-label="Close">
-            <X size={16} />
+            <X size={20} />
           </button>
         </header>
 
         <div className={sheetBody}>
-          {/* ── Left pane: the content itself ───────────────────────────── */}
+          {/* Left pane: the content itself */}
           <div className={sheetPane}>
-            {/* Media — an embedded viewer when the provider offers one,
-                otherwise the still thumbnail, otherwise a placeholder. */}
             {/* flex-shrink-0 is load-bearing: this is a flex item in a pane of
                 constrained height, and without it flex shrinking wins over
                 aspect-ratio and squashes the player out of 16:9. */}
-            <div
-              className="relative flex-shrink-0 rounded-tile overflow-hidden bg-raised dark:bg-raised-dark"
-              style={{ aspectRatio: '16/9' }}
-            >
-              {media.embedUrl && media.embedKind === 'video' && !isGraphic ? (
-                // The one provider that serves the bytes, so it gets real
-                // controls instead of someone else's player.
-                <video
-                  src={media.embedUrl}
-                  poster={thumbnailUrl ?? undefined}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-full bg-black"
-                />
-              ) : media.embedUrl && media.embedKind === 'iframe' ? (
-                <iframe
-                  src={media.embedUrl}
-                  title={item.title}
-                  className="w-full h-full border-0"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                  allowFullScreen
-                />
-              ) : thumbnailUrl && !imgError ? (
-                <img
-                  src={thumbnailUrl}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                // Nothing can be shown in place, so the box becomes the way
-                // out rather than a dead film icon.
-                <a
-                  href={item.driveLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-full h-full flex flex-col items-center justify-center gap-2 group/open hover:bg-hairline/40 dark:hover:bg-hairline-dark/40 transition-colors ${focusRingInset}`}
-                >
-                  <div className="w-12 h-12 rounded-full bg-surface dark:bg-surface-dark shadow-card flex items-center justify-center">
-                    {isGraphic ? (
-                      <ImageIcon size={20} className={faintText} />
-                    ) : (
-                      <Play size={20} className="text-brand ml-0.5" />
-                    )}
-                  </div>
-                  <span className={`text-xs font-semibold ${bodyText} group-hover/open:text-brand-text dark:group-hover/open:text-brand-textdark transition-colors`}>
-                    Open in {media.label}
+            {showFile ? (
+              <a
+                href={item.driveLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex-shrink-0 flex items-center gap-3 p-3 pr-4 rounded-card bg-raised dark:bg-raised-dark hover:bg-hover dark:hover:bg-hover-dark transition-colors ${focusRing}`}
+              >
+                <span className="w-12 h-12 rounded-tile bg-hover dark:bg-hover-dark flex items-center justify-center flex-shrink-0 text-ink-soft dark:text-ink-softdark">
+                  {isGraphic ? <ImageIcon size={24} /> : <Film size={24} />}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[14px] font-medium text-ink dark:text-ink-dark truncate">
+                    {media.label}
                   </span>
-                </a>
-              )}
-            </div>
+                  <span className={`block text-[12px] ${faintText}`}>
+                    {isGraphic ? 'Graphic' : 'Video'} · opens in a new tab
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-hover dark:bg-hover-dark text-[13px] font-medium text-ink dark:text-ink-dark flex-shrink-0">
+                  <ExternalLink size={14} />
+                  Open
+                </span>
+              </a>
+            ) : (
+              <div
+                className="relative flex-shrink-0 rounded-card overflow-hidden bg-raised dark:bg-raised-dark"
+                style={{ aspectRatio: '16/9' }}
+              >
+                {showVideo ? (
+                  // The one provider that serves the bytes, so it gets real
+                  // controls instead of someone else's player.
+                  <video
+                    src={media.embedUrl!}
+                    poster={thumbnailUrl ?? undefined}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full bg-black"
+                  />
+                ) : showFrame ? (
+                  <iframe
+                    src={media.embedUrl!}
+                    title={item.title}
+                    className="w-full h-full border-0"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                    allowFullScreen
+                  />
+                ) : (
+                  <img
+                    src={thumbnailUrl!}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
+                )}
+              </div>
+            )}
 
             {media.embedUrl && needsLinkSharing ? (
-              <p className={`-mt-2 text-[11px] leading-relaxed ${faintText}`}>
-                Not playing? The file has to be shared as “Anyone with the link”
-                — otherwise use Open in {media.label} below.
+              <p className={`-mt-2 text-[12px] leading-relaxed ${faintText}`}>
+                Not playing? The file has to be shared as “Anyone with the link”.
+                Otherwise use {openText} below.
               </p>
             ) : media.previewNote ? (
-              <p className={`-mt-2 text-[11px] leading-relaxed ${faintText}`}>
+              <p className={`-mt-2 text-[12px] leading-relaxed ${faintText}`}>
                 {media.previewNote}
               </p>
             ) : null}
@@ -261,78 +291,49 @@ export default function ContentDetailModal({
             {onChangeStatus && (
               <div>
                 <span className={sectionLabel}>Stage</span>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {STAGES.map((s) => {
-                    const isCurrent = s.id === item.status;
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => { if (!isCurrent) onChangeStatus(s.id); }}
-                        aria-current={isCurrent}
-                        disabled={isCurrent}
-                        className={`flex items-center gap-1.5 px-3 h-9 rounded-tile text-xs font-semibold transition-colors ${focusRing} ${
-                          isCurrent
-                            ? 'cursor-default'
-                            : 'bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark hover:text-ink dark:hover:text-ink-dark'
-                        }`}
-                        style={
-                          isCurrent
-                            ? {
-                                backgroundColor: `${s.color}22`,
-                                color: s.color,
-                                border: `1px solid ${s.color}55`,
-                              }
-                            : { border: '1px solid transparent' }
-                        }
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.label}
-                        {isCurrent && <Check size={11} />}
-                      </button>
-                    );
-                  })}
+                <div className="mt-2 overflow-x-auto [scrollbar-width:none]">
+                  <div role="group" aria-label="Stage" className={`${segmented} [@media(hover:none)]:!h-10`}>
+                    {STAGES.map((s) => {
+                      const isCurrent = s.id === item.status;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => { if (!isCurrent) onChangeStatus(s.id); }}
+                          aria-pressed={isCurrent}
+                          aria-current={isCurrent}
+                          className={segItem(isCurrent)}
+                        >
+                          {isCurrent
+                            ? <Check size={14} />
+                            : <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />}
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
-            {platforms.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {platforms.map((p) => (
-                  <span
-                    key={p}
-                    className={`${badge} bg-raised dark:bg-raised-dark text-ink-soft dark:text-ink-softdark`}
-                  >
-                    {PLATFORM_LABELS[p]}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Caption — capped at four lines and scrolled beyond that, so a
+            {/* Caption, capped at four lines and scrolled beyond that, so a
                 long one no longer pushes the rest of the dialog out of reach. */}
             {caption ? (
               <div>
-                <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center justify-between gap-3 mb-1.5 min-h-6">
                   <span className={sectionLabel}>Caption</span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
                     <button onClick={() => handleCopy('caption', caption)} className={inlineAction}>
-                      {copied === 'caption'
-                        ? <Check size={11} className="text-success-text dark:text-success-textdark" />
-                        : <Copy size={11} />}
-                      <span>{copied === 'caption' ? 'Copied!' : 'Copy'}</span>
+                      {copyIcon('caption')}
+                      <span>{copied === 'caption' ? 'Copied' : 'Copy'}</span>
                     </button>
                     {hashtags && (
                       <button
                         onClick={() => handleCopy('both', `${caption}\n\n${hashtags}`)}
                         className={inlineAction}
                       >
-                        {copied === 'both'
-                          ? <Check size={11} className="text-success-text dark:text-success-textdark" />
-                          : <Copy size={11} />}
-                        <span>{copied === 'both' ? 'Copied!' : '+ tags'}</span>
+                        {copyIcon('both')}
+                        <span>{copied === 'both' ? 'Copied' : 'Copy with tags'}</span>
                       </button>
                     )}
                   </div>
@@ -340,77 +341,64 @@ export default function ContentDetailModal({
                 <p className={readoutScroll}>{caption}</p>
               </div>
             ) : (
-              <p className={`text-xs italic ${faintText}`}>No caption added.</p>
+              <p className={`text-[13px] ${faintText}`}>No caption yet.</p>
             )}
 
             {hashtags && (
               <div>
-                <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center justify-between gap-3 mb-1.5 min-h-6">
                   <span className={sectionLabel}>Hashtags</span>
                   <button onClick={() => handleCopy('hashtags', hashtags)} className={inlineAction}>
-                    {copied === 'hashtags'
-                      ? <Check size={11} className="text-success-text dark:text-success-textdark" />
-                      : <Copy size={11} />}
-                    <span>{copied === 'hashtags' ? 'Copied!' : 'Copy'}</span>
+                    {copyIcon('hashtags')}
+                    <span>{copied === 'hashtags' ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <p className={`${readoutScroll} break-words`}>{hashtags}</p>
               </div>
             )}
 
-            {/* Internal notes — never shown to the client */}
+            {/* Internal notes, never shown to the client */}
             {!isClientRole && teamNotes && (
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-warning-text dark:text-warning-textdark">
-                  Team Notes
+                <span className="text-[12px] font-medium text-warning-text dark:text-warning-textdark">
+                  Team notes (not shown to the client)
                 </span>
-                <p className="mt-2 max-h-[7.25rem] overflow-y-auto overscroll-contain rounded-tile border border-warning/30 dark:border-warning-textdark/25 bg-warning-soft dark:bg-warning-softdark p-3 text-sm leading-relaxed whitespace-pre-wrap text-ink-soft dark:text-ink-softdark">
+                <p className="mt-1.5 max-h-[7.25rem] overflow-y-auto overscroll-contain rounded-tile bg-warning-soft dark:bg-warning-softdark p-3 text-[13px] leading-relaxed whitespace-pre-wrap text-ink-soft dark:text-ink-softdark">
                   {teamNotes}
                 </p>
-              </div>
-            )}
-
-            {scheduledLabel && (
-              <div className="flex items-center gap-2">
-                <Calendar size={13} className="text-brand flex-shrink-0" />
-                <span className={`text-xs ${faintText}`}>
-                  Scheduled:{' '}
-                  <span className={`font-medium ${bodyText}`}>{scheduledLabel}</span>
-                </span>
               </div>
             )}
 
             {versions.length > 0 && (
               <div>
                 <span className={sectionLabel}>Earlier versions</span>
-                <div className="flex flex-col gap-1.5 mt-2">
+                <div className="flex flex-col gap-1 mt-1.5">
                   {versions.map((v, i) => (
                     <a
                       key={`${v.replacedAt}-${i}`}
                       href={v.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-2 text-xs transition-colors ${bodyText} hover:text-brand-text dark:hover:text-brand-textdark rounded-chip ${focusRing}`}
+                      className={`flex items-center gap-2 text-[13px] transition-colors ${bodyText} hover:text-brand-text dark:hover:text-brand-textdark rounded-chip ${focusRing}`}
                     >
-                      <History size={11} />
+                      <History size={14} />
                       v{i + 1}
                       <span className={faintText}>
                         · replaced {new Date(v.replacedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </a>
                   ))}
-                  <span className={`text-xs font-medium ${bodyText}`}>
-                    v{versions.length + 1} — current
+                  <span className={`text-[13px] font-medium ${bodyText}`}>
+                    v{versions.length + 1} (current)
                   </span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ── Right pane: decisions and discussion ────────────────────── */}
-          <div
-            className={`${sheetPane} border-t border-hairline dark:border-hairline-dark lg:border-t-0 lg:border-l bg-canvas/40 dark:bg-canvas-dark/40`}
-          >
+          {/* Right pane: decisions and discussion. A fill, not a hairline,
+              tells it from the content. */}
+          <div className={`${sheetPane} bg-raised/60 dark:bg-canvas-dark/40`}>
             {/* Review status (non-client sees read-only) */}
             {!isClientRole && reviewStatusEl}
 
@@ -418,57 +406,58 @@ export default function ContentDetailModal({
             {isClientRole && onReview && (
               <div>
                 {item.clientReview === 'approved' ? (
-                  <div className="flex items-center gap-2 text-success-text dark:text-success-textdark text-sm font-semibold">
-                    <CheckCircle size={15} />
-                    You approved this content
+                  <div className="flex items-center gap-2 text-success-text dark:text-success-textdark text-[14px] font-medium">
+                    <CheckCircle size={18} />
+                    You approved this post
                   </div>
                 ) : item.clientReview === 'declined' ? (
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-brand-text dark:text-brand-textdark text-sm font-semibold">
-                      <XCircle size={15} />
-                      You declined this content
+                    <div className="flex items-center gap-2 text-brand-text dark:text-brand-textdark text-[14px] font-medium">
+                      <XCircle size={18} />
+                      You asked for changes
                     </div>
                     {item.reviewNote && (
                       <p className={readoutScroll}>Your note: "{item.reviewNote}"</p>
                     )}
                     <button
                       onClick={() => { setDecliningMode(false); onReview('pending'); }}
-                      className={`self-start text-xs transition-colors ${faintText} hover:text-ink dark:hover:text-ink-dark rounded-chip ${focusRing}`}
+                      className={`${inlineAction} self-start`}
                     >
                       Reset review
                     </button>
                   </div>
                 ) : decliningMode ? (
                   <div className="flex flex-col gap-2">
-                    <label className={sectionLabel}>Reason / Suggestions</label>
+                    <label className={sectionLabel} htmlFor="decline-note">What should change?</label>
                     <textarea
+                      id="decline-note"
                       value={declineNote}
                       onChange={(e) => setDeclineNote(e.target.value)}
                       rows={3}
                       placeholder="Tell us what needs to change..."
                       className={textarea}
                     />
-                    <div className="flex gap-2">
-                      <button onClick={() => setDecliningMode(false)} className={`${btnGhost} flex-1`}>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setDecliningMode(false)} className={btnGhost}>
                         Cancel
                       </button>
-                      <button onClick={handleDeclineSubmit} className={`${btnDanger} flex-1`}>
-                        Confirm Decline
+                      <button onClick={handleDeclineSubmit} className={btnDanger}>
+                        Send feedback
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex gap-2">
                     <button onClick={handleApprove} className={`${btnSuccess} flex-1`}>
-                      <CheckCircle size={13} />
+                      <CheckCircle size={16} />
                       Approve
                     </button>
                     <button
                       onClick={() => setDecliningMode(true)}
-                      className={`${btnGhostDanger} flex-1`}
+                      className={`${btnGhost} flex-1`}
                     >
-                      <XCircle size={13} />
-                      Decline
+                      <XCircle size={16} />
+                      Ask for changes
                     </button>
                   </div>
                 )}
@@ -484,25 +473,25 @@ export default function ContentDetailModal({
                     setShareUrl(url);
                     navigator.clipboard.writeText(url).catch(() => {});
                   }}
-                  className={inlineAction}
+                  className={btnGhostSm}
                 >
-                  <Link2 size={12} />
-                  {shareUrl ? 'Link copied — create another' : 'Create review link'}
+                  <Link2 size={14} />
+                  {shareUrl ? 'Link copied, copy a new one' : 'Copy review link'}
                 </button>
                 {shareUrl && (
                   <>
-                    <p className={`${readout} mt-2 text-[11px] font-mono break-all`}>{shareUrl}</p>
+                    <p className={`${readout} mt-2 text-[12px] break-all`}>{shareUrl}</p>
                     {/* A link built from a dev-server origin resolves only on
                         this machine, so sending it looks like a broken feature. */}
                     {isLocalOrigin(shareUrl) ? (
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-brand-text dark:text-brand-textdark">
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-brand-text dark:text-brand-textdark">
                         This link points at a local address, so it will not open for
                         anyone else. Deploy the app and set VITE_PUBLIC_APP_URL to the
                         deployed origin before sending review links.
                       </p>
                     ) : (
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-warning-text dark:text-warning-textdark">
-                        Anyone with this link can view and review this item without
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-warning-text dark:text-warning-textdark">
+                        Anyone with this link can view and review this post without
                         signing in. Send it only to people who should see it.
                       </p>
                     )}
@@ -520,51 +509,43 @@ export default function ContentDetailModal({
           </div>
         </div>
 
-        {/* Pinned footer. Actions stay reachable without scrolling to the end
-            of the discussion to find them. */}
-        <footer className="flex items-center gap-2 px-5 py-3.5 border-t border-hairline dark:border-hairline-dark">
-          <a
-            href={item.driveLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${btnGhost} flex-1`}
-          >
-            <ExternalLink size={13} />
-            <span className="truncate">Open in {media.label}</span>
-          </a>
-
+        {/* Pinned footer, so the actions stay reachable without scrolling to
+            the end of the discussion. */}
+        <footer className="flex items-center gap-2 px-6 py-3 border-t border-hairline dark:border-hairline-dark">
+          {!isClientRole && canDelete && (
+            <button onClick={handleDeleteClick} className={`${btnGhostDanger} ${iconOnPhone}`} aria-label="Delete">
+              <Trash2 size={16} />
+              <span className="hidden sm:inline">Delete</span>
+            </button>
+          )}
+          <span className="hidden sm:block flex-1" />
+          {!isClientRole && canEdit && (
+            <button onClick={onEdit} className={`${btnGhost} ${iconOnPhone}`} aria-label="Edit">
+              <Pencil size={16} />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+          )}
           {isGraphic && media.downloadUrl && (
             <a
               href={media.downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${btnPrimary} flex-1`}
+              className={`${btnGhost} ${iconOnPhone}`}
+              aria-label="Download"
             >
-              <Download size={13} />
-              Download
+              <Download size={16} />
+              <span className="hidden sm:inline">Download</span>
             </a>
           )}
-
-          {!isClientRole && canEdit && (
-            <button onClick={onEdit} className={btnGhost}>
-              <Pencil size={13} />
-              <span className="hidden sm:inline">Edit</span>
-            </button>
-          )}
-          {!isClientRole && canDelete && (
-            <button
-              onClick={handleDeleteClick}
-              onBlur={() => setConfirmDelete(false)}
-              className={
-                confirmDelete
-                  ? btnDanger
-                  : btnGhostDanger
-              }
-            >
-              <Trash2 size={13} />
-              <span className="hidden sm:inline">{confirmDelete ? 'Confirm?' : 'Delete'}</span>
-            </button>
-          )}
+          <a
+            href={item.driveLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${btnGhost} min-w-0 max-sm:flex-1`}
+          >
+            <ExternalLink size={16} />
+            <span className="truncate">{openText}</span>
+          </a>
         </footer>
       </div>
     </div>

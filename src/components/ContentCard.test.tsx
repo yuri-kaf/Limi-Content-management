@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
@@ -34,13 +34,18 @@ function renderCard(props: CardProps = {}) {
 
 const cardOf = (title: string) => screen.getByText(title).closest('[data-stage]') as HTMLElement;
 
-// A link with a thumbnail, which is what a draggable card puts its grip on.
 const DRIVE = 'https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ012345/view';
-const gripOf = (card: HTMLElement) => card.querySelector('.lucide-grip-vertical');
+const ONEDRIVE = 'https://limi-my.sharepoint.com/:v:/g/personal/a/EaBc?e=x';
+const lateMark = () => document.querySelector('.icon-alert-circle');
+
+async function openMenu(title = 'Momo reel') {
+  await userEvent.click(screen.getByRole('button', { name: `${title} actions` }));
+  return screen.getByRole('menu');
+}
 
 describe('ContentCard', () => {
-  // The board uses the queue's rule: a slot earlier today is "today", in the
-  // stage's own chip colour, not the red late chip.
+  // The board uses the queue's rule: a slot earlier today is "today", not the
+  // red late mark.
   it('does not mark a slot earlier today as late, but does an earlier day', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 7, 20, 15, 0, 0));
@@ -48,26 +53,30 @@ describe('ContentCard', () => {
       const { unmount } = renderCard({
         item: item({ status: 'to-post', scheduledAt: new Date(2026, 7, 20, 9, 0, 0).getTime() }),
       });
-      expect(document.querySelector('.lucide-circle-alert, .lucide-alert-circle')).toBeNull();
+      expect(lateMark()).toBeNull();
       unmount();
       renderCard({
         item: item({ status: 'to-post', scheduledAt: new Date(2026, 7, 19, 9, 0, 0).getTime() }),
       });
-      expect(document.querySelector('.lucide-circle-alert, .lucide-alert-circle')).not.toBeNull();
+      expect(lateMark()).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("fills the card with its stage's pastel", () => {
+  // No outline and no pastel: white on the grey board lane, filled on the
+  // white page of a stage grid. The stage rides along for the dot.
+  it('is white on a board lane and filled on the page', () => {
     renderCard({ item: item({ status: 'to-post' }) });
-    const card = cardOf('Momo reel');
-    expect(card).toHaveAttribute('data-stage', 'to-post');
-    expect(card.style.getPropertyValue('--sc-tint')).toBe('#faefcc');
-    expect(card.style.getPropertyValue('--sc-tint-dark')).toBe('#3a2c10');
+    const lane = cardOf('Momo reel');
+    expect(lane).toHaveAttribute('data-stage', 'to-post');
+    expect(lane).toHaveClass('bg-canvas');
+    expect(lane.className).not.toMatch(/\bborder\b/);
+    render(<ContentCard item={item({ id: 'i2', title: 'Grid reel' })} surface="page" draggable={false} />);
+    expect(cardOf('Grid reel')).toHaveClass('bg-raised');
   });
 
-  it('shows the campaign and the client decision as chips', () => {
+  it('shows the campaign and the client decision', () => {
     renderCard({
       item: item({ clientReview: 'approved' }),
       campaign: { name: 'Dashain sale', color: 'orange' },
@@ -76,42 +85,64 @@ describe('ContentCard', () => {
     expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
+  it('says "Changes asked" for a post the client sent back', () => {
+    renderCard({ item: item({ clientReview: 'declined' }) });
+    expect(screen.getByText('Changes asked')).toBeInTheDocument();
+  });
+
+  // OneDrive never gives a picture without a Microsoft sign-in, so the card is
+  // text first: no empty frame, the kind of post as an icon.
+  it('shows no picture frame for a link that cannot give one', () => {
+    renderCard({ item: item({ driveLink: ONEDRIVE }) });
+    expect(cardOf('Momo reel').querySelector('img')).toBeNull();
+    expect(screen.getByLabelText('Video')).toBeInTheDocument();
+  });
+
+  it('shows a small picture where the link gives one', () => {
+    renderCard({ item: item({ driveLink: DRIVE }) });
+    expect(cardOf('Momo reel').querySelector('img')).not.toBeNull();
+  });
+
   // A focus indicator needs 3:1. At 40% the ring was 1.9:1 on the light page.
   it('draws a solid inset focus ring, whether or not the card can move', () => {
     renderCard();
     render(<ContentCard item={item({ id: 'i2', title: 'Static reel' })} draggable={false} />);
     for (const title of ['Momo reel', 'Static reel']) {
-      // Inset: an offset ring would draw a canvas-coloured halo round the
-      // pastel fill.
       expect(cardOf(title).className).toContain(focusRingInset);
       expect(cardOf(title).className).not.toMatch(/ring-(?:brand|focus)\//);
     }
   });
 
-  it("rings the campaign label, so a campaign in the fill's own hue still shows", () => {
-    renderCard({ item: item({ status: 'editing' }), campaign: { name: 'Dashain sale', color: 'purple' } });
-    expect(screen.getByTitle('Dashain sale')).toHaveClass(
-      'max-w-[96px]', 'ring-1', 'ring-black/5', 'dark:ring-white/10'
-    );
+  it('keeps every action in its menu, reachable without a hover', async () => {
+    const actions = { onEdit: vi.fn(), onDelete: vi.fn() };
+    renderCard({ ...actions, item: item({ driveLink: DRIVE }) });
+    const trigger = screen.getByRole('button', { name: 'Momo reel actions' });
+    // Faded in on hover where there is a pointer; always there on a touch screen.
+    expect(trigger.className).toContain('[@media(hover:hover)]:opacity-0');
+    expect(trigger.className).not.toMatch(/(^|\s)opacity-0/);
+    const menu = await openMenu();
+    expect(within(menu).getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
+      'Open in Google Drive', 'Edit', 'Delete',
+    ]);
   });
 
-  it('turns Delete a lighter red under a hover in dark mode', () => {
+  it('moves to another stage from its menu', async () => {
+    const onMove = vi.fn();
+    renderCard({ onMove });
+    await openMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move to To post' }));
+    expect(onMove).toHaveBeenCalledWith('to-post');
+  });
+
+  it('turns Delete red in its menu', async () => {
     renderCard({ onDelete: vi.fn() });
-    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
-      'hover:!text-brand-text', 'dark:hover:!text-brand-textdark'
-    );
+    await openMenu();
+    expect(screen.getByRole('menuitem', { name: 'Delete' }).className).toContain('text-brand-text');
   });
 
   it('lifts on hover where it sits on the board', () => {
     renderCard();
-    expect(cardOf('Momo reel').className).toContain('hover:-translate-y-0.5');
-  });
-
-  // The lift's shadow does not show on the dark canvas, so in dark mode the
-  // pastel fill itself brightens under the pointer.
-  it('brightens its fill under the pointer in dark mode', () => {
-    renderCard();
-    expect(cardOf('Momo reel')).toHaveClass('dark:[@media(hover:hover)]:hover:brightness-110');
+    expect(cardOf('Momo reel').className).toContain(lift);
   });
 
   // useSortable answers every new items array with an instant transition,
@@ -122,13 +153,11 @@ describe('ContentCard', () => {
     expect(cardOf('Momo reel').style.transition).toBe('');
   });
 
-  it("keeps the drag copy's controls in their place but out of sight", () => {
-    const actions = { onEdit: vi.fn(), onDelete: vi.fn() };
-    const { unmount } = renderCard({ ...actions, isOverlay: true });
-    expect(screen.getByRole('button', { name: 'Edit' }).parentElement).toHaveClass('invisible');
-    unmount();
-    renderCard(actions);
-    expect(screen.getByRole('button', { name: 'Edit' }).parentElement).not.toHaveClass('invisible');
+  it("keeps the room of the menu on the drag copy, with nothing to press", () => {
+    renderCard({ onEdit: vi.fn(), isOverlay: true });
+    const copy = cardOf('Momo reel');
+    expect(copy.querySelector('[data-menu-slot]')).not.toBeNull();
+    expect(copy.querySelectorAll('button')).toHaveLength(0);
   });
 
   it('tilts the copy that follows the pointer during a drag, and straightens it as it settles', () => {
@@ -136,27 +165,31 @@ describe('ContentCard', () => {
     const card = cardOf('Momo reel');
     expect(card.className).toContain('rotate-[1.5deg]');
     expect(card.className).toContain('[.settling_&]:rotate-0');
-    expect(card.className).not.toContain('hover:-translate-y-0.5');
+    expect(card.className).not.toContain(lift);
+  });
+
+  it('shows its stage as a chip that moves it, in a stage grid', async () => {
+    const onMove = vi.fn();
+    render(<ContentCard item={item()} surface="page" showStage onMove={onMove} draggable={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Stage: Review. Change stage' }));
+    expect(screen.getByRole('menuitemradio', { name: 'Review' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Posted' }));
+    expect(onMove).toHaveBeenCalledWith('posted');
   });
 });
 
-// A card that cannot move: on a client's board, and on the phone board. It
-// never registers with dnd-kit, so it needs no DndContext around it.
+// A card that cannot move: on a client's board, and in a stage grid. It never
+// registers with dnd-kit, so it needs no DndContext around it.
 describe('ContentCard that cannot move', () => {
   function renderStatic(props: CardProps = {}) {
     return render(<ContentCard item={item()} {...props} draggable={false} />);
   }
 
-  it('is filled and lifts like any card, but shows no grip', () => {
-    renderStatic({ item: item({ status: 'posted', driveLink: DRIVE }) });
+  it('lifts like any card under a pointer', () => {
+    renderStatic({ item: item({ status: 'posted' }) });
     const card = cardOf('Momo reel');
     expect(card).toHaveAttribute('data-stage', 'posted');
-    expect(card.style.getPropertyValue('--sc-tint')).toBe('#dcf0e1');
     expect(card).toHaveClass(...lift.split(' '), 'cursor-pointer');
-    expect(gripOf(card)).toBeNull();
-    // The same card where it can move does have one.
-    renderCard({ item: item({ id: 'i2', title: 'Board reel', driveLink: DRIVE }) });
-    expect(gripOf(cardOf('Board reel'))).not.toBeNull();
   });
 
   it('opens on Enter and on Space, and Space does not also scroll the column', async () => {
@@ -171,17 +204,12 @@ describe('ContentCard that cannot move', () => {
     expect(fireEvent.keyDown(card, { key: ' ' })).toBe(false);
   });
 
-  it('leaves a key pressed on one of its links to the link', async () => {
+  it('leaves a key pressed on its menu button to the menu', async () => {
     const onCardClick = vi.fn();
     renderStatic({ item: item({ driveLink: DRIVE }), onCardClick });
-    const link = screen.getByRole('link', { name: 'Open in Google Drive' });
-    // jsdom cannot navigate, so the click is recorded and stopped there.
-    const followed = vi.fn((e: Event) => e.preventDefault());
-    link.addEventListener('click', followed);
-    act(() => link.focus());
+    act(() => screen.getByRole('button', { name: 'Momo reel actions' }).focus());
     await userEvent.keyboard('{Enter}');
-    await userEvent.keyboard(' ');
-    expect(followed).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(onCardClick).not.toHaveBeenCalled();
   });
 });

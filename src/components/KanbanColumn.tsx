@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { Plus } from '../icons';
 import { Campaign, ContentItem, ContentStatus } from '../types';
 import {
   boardColumn, columnHeader, columnBody, columnBodyOver, columnBodyPlain, columnAdd,
@@ -30,6 +30,8 @@ interface Props {
   onCardClick: (item: ContentItem) => void;
   onEditCard: (item: ContentItem) => void;
   onDeleteCard: (item: ContentItem) => void;
+  /** Moves a card from its menu, for a move without a drag. */
+  onMoveCard?: (item: ContentItem, status: ContentStatus) => void;
   /** Looks up the campaign a card belongs to, for its label. */
   campaignOf?: (item: ContentItem) => Campaign | undefined;
   /** True when a filter is narrowing the board, which changes what "empty" means. */
@@ -55,6 +57,7 @@ export default function KanbanColumn({
   onCardClick,
   onEditCard,
   onDeleteCard,
+  onMoveCard,
   campaignOf,
   filtered = false,
   draggable = true,
@@ -116,6 +119,7 @@ export default function KanbanColumn({
                 onCardClick={() => onCardClick(item)}
                 onEdit={canEditItem(item) ? () => onEditCard(item) : undefined}
                 onDelete={canDeleteItem(item) ? () => onDeleteCard(item) : undefined}
+                onMove={onMoveCard ? (status) => onMoveCard(item, status) : undefined}
                 draggable={draggable}
               />
             ))

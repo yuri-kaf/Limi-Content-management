@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from '../icons';
 import {
-  page, card, heading, bodyText, faintText, label, input, btnPrimary, btnIcon, inset,
+  page, heading, bodyText, faintText, label, input, btnPrimary, btnIcon,
 } from '../ui';
 
 export default function LoginPage() {
@@ -32,58 +32,56 @@ export default function LoginPage() {
         className={`${btnIcon} fixed top-4 right-4`}
         aria-label="Toggle theme"
       >
-        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
 
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-3">
-            <Logo variant="full" size={92} />
+      <div className="w-full max-w-[420px]">
+        {/* One surface, 28px radius, the way an M3 sign-in sheet sits on the
+            page: the logo, a single headline, the form. */}
+        <div className="bg-raised dark:bg-raised-dark rounded-dialog px-6 py-8 sm:px-10 sm:py-10">
+          <div className="flex flex-col items-center text-center mb-7">
+            <Logo variant="full" size={84} />
+            <h1 className={`${heading} text-[24px] leading-8 font-normal mt-6`}>Sign in</h1>
+            <p className={`text-[13px] mt-1 ${faintText}`}>to the Limi content platform</p>
           </div>
-          <p className={`text-sm ${faintText}`}>Content operations platform</p>
-        </div>
-
-        {/* Card */}
-        <div className={`${card} p-6`}>
-          <h1 className={`${heading} text-lg mb-0.5`}>Sign in</h1>
-          <p className={`text-sm mb-6 ${faintText}`}>Enter your credentials to continue</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className={label}>Email</label>
+              <label htmlFor="login-email" className={label}>Email</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-                className={input}
+                className={`${input} !bg-canvas dark:!bg-canvas-dark`}
               />
             </div>
 
             <div>
-              <label className={label}>Password</label>
+              <label htmlFor="login-password" className={label}>Password</label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
-                className={input}
+                className={`${input} !bg-canvas dark:!bg-canvas-dark`}
               />
             </div>
 
             {notice && !error && (
-              <div className={`${inset} px-3 py-2.5 text-sm ${bodyText}`}>{notice}</div>
+              <div className={`bg-hover dark:bg-hover-dark rounded-tile px-3 py-2.5 text-[13px] ${bodyText}`}>{notice}</div>
             )}
 
             {error && (
               <div
                 role="alert"
-                className="rounded-tile border border-brand/30 dark:border-brand/40 bg-brand-soft dark:bg-brand-softdark px-3 py-2.5 text-sm text-brand-text dark:text-brand-textdark"
+                className="rounded-tile bg-brand-soft dark:bg-brand-softdark px-3 py-2.5 text-[13px] text-brand-on dark:text-brand-ondark"
               >
                 {error}
               </div>
@@ -92,14 +90,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className={`${btnPrimary} w-full mt-1`}
+              className={`${btnPrimary} w-full mt-2`}
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
         </div>
 
-        <p className={`text-center text-xs mt-5 ${faintText}`}>Private access only</p>
+        <p className={`text-center text-[12px] mt-5 ${faintText}`}>Private access only</p>
       </div>
     </div>
   );

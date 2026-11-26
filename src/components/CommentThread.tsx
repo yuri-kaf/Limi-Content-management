@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Send, Clock } from 'lucide-react';
+import { Send, Clock } from '../icons';
 import { useComments, CommentParent } from '../store';
 import { runWrite } from '../utils';
 import {
-  sectionLabel, divider, inset, textarea, faintText, bodyText, heading, btnPrimary,
+  sectionLabel, textarea, faintText, bodyText, heading, btnPrimarySm,
 } from '../ui';
+
+// The m:ss box: a fixed 64px chip, not the full-width field recipe.
+const stampField =
+  'w-16 h-8 rounded-tile bg-canvas dark:bg-raised-dark px-2 text-[12px] text-center tabular-nums text-ink dark:text-ink-dark placeholder-ink-faint dark:placeholder-ink-faintdark border border-transparent focus:outline-none focus-visible:border-focus dark:focus-visible:border-focus-dark aria-[invalid=true]:border-brand-text dark:aria-[invalid=true]:border-brand-textdark';
 
 interface Props {
   clientId: string;
@@ -61,58 +65,67 @@ export default function CommentThread({
   }
 
   return (
-    <div className={divider}>
-      <span className={sectionLabel}>Activity</span>
+    <div className="flex flex-col gap-3">
+      <span className={sectionLabel}>
+        Comments{comments.length > 0 && <span className={`ml-1.5 ${faintText}`}>{comments.filter((c) => c.kind !== 'system').length}</span>}
+      </span>
 
-      <div className="flex flex-col gap-3 mt-3 max-h-64 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto overscroll-contain">
         {loading ? (
-          <p className={`text-xs ${faintText}`}>Loading…</p>
+          <p className={`text-[13px] ${faintText}`}>Loading comments…</p>
         ) : comments.length === 0 ? (
-          <p className={`text-xs italic ${faintText}`}>
-            No comments yet. Feedback and status changes both show up here.
+          <p className={`text-[13px] leading-5 ${faintText}`}>
+            No comments yet. Feedback and stage changes show up here.
           </p>
         ) : (
           comments.map((c) =>
             c.kind === 'system' ? (
-              <p key={c.id} className={`text-[11px] ${faintText}`}>
+              <p key={c.id} className={`text-[12px] ${faintText}`}>
                 <span className={`font-medium ${bodyText}`}>{c.authorName}</span>{' '}
                 {c.body}
                 <span> · {relativeTime(c.createdAt)}</span>
               </p>
             ) : (
-              <div key={c.id} className={`${inset} p-3`}>
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className={`text-xs ${heading}`}>{c.authorName}</span>
-                  {c.atSeconds !== undefined && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-brand-text dark:text-brand-textdark bg-brand-soft dark:bg-brand-softdark px-1.5 py-0.5 rounded">
-                      <Clock size={9} />
-                      {formatTimestamp(c.atSeconds)}
-                    </span>
-                  )}
-                  <span className={`text-[10px] ml-auto ${faintText}`}>
-                    {relativeTime(c.createdAt)}
-                  </span>
+              <div key={c.id} className="flex gap-2.5">
+                <span
+                  aria-hidden
+                  className="w-7 h-7 rounded-full bg-hover dark:bg-hover-dark text-ink-soft dark:text-ink-softdark text-[12px] font-medium flex items-center justify-center flex-shrink-0"
+                >
+                  {(c.authorName || '?').trim().charAt(0).toUpperCase()}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[13px] ${heading}`}>{c.authorName}</span>
+                    <span className={`text-[12px] ${faintText}`}>{relativeTime(c.createdAt)}</span>
+                    {c.atSeconds !== undefined && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-on dark:text-brand-ondark bg-brand-soft dark:bg-brand-softdark px-1.5 h-5 rounded-chip">
+                        <Clock size={12} />
+                        {formatTimestamp(c.atSeconds)}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-[13px] leading-5 whitespace-pre-wrap break-words ${bodyText}`}>
+                    {c.body}
+                  </p>
                 </div>
-                <p className={`text-sm leading-relaxed whitespace-pre-wrap ${bodyText}`}>
-                  {c.body}
-                </p>
               </div>
             )
           )
         )}
       </div>
 
-      <div className="flex items-start gap-2 mt-3">
-        <div className="flex-1 flex flex-col gap-1.5">
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Leave feedback…"
-            rows={2}
-            className={textarea}
-          />
-          {showTimestamp && (
-            <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Add a comment…"
+          aria-label="Add a comment"
+          rows={2}
+          className={`${textarea} !bg-canvas dark:!bg-raised-dark`}
+        />
+        <div className="flex items-center gap-2">
+          {showTimestamp ? (
+            <>
               <input
                 value={stamp}
                 onChange={(e) => setStamp(e.target.value)}
@@ -120,27 +133,29 @@ export default function CommentThread({
                 aria-label="Timestamp"
                 aria-invalid={stampInvalid}
                 aria-describedby={`stamp-hint-${contentId}`}
-                className={`${textarea} w-20 px-2 py-1 text-xs`}
+                className={`${stampField} flex-shrink-0`}
               />
               <span
                 id={`stamp-hint-${contentId}`}
-                className={`text-[10px] ${
+                className={`flex-1 min-w-0 truncate text-[12px] leading-4 ${
                   stampInvalid ? 'text-brand-text dark:text-brand-textdark' : faintText
                 }`}
               >
-                {stampInvalid ? 'Use m:ss, e.g. 0:14' : 'Optional — point at a moment'}
+                {stampInvalid ? 'Use m:ss, e.g. 0:14' : 'Optional: point at a moment'}
               </span>
-            </div>
+            </>
+          ) : (
+            <span className="flex-1" />
           )}
+          <button
+            onClick={handleSend}
+            disabled={!body.trim() || sending || stampInvalid}
+            className={`${btnPrimarySm} flex-shrink-0`}
+          >
+            <Send size={14} />
+            Comment
+          </button>
         </div>
-        <button
-          onClick={handleSend}
-          disabled={!body.trim() || sending || stampInvalid}
-          className={`${btnPrimary} w-11 !px-0 flex-shrink-0`}
-          aria-label="Post comment"
-        >
-          <Send size={14} />
-        </button>
       </div>
     </div>
   );

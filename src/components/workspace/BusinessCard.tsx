@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { Pencil } from '../../icons';
 import { Business } from '../../types';
 import { BusinessSummary } from '../../campaigns';
 import FolderIcon from '../FolderIcon';
@@ -24,7 +24,7 @@ export default function BusinessCard({ business, summary, selected, canManage, o
   return (
     <div
       className={`group relative ${cardInteractive} ${
-        selected ? '!bg-tint dark:!bg-tint-dark !border-ink-faint/50 dark:!border-ink-faintdark/50' : ''
+        selected ? '!bg-brand-soft dark:!bg-brand-softdark' : ''
       }`}
     >
       <button
@@ -53,10 +53,10 @@ export default function BusinessCard({ business, summary, selected, canManage, o
           // would lose anyway (Tailwind orders same-property utilities itself),
           // and 36px is the better target on a phone. pr-12 above keeps the
           // name clear of it.
-          className={`${btnIcon} absolute top-2 right-2 [@media(hover:hover)]:lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100`}
+          className={`${btnIcon} absolute top-2 right-2 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100`}
           aria-label={`Edit ${business.name}`}
         >
-          <Pencil size={13} />
+          <Pencil size={16} />
         </button>
       )}
     </div>

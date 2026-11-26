@@ -52,7 +52,7 @@ describe('list_clients', () => {
       id: 'shopit',
       name: 'Shopit',
       businesses: [{ id: 'main', name: 'Shopit' }, { id: 'nepal', name: 'Shopit Nepal' }],
-      stages: { Editing: 1, Review: 2, 'To Post': 1, Posted: 0, Backup: 0 },
+      stages: { Editing: 1, Review: 2, 'To post': 1, Posted: 0, Backup: 0 },
       awaitingReview: 1,
       overdue: 1,
     });
@@ -64,7 +64,7 @@ describe('list_content', () => {
     const { data } = await call('list_content', { client: 'shopit', when: 'overdue' });
     expect(data.total).toBe(1);
     expect(data.posts[0]).toMatchObject({
-      id: 'dashain', title: 'Dashain recap', stage: 'To Post', late: true,
+      id: 'dashain', title: 'Dashain recap', stage: 'To post', late: true,
       scheduled: { iso: '2026-10-10T09:00+05:45', kathmandu: 'Sat 10 Oct 2026, 9:00 AM', relative: '4 days late' },
     });
   });
@@ -218,7 +218,7 @@ describe('update_content', () => {
 describe('move_content', () => {
   it('moves the post and notes it on the thread', async () => {
     const { text, google } = await call('move_content', { id: 'momo', stage: 'to-post' });
-    expect(text).toBe('Moved Momo reel to To Post.');
+    expect(text).toBe('Moved Momo reel to To post.');
     const ops = google.calls.filter((c) => c.op !== 'get' && c.op !== 'list');
     expect(ops.map((c) => c.op)).toEqual(['update', 'create']);
   });
