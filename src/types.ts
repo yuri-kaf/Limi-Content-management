@@ -199,6 +199,9 @@ export interface Lead {
   tiktok?: string;
   facebook?: string;
   website?: string;
+  /** Any other profile link (LinkedIn, YouTube, X…); Instagram, TikTok and
+   *  Facebook go in their own fields. */
+  social?: string;
   phone?: string;
   /** The phone number takes WhatsApp, so a chat link is offered. */
   whatsapp?: boolean;

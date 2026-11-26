@@ -419,7 +419,7 @@ export function useCampaigns(clientId: string | undefined) {
 const STATUS_LABELS: Record<ContentStatus, string> = {
   editing: 'Editing',
   review: 'Review',
-  'to-post': 'To Post',
+  'to-post': 'To post',
   posted: 'Posted',
   backup: 'Backup',
 };
@@ -1156,7 +1156,7 @@ function leadActivityCol(leadId: string) {
 }
 
 const LEAD_OPTIONAL = [
-  'contactName', 'potential', 'instagram', 'tiktok', 'facebook', 'website', 'phone',
+  'contactName', 'potential', 'instagram', 'tiktok', 'facebook', 'website', 'social', 'phone',
   'whatsapp', 'email', 'industry', 'location', 'followUpOn', 'lostReason',
 ] as const;
 
@@ -1238,11 +1238,14 @@ export function useLeads(enabled = true) {
     return unsubscribe;
   }, [allowed]);
 
+  // The lead and its first log line go in one batch: one round trip instead
+  // of two, which is most of the wait on a phone on mobile data.
   const addLead = useCallback(
     async (draft: LeadDraft) => {
       const ref = doc(leadsCol());
       const now = Date.now();
-      await setDoc(ref, {
+      const batch = writeBatch(db);
+      batch.set(ref, {
         ...leadWrite(draft, false),
         ownerEmail: me.email,
         ownerName: me.name,
@@ -1250,7 +1253,17 @@ export function useLeads(enabled = true) {
         updatedAt: now,
         statusAt: now,
       });
-      await writeLeadActivity(ref.id, `added this lead as ${LEAD_STATUS_LABELS[draft.status]}`, me);
+      const entryId = generateId();
+      const entry: Comment = {
+        id: entryId,
+        kind: 'system',
+        body: `added this lead as ${LEAD_STATUS_LABELS[draft.status]}`,
+        authorEmail: me.email,
+        authorName: me.name,
+        createdAt: now,
+      };
+      batch.set(doc(leadActivityCol(ref.id), entryId), entry);
+      await batch.commit();
       return ref.id;
     },
     [me]

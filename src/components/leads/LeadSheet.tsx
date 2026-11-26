@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
   X, Pencil, Trash2, Instagram, Facebook, Globe, MessageCircle, Phone, Mail, ArrowRight,
-  Handshake, Send,
-} from 'lucide-react';
+  Handshake, Send, Link2,
+} from '../../icons';
 import { Lead, LeadLostReason, LeadPotential, LeadStatus } from '../../types';
 import { useLeadActivity } from '../../store';
 import {
   ago, followUpLabel, leadStatus, lostReasonLabel, primaryHandle, profileUrl, sourceLabel,
-  telUrl, websiteUrl, whatsappUrl,
+  socialLinkLabel, telUrl, websiteUrl, whatsappUrl,
 } from '../../leads';
 import { runWrite } from '../../utils';
 import { FollowUpPicker, LeadStatusSelect, PotentialStars, SourceIcon } from './LeadBits';
@@ -52,6 +52,7 @@ export default function LeadSheet({
     lead.tiktok && { href: profileUrl('tiktok', lead.tiktok), label: 'TikTok', icon: <TikTok /> },
     lead.facebook && { href: profileUrl('facebook', lead.facebook), label: 'Facebook', icon: <Facebook size={13} /> },
     lead.website && { href: websiteUrl(lead.website), label: 'Website', icon: <Globe size={13} /> },
+    lead.social && { href: websiteUrl(lead.social), label: socialLinkLabel(lead.social), icon: <Link2 size={13} /> },
     lead.phone && lead.whatsapp && { href: whatsappUrl(lead.phone), label: 'WhatsApp', icon: <MessageCircle size={13} /> },
     lead.phone && { href: telUrl(lead.phone), label: lead.phone, icon: <Phone size={13} />, self: true },
     lead.email && { href: `mailto:${lead.email}`, label: lead.email, icon: <Mail size={13} />, self: true },
@@ -80,11 +81,11 @@ export default function LeadSheet({
       <div className={sheetPanel} role="dialog" aria-modal="true" aria-labelledby="lead-sheet-title">
         {/* Header */}
         <div className="flex items-start gap-3 p-5 pb-3">
-          <div className="w-10 h-10 rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark flex items-center justify-center text-ink-soft dark:text-ink-softdark flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-hover dark:bg-hover-dark flex items-center justify-center text-ink-soft dark:text-ink-softdark flex-shrink-0">
             <SourceIcon source={lead.source} size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 id="lead-sheet-title" className={`${heading} text-base truncate`}>{lead.name}</h2>
+            <h2 id="lead-sheet-title" className={`${heading} text-[16px] truncate`}>{lead.name}</h2>
             <p className={`text-[12px] truncate ${faintText}`}>
               {[handle && `@${handle.handle}`, lead.industry, lead.location].filter(Boolean).join(' · ') || sourceLabel(lead.source)}
             </p>
@@ -122,7 +123,7 @@ export default function LeadSheet({
           {lead.status === 'onboarded' && lead.clientId && (
             <button
               onClick={() => onOpenClient(lead.clientId!)}
-              className={`flex items-center gap-2 w-full p-3 rounded-tile bg-success-soft dark:bg-success-softdark border border-success/25 text-left text-[13px] font-semibold text-success-text dark:text-success-textdark ${focusRing}`}
+              className={`flex items-center gap-2 w-full p-3 rounded-card bg-success-soft dark:bg-success-softdark text-left text-[13px] font-semibold text-success-text dark:text-success-textdark ${focusRing}`}
             >
               <Handshake size={15} aria-hidden="true" />
               A client now. Open their board
@@ -210,7 +211,7 @@ export default function LeadSheet({
                       {e.body} · {ago(e.createdAt, now)}
                     </li>
                   ) : (
-                    <li key={e.id} className="rounded-tile bg-tint dark:bg-tint-dark border border-hairline dark:border-hairline-dark px-3 py-2">
+                    <li key={e.id} className="rounded-card bg-raised dark:bg-raised-dark px-3 py-2">
                       <p className={`text-[11px] ${faintText}`}>
                         <span className="font-semibold text-ink-soft dark:text-ink-softdark">{e.authorName}</span> · {ago(e.createdAt, now)}
                       </p>

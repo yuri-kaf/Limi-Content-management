@@ -134,6 +134,23 @@ export function profileUrl(field: SocialField, raw: string | undefined): string 
   return handle ? `${SOCIAL_BASE[field]}${handle}` : '';
 }
 
+const SOCIAL_NAMES: [RegExp, string][] = [
+  [/(?:^|\.)linkedin\.com$/i, 'LinkedIn'],
+  [/(?:^|\.)(?:youtube\.com|youtu\.be)$/i, 'YouTube'],
+  [/(?:^|\.)(?:x\.com|twitter\.com)$/i, 'X'],
+  [/(?:^|\.)threads\.(?:net|com)$/i, 'Threads'],
+  [/(?:^|\.)pinterest\.[a-z.]+$/i, 'Pinterest'],
+  [/(?:^|\.)snapchat\.com$/i, 'Snapchat'],
+  [/(?:^|\.)yelp\.[a-z.]+$/i, 'Yelp'],
+];
+
+/** "LinkedIn" for a linkedin.com link: the name the lead's page shows on it. */
+export function socialLinkLabel(raw: string | undefined): string {
+  const url = asUrl((raw ?? '').includes('/') ? raw ?? '' : `${raw ?? ''}/`);
+  const host = url?.hostname ?? '';
+  return SOCIAL_NAMES.find(([re]) => re.test(host))?.[1] ?? 'Profile';
+}
+
 export function websiteUrl(raw: string | undefined): string {
   const value = (raw ?? '').trim();
   if (!value) return '';
@@ -353,7 +370,7 @@ export function matchesQuery(lead: Lead, query: string): boolean {
   const digits = q.replace(/\D/g, '');
   const hay = [
     lead.name, lead.contactName, lead.note, lead.industry, lead.location, lead.email,
-    handleOf(lead.instagram), handleOf(lead.tiktok), handleOf(lead.facebook), lead.website,
+    handleOf(lead.instagram), handleOf(lead.tiktok), handleOf(lead.facebook), lead.website, lead.social,
   ].map((s) => (s ?? '').toLowerCase());
   if (hay.some((s) => s.includes(q))) return true;
   return digits.length >= 4 && phoneKey(lead.phone).includes(digits);

@@ -2,7 +2,7 @@ import { contrastRatio } from './color';
 import {
   LEAD_STATUSES, addDays, addMonths, findDuplicates, followUpLabel, followUpState, handleOf,
   inView, leadsDue, matchesQuery, nameFromHandle, parseProfileInput, phoneKey, primaryHandle,
-  profileUrl, sortLeads, whatsappUrl,
+  profileUrl, socialLinkLabel, sortLeads, whatsappUrl,
 } from './leads';
 import { Lead } from './types';
 
@@ -207,5 +207,17 @@ describe('lead status pills meet WCAG AA', () => {
   it.each(LEAD_STATUSES)('$label reads in both themes', (s) => {
     expect(contrastRatio(s.text, s.tint)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(s.textDark, s.tintDark)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('socialLinkLabel', () => {
+  it.each([
+    ['https://www.linkedin.com/in/sarahlee', 'LinkedIn'],
+    ['youtube.com/@glowspa', 'YouTube'],
+    ['x.com/glowspa', 'X'],
+    ['https://www.yelp.com/biz/glow-spa', 'Yelp'],
+    ['example.org/me', 'Profile'],
+  ])('%s → %s', (url, name) => {
+    expect(socialLinkLabel(url)).toBe(name);
   });
 });
