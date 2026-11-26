@@ -1,6 +1,6 @@
 import { contrastRatio } from './color';
 import {
-  LEAD_STATUSES, addDays, addMonths, findDuplicates, followUpLabel, followUpState, handleOf,
+  LEAD_STATUSES, addDays, addedBy, leadAdders, addMonths, findDuplicates, followUpLabel, followUpState, handleOf,
   inView, leadsDue, matchesQuery, nameFromHandle, parseProfileInput, phoneKey, primaryHandle,
   profileUrl, socialLinkLabel, sortLeads, whatsappUrl,
 } from './leads';
@@ -219,5 +219,28 @@ describe('socialLinkLabel', () => {
     ['example.org/me', 'Profile'],
   ])('%s → %s', (url, name) => {
     expect(socialLinkLabel(url)).toBe(name);
+  });
+});
+
+describe('addedBy', () => {
+  it('uses the name, then the email local part', () => {
+    expect(addedBy({ ownerName: 'Ichchha', ownerEmail: 'i@limi.test' })).toBe('Ichchha');
+    expect(addedBy({ ownerName: '  ', ownerEmail: 'sachit@limi.test' })).toBe('sachit');
+  });
+});
+
+describe('leadAdders', () => {
+  const a = { ownerName: 'Ashim', ownerEmail: 'a@limi.test' };
+  const i = { ownerName: 'Ichchha', ownerEmail: 'i@limi.test' };
+  const s = { ownerName: 'Sachit', ownerEmail: 's@limi.test' };
+  it('lists each person once with a count, most leads first', () => {
+    expect(leadAdders([s, i, i, a, i, s])).toEqual([
+      { email: 'i@limi.test', name: 'Ichchha', count: 3 },
+      { email: 's@limi.test', name: 'Sachit', count: 2 },
+      { email: 'a@limi.test', name: 'Ashim', count: 1 },
+    ]);
+  });
+  it('puts me first whatever my count', () => {
+    expect(leadAdders([i, i, a], 'a@limi.test').map((x) => x.name)).toEqual(['Ashim', 'Ichchha']);
   });
 });

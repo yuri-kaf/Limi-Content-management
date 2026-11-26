@@ -7,7 +7,7 @@ import { useClients, useLeads } from '../store';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LEAD_SORTS, LEAD_SOURCES, LEAD_STATUSES, LEAD_VIEWS, ago, dayOf, inView, isDue, leadStatus,
-  matchesQuery, primaryHandle, profileUrl, sortLeads, whatsappUrl, addMonths,
+  addedBy, leadAdders, matchesQuery, primaryHandle, profileUrl, sortLeads, whatsappUrl, addMonths,
   type LeadSort, type LeadView,
 } from '../leads';
 import { runWrite } from '../utils';
@@ -138,11 +138,7 @@ export default function LeadsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const owners = useMemo(() => {
-    const map = new Map<string, string>();
-    leads.forEach((l) => map.set(l.ownerEmail, l.ownerName));
-    return [...map.entries()];
-  }, [leads]);
+  const owners = useMemo(() => leadAdders(leads, currentUser?.email), [leads, currentUser?.email]);
 
   const counts = useMemo(() => {
     const c = {} as Record<LeadView, number>;
@@ -242,7 +238,7 @@ export default function LeadsPage() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className={`${shellPad} max-w-[1240px] py-6`}>
+      <div className={`${shellPad} py-6`}>
         {/* Header: the top bar already names the page, so this is just the
             numbers and the one action. */}
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -317,14 +313,16 @@ export default function LeadsPage() {
             <option value="2+">★★ and up</option>
             <option value="unrated">Not rated</option>
           </ToolbarSelect>
-          {owners.length > 1 && (
-            <ToolbarSelect value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Owner">
-              <option value="all">Everyone</option>
-              {owners.map(([email, name]) => (
-                <option key={email} value={email}>{email === currentUser?.email ? `Mine (${name})` : name}</option>
-              ))}
-            </ToolbarSelect>
-          )}
+          {/* Always there, so the team learns where it is, even while one
+              person has added every lead. */}
+          <ToolbarSelect value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Added by">
+            <option value="all">Added by anyone</option>
+            {owners.map((o) => (
+              <option key={o.email} value={o.email}>
+                {o.email === currentUser?.email ? `Added by me` : `Added by ${o.name}`} ({o.count})
+              </option>
+            ))}
+          </ToolbarSelect>
           <ToolbarSelect value={sort} onChange={(e) => setSort(e.target.value as LeadSort)} aria-label="Sort">
             {LEAD_SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </ToolbarSelect>
@@ -429,6 +427,7 @@ export default function LeadsPage() {
                     <span className={`w-[118px] pl-2.5 text-[12px] font-medium ${faintText}`}>Status</span>
                     <span className={`w-[72px] text-[12px] font-medium ${faintText}`}>Potential</span>
                     <span className={`w-[118px] pl-2.5 text-[12px] font-medium ${faintText}`}>Follow up</span>
+                    <span className={`hidden lg:inline w-[88px] pl-2 text-[12px] font-medium ${faintText}`}>Added by</span>
                     <span className={`hidden lg:inline w-14 text-right text-[12px] font-medium ${faintText}`}>Updated</span>
                     <span className="w-[68px]" />
                   </div>
@@ -556,6 +555,8 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
   const handle = primaryHandle(lead);
   const closed = leadStatus(lead.status).group === 'closed';
   const due = isDue(lead, today);
+  // First name only: the sub line truncates and the column is narrow.
+  const by = addedBy(lead).split(' ')[0];
   const sub = [handle && `@${handle.handle}`, lead.industry, lead.location].filter(Boolean).join(' · ');
   const profile = handle ? profileUrl(handle.field, handle.handle) : '';
   const wa = lead.whatsapp ? whatsappUrl(lead.phone) : '';
@@ -600,7 +601,14 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
             </button>
             <span className="md:hidden flex-shrink-0"><PotentialStars value={lead.potential} size={11} /></span>
           </div>
-          {sub && <p className={`text-[12px] truncate ${faintText}`}>{sub}</p>}
+          {/* Who added it rides on the sub line below lg, where there's no
+              Added by column. */}
+          {(sub || by) && (
+            <p className={`text-[12px] truncate ${faintText}`}>
+              {sub}
+              <span className="lg:hidden">{sub ? ' · ' : ''}by {by}</span>
+            </p>
+          )}
         </div>
 
         {lead.note ? (
@@ -625,6 +633,9 @@ function LeadRow({ lead, today, now, selected, onToggle, onOpen, onStatus, onPot
                 quietWhenEmpty
               />
             )}
+          </span>
+          <span className={`hidden lg:inline w-[88px] pl-2 truncate text-[12px] ${bodyText}`} title={`Added by ${lead.ownerName || lead.ownerEmail}`}>
+            {by}
           </span>
           <span className={`hidden lg:inline w-14 text-right text-[11px] tabular-nums ${faintText}`} title="Last updated">
             {ago(lead.updatedAt, now)}

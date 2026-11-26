@@ -364,6 +364,32 @@ export function inView(lead: Lead, view: LeadView, today: string): boolean {
   }
 }
 
+/** Who added the lead, for the list and the "Added by" filter. Older leads
+ *  written without a name fall back to the email's local part. */
+export function addedBy(lead: Pick<Lead, 'ownerName' | 'ownerEmail'>): string {
+  return (lead.ownerName ?? '').trim() || (lead.ownerEmail ?? '').split('@')[0] || 'Unknown';
+}
+
+/** Everyone who has added a lead, for the "Added by" filter: you first, then
+ *  whoever added the most, then by name. One entry per email. */
+export function leadAdders(
+  leads: Pick<Lead, 'ownerName' | 'ownerEmail'>[],
+  myEmail?: string,
+): { email: string; name: string; count: number }[] {
+  const map = new Map<string, { email: string; name: string; count: number }>();
+  for (const l of leads) {
+    const hit = map.get(l.ownerEmail);
+    if (hit) hit.count++;
+    else map.set(l.ownerEmail, { email: l.ownerEmail, name: addedBy(l), count: 1 });
+  }
+  return [...map.values()].sort(
+    (a, b) =>
+      Number(b.email === myEmail) - Number(a.email === myEmail) ||
+      b.count - a.count ||
+      a.name.localeCompare(b.name),
+  );
+}
+
 export function matchesQuery(lead: Lead, query: string): boolean {
   const q = query.trim().toLowerCase().replace(/^@/, '');
   if (!q) return true;
